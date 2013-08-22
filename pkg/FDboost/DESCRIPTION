@@ -1,0 +1,23 @@
+Package: FDboost
+Type: Package
+Title: Boosting functional regression models
+Version: 0.0-1
+Date: 2013-04-29
+Author: Sarah Brockhaus
+Maintainer: Sarah Brockhaus <Sarah.Brockhaus@stat.uni-muenchen.de>
+Description: Boosting functional regression models
+Depends:
+    R (>= 2.10.0),
+    mboost
+Imports:
+    Matrix,
+    mgcv
+License: GPL-2
+Packaged: 2013-04-30 08:41:28 UTC; brockhaus
+Collate:
+    'FDboost.R'
+    'baselearners.R'
+    'crossvalidation.R'
+    'methods.R'
+    'bkroneckerTrafo.R'
+    'utilityFunctions.R'

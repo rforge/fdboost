@@ -1,0 +1,30 @@
+\name{funplot}
+\alias{funplot}
+\title{Plot functional data with linear interpolation of missing values}
+\usage{
+  funplot(x, y, rug = TRUE, ...)
+}
+\arguments{
+  \item{x}{optional, time-vector for plotting}
+
+  \item{y}{matrix of functional data with functions in rows
+  and measured times in columns}
+
+  \item{rug}{logical. Should rugs be plotted? Defaults to
+  TRUE.}
+
+  \item{...}{further arguments passed to
+  \code{\link[graphics]{matplot}}.}
+}
+\description{
+  Plot functional data with linear interpolation of missing
+  values
+}
+\details{
+  All observations are marked by a small cross
+  (\code{pch=3}). Missing values are imputed by linear
+  interpolation. Parts that are interpolated are plotted by
+  dotted lines, parts with nonmissing values as solid
+  lines.
+}
+

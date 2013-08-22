@@ -1,0 +1,60 @@
+\name{coef.FDboost}
+\alias{coef.FDboost}
+\title{Coefficients of boosted functional regression model}
+\usage{
+  \method{coef}{FDboost} (object, raw = FALSE,
+    which = NULL, n1 = 100, n2 = 40, n3 = 20, n4 = 10, ...)
+}
+\arguments{
+  \item{object}{a fitted \code{FDboost}-object}
+
+  \item{raw}{logical defaults to FALSE. If raw=FALSE for
+  each effect the estimated function/surface is calcuated
+  If raw=TRUE the coefficients of the model are returned.}
+
+  \item{which}{a subset of base-learners for which the
+  coefficients should be computed (numeric vector),
+  defaults to NULL which is the same as
+  \code{which=1:length(object$baselearner)} In the special
+  case of \code{which=0}, only the coefficients of the
+  offset are returned.}
+
+  \item{n1}{see below}
+
+  \item{n2}{see below}
+
+  \item{n3}{n1, n2, n3 give the number of gridpoints for
+  1-/2-/3-dimensional smooth terms used in the marginal
+  equidistant grids over the range of the covariates at
+  which the estimated effects are evaluated.}
+
+  \item{n4}{gives the number of points for the third
+  dimension in a 3-dimensional smooth term}
+
+  \item{...}{other arguments, not used.}
+}
+\value{
+  If \code{raw==FALSE}, a list containing \itemize{ \item
+  \code{pterms} a matrix containing the parametric /
+  non-functional coefficients \item \code{smterms} a named
+  list with one entry for each smooth term in the model.
+  Each entry contains \itemize{ \item \code{x, y, z} the
+  unique gridpoints used to evaluate the smooth/coefficient
+  function/coefficient surface \item \code{xlim, ylim,
+  zlim} the extent of the x/y/z-axes \item \code{xlab,
+  ylab, zlab} the names of the covariates for the
+  x/y/z-axes \item \code{value} a vector/matrix/list of
+  matrices containing the coefficient values \item
+  \code{dim} the dimensionality of the effect \item
+  \code{main} the label of the smooth term (a short label)
+  }}
+}
+\description{
+  Takes a fitted \code{FDboost}-object produced by
+  \code{\link{FDboost}()} and returns estimated coefficient
+  functions/surfaces \eqn{\beta(t), \beta(s,t)} and
+  estimated smooth effects \eqn{f(z), f(x,z)} or \eqn{f(x,
+  z, t)}. Not implemented for smooths in more than 3
+  dimensions.
+}
+

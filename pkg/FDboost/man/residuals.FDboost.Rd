@@ -1,0 +1,26 @@
+\name{residuals.FDboost}
+\alias{residuals.FDboost}
+\title{Residual values of a boosted functional regression model}
+\usage{
+  \method{residuals}{FDboost} (object, ...)
+}
+\arguments{
+  \item{object}{a fitted \code{FDboost}-object}
+
+  \item{...}{not used}
+}
+\value{
+  matrix of residual values
+}
+\description{
+  Takes a fitted \code{FDboost}-object and computes the
+  residuals.
+}
+\details{
+  The residual is missing if the correspondig value of the
+  response was missing.
+}
+\seealso{
+  \code{\link{FDboost}} for the model fit.
+}
+

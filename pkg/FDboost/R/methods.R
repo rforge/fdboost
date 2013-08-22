@@ -1,0 +1,897 @@
+#' Summary of a boosted functional regression model 
+#' 
+#'  Takes a fitted \code{FDboost}-object and produces a summary.
+#' 
+#' @param object a fitted \code{FDboost}-object
+#' @param ... currently not used
+#' @seealso \code{\link{FDboost}} for the model fit.
+#' @return a list with summary information 
+#' @method summary FDboost
+#' @export
+### similar to summary.mboost()
+summary.FDboost <- function(object, ...) {
+  
+  ret <- list(object = object, selprob = NULL)
+  xs <- selected(object)
+  nm <- variable.names(object)
+  selprob <- tabulate(xs, nbins = length(nm)) / length(xs)
+  names(selprob) <- names(nm)
+  selprob <- sort(selprob, decreasing = TRUE)
+  ret$selprob <- selprob[selprob > 0]
+  class(ret) <- "summary.FDboost"
+  
+  ### only show one unique offset value
+  #ret$object$offset <- unique(ret$object$offset)
+  
+  return(ret)
+}
+
+#' Print a boosted functional regression model 
+#' 
+#'  Takes a fitted \code{FDboost}-object and produces a print on the console.
+#' 
+#' @param x a fitted \code{FDboost}-object
+#' @param ... currently not used
+#' @seealso \code{\link{FDboost}} for the model fit.
+#' @return a list with information on the model 
+#' @method print FDboost
+#' @export
+### similar to print.mboost()
+print.FDboost <- function(x, ...) {
+  
+  cat("\n")
+  cat("\t Model-based Boosting with Functional Response\n")
+  cat("\n")
+  if (!is.null(x$call))
+    cat("Call:\n", deparse(x$call), "\n\n", sep = "")
+  show(x$family)
+  cat("\n")
+  cat("Number of boosting iterations: mstop =", mstop(x), "\n")
+  cat("Step size: ", x$control$nu, "\n")
+  
+  if(length(unique(x$offset))<10){
+    cat("Offset: ", round(unique(x$offset), 3), "\n")
+  }else{
+    cat("Offset: ", round(unique(x$offset), 3)[1:3], "..." ,
+        round(unique(x$offset), 3)[length(unique(x$offset))-3+1:3], "\n")
+  }
+
+  cat("Number of baselearners: ", length(variable.names(x)), "\n")
+  cat("\n")
+  invisible(x)
+  
+}
+
+
+#' Prediction for boosted functional regression model 
+#' 
+#'  Takes a fitted \code{FDboost}-object produced by \code{\link{FDboost}()} and produces 
+#'  predictions given a new set of values for the model covariates or the original 
+#'  values used for the model fit. This is a wrapper
+#'  function for \code{\link[mboost]{predict.mboost}()}
+#' 
+#' @param object a fitted \code{FDboost}-object
+#' @param newdata  A named list or a data frame containing the values of the model 
+#' covariates at which predictions are required.
+#' If this is not provided then predictions corresponding to the original data are returned. 
+#' If \code{newdata} is provided then it should contain all the variables needed for 
+#' prediction, in the format supplied to \code{FDboost}, i.e., 
+#' functional predictors must be supplied as matrices with each row corresponding to 
+#' one observed function.
+#' @param which a subset of base-learners to take into account for computing predictions 
+#' or coefficients. If which is given (as an integer vector corresponding to base-learners) 
+#' a list is returned. 
+#' @param unlist logical, defaults to TRUE. Should predictions be returned in matrix form 
+#' (default) or as a list 
+#' @param ...  additional arguments passed on to \code{\link[mboost]{predict.mboost}()}.
+#' 
+#' @seealso \code{\link{FDboost}} for the model fit 
+#' and \code{\link{plotPredicted}} for a plot of the observed values and their predictions.
+#' @return a matrix or list of predictions depending on values of unlist and which 
+#' @method predict FDboost
+#' @export
+# predict function: wrapper for predict.mboost()
+## <TODO> check which
+## <TODO> check unlist
+predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...) {
+  stopifnot(any(class(object)=="FDboost")) 
+  # print("Prediction FDboost") 
+  
+  class(object) <- "mboost"
+  
+  ### Prepare data so that the function predict.mboost() can be used
+  if(!is.null(newdata)){
+    
+    # check class of elements in newdata: objects of class "matrix" have to be saved "AsIs"
+    if(class(newdata) != "data.frame"){
+      newdata <- lapply(newdata, function(x) if(class(x)=="matrix") return(I(x)) else return(x)  )      
+    } 
+    
+    # FIXME: allow for more general which in combination with newdata
+    if(length(which)>1) stop("If newdata not equals NULL only which=NULL or which of length 1 can be specified.")
+    
+    # dummy variable to fit the intercept
+    n <- NROW(newdata[[1]])
+    newdata[["ONEx"]] <- rep(1.0, n)
+    
+    # save time-variable (index over reponse)
+    nameyind <- attr(object$yind, "nameyind")
+    lengthYind <- length(newdata[[nameyind]])
+    if(lengthYind==0) stop("Index of response, ", nameyind, ", 
+                           must be specified and have length >0.")
+    assign(nameyind, newdata[[nameyind]])
+    newdata$ONEtime <- rep(1.0, lengthYind)
+    
+    # In the case of bsignal() and bconcurrent() it is necessary 
+    # to add the index of the signal-matrix as attribute
+    posBsignal <- grep("bsignal", names(object$baselearner))
+    posBconc <- grep("bconcurrent", names(object$baselearner))
+    whichHelp <- which
+    if(is.null(which)) whichHelp <- 1:length(object$baselearner)
+    posBsignal <- whichHelp[whichHelp %in% posBsignal]
+    posBconc <- whichHelp[whichHelp %in% posBconc]
+    newdataConc <- list() # data to predict concurrent effect
+    if(length(c(posBsignal, posBconc))>0){
+      #if(!is.list(newdata)) newdata <- list(newdata)
+      for(i in c(posBsignal, posBconc)){
+        form <- strsplit(object$baselearner[[i]]$get_call(), "%O%")[[1]][1]
+        form <- substr(form, 2, nchar(form))
+        formula_help <- formula(paste("resHelp ~", form))
+        xname <- all.vars(formula_help)[2]
+        indname <- if(length(all.vars(formula_help))==3) all.vars(formula_help)[3] else "xindDefault" 
+        
+        if(length(newdata[[indname]])!=ncol(newdata[[xname]])){
+          stop(paste("Dimensions of index", indname, "and signal", xname, "do not match."))
+        } 
+        
+        attr(newdata[[xname]], "indname") <- indname
+        attr(newdata[[xname]], "xname") <- xname
+        attr(newdata[[xname]], "signalIndex") <-  if(indname!="xindDefault") newdata[[indname]] else seq(0,1,l=ncol(newdata[[xname]]))
+        
+        # save data of concurrent effects
+        if(i %in% posBconc) newdataConc[[xname]] <- newdata[[xname]]
+        
+        ## delete signalIndex if newdata is a list 
+        # - not a good idea if you have the same index for several functional covariates
+        #if(!is.data.frame(newdata) & grepl("signal", form) ){
+        #  newdata <- newdata[-which(names(newdata)==indname)]
+        #} 
+      }
+    }
+    
+    ## Check dimensions of newdata
+    #if(length(unique(sapply(newdata, NROW))) != 1){
+    #  stop(paste("Dimensions of newdata do not match:", 
+    #             paste(names(newdata), sapply(newdata, NROW), sep=": ", collapse=", ")))
+    #}
+    
+    ### <ToDo> check compatibility of type = c("link", "response", "class")
+    ### and aggregate = c("sum", "cumsum", "none") when they are not in the default!
+    
+    # Predict concurrent effect extra
+    predMboostConc <- 0
+    if(length(posBconc) > 0){ 
+      if(length(unique(sapply(newdataConc, NROW))) != 1) stop(paste("Dimensions of newdata do not match:", 
+                                                                    paste(names(newdataConc), sapply(newdataConc, NROW), sep=": ", collapse=", ")))
+      predMboostConc <- rowSums(predict(object=object, newdata=as.data.frame(newdataConc), 
+                                        which=posBconc, ...))
+      whichHelp <- whichHelp[-which(whichHelp %in% posBconc)]
+    }
+    
+    # Predict effect of offset
+    predOffset <- object$offsetVec # offset is just an integer 
+    #if(1 %in% whichHelp && grepl("ONEx", names(object$baselearner)[[1]])){
+    if(length(object$offsetVec)>1){ # offset is a smooth function
+      predOffset <- rep(object$predictOffset(newdata[[nameyind]]), each=n) 
+      names(predOffset) <- NULL
+    }
+            
+    # Prediction using the function predict.mboost() without concurrent effects
+    predMboost0 <- 0
+    if(length(whichHelp) > 0){
+      predMboost0 <- rowSums(predict(object=object, newdata=newdata, which=whichHelp, ...))
+    }
+    
+    if(length(predMboostConc)!=1 & length(predMboost0)!=1) stopifnot(dim(predMboostConc)==dim(predMboost0))
+    
+    # Sum up the prediction of the offset, concurrent effects and other effects
+    # if the whole model is predicted
+    if(is.null(which)){
+      predMboost <-  predMboost0 + predMboostConc + predOffset
+    }else{
+      predMboost <-  predMboost0 + predMboostConc
+      attr(predMboost, "offset") <- predOffset
+        #matrix(predOffset, ncol=ncol(predMboost)) 
+    }  
+    
+#     # add the scalar offset in the case that the intercept is part of the prediction
+#     if(length(predOffset) == 1 && 
+#          ( 1 %in% whichHelp && grepl("ONEx", names(object$baselearner)[[1]])  ){
+#       predMboost <- predMboost + object$offset
+#     } 
+            
+  }else{ # is.null(newdata)
+    n <- object$ydim[1]
+    lengthYind <- object$ydim[2] 
+
+    # predict.mboost() does not like a 0 in which
+    if(length(which)>1 && 0 %in% which){
+      which <- which[which!=0]
+      predMboost <- predict(object=object, newdata=NULL, which=which, ...) #
+    }
+    
+    # Prediction using the function predict.mboost() 
+    predMboost <- predict(object=object, newdata=NULL, which=which, ...)
+    ## <SB> as newdata=NULL, the offset of the original model is correct for the prediction
+    
+#     # add the scalar offset in the case that the intercept is part of the prediction
+#     if(length(predOffset) == 1 && 
+#          ( 1 %in% whichHelp && grepl("ONEx", names(object$baselearner)[[1]])  ){
+#            predMboost <- predMboost + object$offset
+#          }     
+  }
+  
+  # save the offset as matrix if it isa vector
+  offsetTemp <- attr(predMboost, "offset")
+    
+  ### Reshape prediction of mboost for FDboost
+  if(!is.list(predMboost)){
+    predMboost <- list(predMboost)
+    listByHand <- TRUE
+  }else listByHand <- FALSE
+  
+  # Reshape prediciton in vector to the prediction as matrix
+  reshapeToMatrix <- function(pred){
+    if(length(pred)==1) return(pred)
+    if(is.matrix(pred)){
+      fit <- list()
+      # reshape the fit into a list of matrices
+      for(terms in 1:ncol(pred)){
+        fit[[terms]] <- matrix(pred[,terms], 
+                               nrow=n, ncol=lengthYind, byrow=FALSE)
+      }
+      names(fit) <- colnames(pred)
+    }else{
+      fit <- list(matrix(pred, nrow=n, ncol=lengthYind, byrow=FALSE))
+    }                   
+    return(fit)    
+  }
+  
+  ret <- vector("list", length=length(predMboost))
+  for(i in 1:length(predMboost)){
+    ret[[i]] <- reshapeToMatrix(pred=predMboost[[i]])
+  } 
+  if(listByHand)  ret <- unlist(ret, recursive=FALSE)
+  if(unlist & length(ret)==1) ret <- ret[[1]]
+  if(is.null(names(ret)) & length(ret)==length(predMboost)) names(ret) <- names(predMboost)
+  if(!is.null(which)) attr(ret, "offset") <- reshapeToMatrix(offsetTemp)[[1]]
+  return(ret) 
+}
+
+
+#' Fitted values of a boosted functional regression model 
+#' 
+#'  Takes a fitted \code{FDboost}-object and computes the fitted values.
+#' 
+#' @param object a fitted \code{FDboost}-object
+#' @param ... additional arguments passed on to \code{\link{predict.FDboost}}
+#' 
+#' @seealso \code{\link{FDboost}} for the model fit.
+#' @return matrix of fitted values
+#' @method fitted FDboost
+#' @export
+### similar to fitted.mboost() but returns the fitted values as matrix
+fitted.FDboost <- function(object, ...) {
+  args <- list(...)
+  if (length(args) == 0) {
+    ret <- matrix(object$fitted(), nrow=object$ydim[1])
+  } else {
+    ret <- predict(object, newdata=NULL, ...)
+  }
+  ret
+}
+ 
+#' Residual values of a boosted functional regression model 
+#' 
+#' Takes a fitted \code{FDboost}-object and computes the residuals.
+#' 
+#' @param object a fitted \code{FDboost}-object
+#' @param ... not used
+#' 
+#' @details The residual is missing if the correspondig value of the response was missing.
+#' @seealso \code{\link{FDboost}} for the model fit.
+#' @return matrix of residual values
+#' @method residuals FDboost
+#' @export
+### residuals (the current negative gradient)
+residuals.FDboost <- function(object, ...){
+  resid <- matrix(object$resid(), nrow=object$ydim[1])
+  resid[is.na(object$response)] <- NA 
+  resid
+}
+
+
+#' Coefficients of boosted functional regression model 
+#' 
+#' Takes a fitted \code{FDboost}-object produced by \code{\link{FDboost}()} and 
+#' returns estimated coefficient functions/surfaces \eqn{\beta(t), \beta(s,t)} and 
+#' estimated smooth effects \eqn{f(z), f(x,z)} or \eqn{f(x, z, t)}. 
+#' Not implemented for smooths in more than 3 dimensions.
+#' 
+#' @param object a fitted \code{FDboost}-object
+#' @param raw  logical defaults to FALSE.
+#' If raw=FALSE for each effect the estimated function/surface is calcuated
+#' If raw=TRUE the coefficients of the model are returned. 
+#' @param which a subset of base-learners for which the coefficients
+#' should be computed (numeric vector), 
+#' defaults to NULL which is the same as \code{which=1:length(object$baselearner)}
+#' In the special case of \code{which=0}, only the coefficients of the offset are returned.
+#' @param n1 see below
+#' @param n2 see below
+#' @param n3 n1, n2, n3 give the number of gridpoints for 1-/2-/3-dimensional 
+#' smooth terms used in the marginal equidistant grids over the range of the 
+#' covariates at which the estimated effects are evaluated.
+#' @param n4 gives the number of points for the third dimension in a 3-dimensional smooth term
+#' @param ... other arguments, not used.
+#' 
+#' @return If \code{raw==FALSE}, a list containing 
+#' \itemize{
+#'  \item \code{pterms} a matrix containing the parametric / non-functional coefficients 
+#'  \item \code{smterms} a named list with one entry for each smooth term in the model. 
+#'  Each entry contains
+#'     \itemize{
+#'          \item \code{x, y, z} the unique gridpoints used to evaluate the smooth/coefficient function/coefficient surface
+#'          \item \code{xlim, ylim, zlim} the extent of the x/y/z-axes
+#'          \item \code{xlab, ylab, zlab} the names of the covariates for the x/y/z-axes
+#'          \item \code{value} a vector/matrix/list of matrices containing the coefficient values 
+#'          \item \code{dim} the dimensionality of the effect
+#'          \item \code{main} the label of the smooth term (a short label)
+#' }} 
+#' @method coef FDboost
+#' @export
+### similar to coef.pffr() by Fabian Scheipl in package refund 
+coef.FDboost <- function(object, raw=FALSE, which=NULL, 
+                         n1=100, n2=40, n3=20, n4=10,...){
+  if(raw){
+    return(object$coefficients)  
+  } else {
+    
+    # delete an extra 0 in which as the offset is always returned
+    if( length(which) > 1 && 0 %in% which) which <- which[which!=0]
+    
+    # List to be returned
+    ret <- list()
+    
+    ## <FIXME> all linear terms should be part of pterms?
+    # ret$pterms <- NULL 
+    
+    ## offset as first element
+    ret$offset$x <- seq( min(object$yind), max(object$yind), l=n1)
+    ret$offset$xlab <- attr(object$yind, "nameyind")
+    ret$offset$xlim <- range(object$yind)
+    ret$offset$value <- object$predictOffset(ret$offset$x)
+    if(length(ret$offset$value)==1) ret$offset$value <- rep(ret$offset$value, n1)
+    ret$offset$dim <- 1
+    ret$offset$main <- "offset"
+    
+    # For the special case of which=0, only return the coefficients of the offset
+    if(!is.null(which) & length(which)==1 && which==0) return(ret)
+    
+    getCoefs <- function(i){
+      ## this constructs a grid over the range of the covariates
+      ## and returns estimated values on this grid, with 
+      ## by-variables set to 1
+      ## cf. mgcv:::plots.R (plot.mgcv.smooth etc..) for original code
+      
+      safeRange <- function(x){
+        if(is.factor(x)) return(c(NA, NA))
+        return(range(x, na.rm=TRUE))
+      }
+      
+      makeDataGrid <- function(trm){        
+        ### <TODO>  delete attr(d, "xm") <- xg and change code accordingly
+        varnms <- trm$get_names()
+        yListPlace <- NULL
+        zListPlace <- NULL
+        
+        #generate grid of values in range of original data
+        if(trm$dim==1){
+          ng <- n1
+          varnms <- varnms[-which(varnms %in% c("ONEx", "ONEtime")) ] 
+          # Extra setup of dataframe in the case of a functional covariate
+          if(grepl("bsignal", trm$get_call()) | grepl("bconcurrent", trm$get_call())){
+            x <- attr(trm$model.frame()[[1]], "signalIndex")
+            xg <- seq(min(x), max(x),length=ng) 
+            varnms[1] <- attr(trm$model.frame()[[1]], "indname")            
+          }else{
+            x <- trm$model.frame()[[varnms]]
+            xg <- if(is.factor(x)) {
+              unique(x)
+            } else seq(min(x), max(x), length=ng)
+          }
+          d <- list(xg)  # data.fame
+          names(d) <- varnms
+          attr(d, "xm") <- xg
+          attr(d, "xname") <- varnms
+          # For effect constant over index of response: add dummy-index so that length in clear
+          if(attr(object$yind, "nameyind") != varnms) d[[attr(object$yind, "nameyind")]] <- 1:n1          
+        }        
+        
+        if(trm$dim > 1){          
+          ng <- ifelse(trm$dim==2, n2, n3)           
+          
+          ### get variables for x, y and eventually z direction
+          
+          # Extra setup of dataframe in the case of a functional covariate
+          if(grepl("bsignal", trm$get_call())){
+            x <- attr(trm$model.frame()[[1]], "signalIndex")
+            xg <- seq(min(x), max(x),length=ng) 
+            varnms[1] <- attr(trm$model.frame()[[1]], "indname")            
+          }else{ # scalar covariate
+            x <- trm$model.frame()[[1]]
+            xg <- if(is.factor(x)) {
+              unique(x)
+            } else seq(min(x), max(x),length=ng)            
+          }
+          yListPlace <- ifelse(grepl("by", trm$get_call()), 3, 2) 
+          y <- trm$model.frame()[[yListPlace]] # index of response or second scalar covariate
+          yg <- if(is.factor(y)) {
+            unique(y)
+          } else seq(min(y), max(y),length=ng)
+          if(length(varnms)==2){
+            d <- list(xg, yg)  # data.frame
+            attr(d, "xm") <- xg
+            attr(d, "ym") <- yg    
+          } else {
+            zListPlace <- ifelse(grepl("by", trm$get_call()), 2, 3)
+            z <- trm$model.frame()[[zListPlace]]
+            zg <- if(is.factor(z)) {
+              unique(z)
+            }else ifelse(grepl("by", trm$get_call()), 1, seq(min(z), max(z), length=ng)) 
+            d <- list(xg, yg, zg)  # data.frame
+            # special case of factor by-variable 
+            if(grepl("by", trm$get_call()) && grepl("bols", trm$get_call()) && is.factor(z)){
+              d <- list(rep(xg, length(yg)), rep(yg, each=length(xg)), zg)
+            }
+            attr(d, "xm") <- d[[1]]
+            attr(d, "ym") <- d[[2]]
+            attr(d, "zm") <- d[[3]]
+          }
+          names(d) <- varnms[c(1, yListPlace, zListPlace)] # colnames(d) <- varnms
+          attr(d, "varnms") <- varnms[c(1, yListPlace, zListPlace)] 
+        }
+        ## add dummy signal to data
+        if(grepl("bsignal", trm$get_call())){
+          d[[attr(trm$model.frame()[[1]], "xname")]] <- I(diag(ng)/integrationWeights(diag(ng), d[[varnms[1]]]))
+        }
+        ## add dummy signal to data
+        if(grepl("bconcurrent", trm$get_call())){
+          d[[attr(trm$model.frame()[[1]], "xname")]] <- I(matrix(rep(1.0, ng^2), ncol=ng))
+        }
+        
+        if(trm$get_vary() != ""){
+          d$by <- 1
+          colnames(d) <- c(head(colnames(d),-1), trm$get_vary())
+        } 
+        return(d)
+      }
+      
+      getP <- function(trm, d){
+        #return an object similar to what plot.mgcv.smooth etc. return 
+        if(trm$dim==1){
+          predHelp <- predict(object, which=i, newdata=d)
+          if(!is.matrix(predHelp)){ X <- predHelp
+          }else{
+            X <- if(any(trm$get_names() %in% c("ONEtime"))){ # effect constant in t 
+              predHelp[,1]
+            }else{ predHelp[1,] # smooth intercept/ concurrent effect                
+            }            
+          } 
+          P <- list(x=attr(d, "xm"), xlab=attr(d, "xname"), xlim=safeRange(attr(d, "xm")))
+        ## trm$dim > 1
+        }else{
+          varnms <- attr(d, "varnms")
+          if(trm$dim==2){
+            X <- predict(object, newdata=d, which=i)
+            P <- list(x=attr(d, "xm"), y=attr(d, "ym"), xlab=varnms[1], ylab=varnms[2],
+                      ylim=safeRange(attr(d, "ym")), xlim=safeRange(attr(d, "xm")),
+                      z=attr(d, "zm"), zlab=varnms[3])
+          }else{
+            if(trm$dim==3){
+              values3 <- seq(min(d[[varnms[3]]]), max(d[[varnms[3]]]), l=n4)
+              xygrid <- expand.grid(d[[varnms[1]]], d[[varnms[2]]] )
+              X <- lapply(values3, function(x){
+                d1 <- list(xygrid[,1], xygrid[,2], x)
+                names(d1) <- varnms
+                matrix(predict(object, newdata=d1, which=i), ncol=length(d[[varnms[1]]]))
+              }) 
+              P <- list(x=attr(d, "xm"), y=attr(d, "ym"), z=values3, 
+                   xlab=varnms[1], ylab=varnms[2], zlab=varnms[3],
+                   ylim=safeRange(attr(d, "ym")), xlim=safeRange(attr(d, "xm")), zlim=safeRange(attr(d, "zm")))
+            }
+          }
+        }
+        P$value <- X
+        #P$coef <- cbind(d, "value"=P$value)    
+        P$dim <- trm$dim
+        return(P)
+      }
+      
+      trm <- object$baselearner[[i]]
+      trm$dim <- length(trm$get_names())
+      if(any(grepl("ONEx", trm$get_names()), 
+             grepl("ONEtime", trm$get_names()))) trm$dim <- trm$dim - 1 
+      
+      # If a by-variable was specified, reduce number of dimensions
+      # as smooth linear effect in several groups can be plotted in one plot 
+      if( grepl("by", trm$get_call()) && grepl("bols", trm$get_call())) trm$dim <- trm$dim - 1
+      
+      # <FIXME> what to do with bbs(..., by=factor)?
+      
+      if(trm$dim > 3){
+        warning("can't deal with smooths with more than 3 dimensions, returning NULL for ", 
+                shrtlbls[i])
+        return(NULL)
+      }
+      
+      d <- makeDataGrid(trm)
+      P <- getP(trm, d)
+      
+      # get proper labeling
+      P$main <- shrtlbls[i]
+      
+      return(P)
+    } # end of function getCoefs()
+      
+    ## Function to obtain nice short names for labeling of plots
+    shortnames <- function(x){
+      if(substr(x,1,1)=="\"") x <- substr(x, 2, nchar(x)-1)     
+      xpart <- unlist(strsplit(x, "%O%")) 
+      for(i in 1:length(xpart)){
+        xpart[i] <- gsub("\\\"", "'", xpart[i], fixed=TRUE)
+        nvar <- length(all.vars(formula(paste("Y~", xpart[i])))[-1])
+        commaSep <- unlist(strsplit(xpart[i], ","))
+        xpart[i] <- if(length(commaSep)==1){
+          paste(paste(commaSep[1:nvar], collapse=","), sep="")
+        }else paste(paste(commaSep[1:nvar], collapse=","), ")", sep="")                   
+      }
+      ret <- xpart
+      if(length(xpart)>1) ret <- paste(xpart, collapse=" %O%")
+      ret
+    }
+    
+    ## short names for the terms, if shortnames() doesn´t work, use the original names
+    shrtlbls <- try(unlist(lapply(names(object$baselearner), shortnames)))
+    if(class(shrtlbls)=="try-error") shrtlbls <- names(object$baselearner) 
+    
+    ### smooth terms
+    if(is.null(which)) which <- 1:length(object$baselearner)
+    ret$smterms <- lapply(which, getCoefs)         
+    names(ret$smterms) <- sapply(seq_along(ret$smterms), function(i){
+      ret$smterms[[i]]$main
+    })
+    return(ret)    
+  }
+}
+
+
+#' Plot the fit or the coefficients of a boosted functional regression model 
+#' 
+#' Takes a fitted \code{FDboost}-object produced by \code{\link{FDboost}()} and 
+#' plots the fitted effects or the coefficient-functions/surfaces.
+#' 
+#' @param x a fitted \code{FDboost}-object
+#' @param raw  logical defaults to FALSE.
+#' If raw=FALSE for each effect the estimated function/surface is calcuated
+#' If raw=TRUE the coefficients of the model are returned. 
+#' @param rug when TRUE (default) then the covariate to which the plot applies is 
+#' displayed as a rug plot at the foot of each plot of a 1-d smooth, 
+#' and the locations of the covariates are plotted as points on the contour plot 
+#' representing a 2-d smooth.
+#' @param which a subset of base-learners to take into account for plotting. 
+#' a list is returned. 
+#' @param includeOffset logical, defaults to TRUE. Should the offset be included in the plot of the intercept (default)
+#' or should it be plotted separately.
+#' @param ask logical, defaults to TRUE, if several effects are plotted the user
+#' has to hit Return to see next plot.
+#' @param n1 see below
+#' @param n2 see below
+#' @param n3 n1, n2, n3 give the number of gridpoints for 1-/2-/3-dimensional 
+#' smooth terms used in the marginal equidistant grids over the range of the 
+#' covariates at which the estimated effects are evaluated.
+#' @param n4 gives the number of points for the third dimension in a 3-dimensional smooth term
+#' @param onlySelected, logical, defaults to TRUE. Only plot effects that were 
+#' selected in at least one boosting iteration
+#' @param perspPlot logical, defaults to FALSE, 
+#' If TRUE, perspective plots (\code{\link[graphics]{persp}}) for 
+#' 2- and 3-dimensional effects are drawn.
+#' If FALSE, image/contour-plots (\code{\link[graphics]{image}}, 
+#' \code{\link[graphics]{contour}}) are drawn for 2- and 3-dimensional effects. 
+#' @param commonRange logical, defaults to FALSE, 
+#' if TRUE the range over all effects is the same (so far not implemented)
+#' 
+#' @param subset subset of the observed response curves and their predictions that is plotted. 
+#' Per default all observations are plotted.
+#' @param posLegend location of the legend, if a legend is drawn automatically 
+#' (only in plotPredicted). The default is "topleft".
+#' @param ... other arguments, not used.
+#' 
+#' @aliases plotPredicted
+#' 
+#' @seealso \code{\link{FDboost}} for the model fit and 
+#' \code{\link{coef.FDboost}} for the calculation of the coefficient functions. 
+#' 
+#' @method plot FDboost
+#' @export
+### function to plot raw values or coefficient-functions/surfaces of a model 
+plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL, 
+                         includeOffset=TRUE, ask=TRUE,
+                         n1=100, n2=40, n3=20, n4=11,
+                         onlySelected=TRUE, perspPlot=FALSE, commonRange=FALSE, ...){
+  
+  ### Get further arguments passed to the different plot-functions
+  dots <- list(...)
+  
+  getArguments <- function(x, dots=dots){
+    if(any(names(dots) %in% names(x))){
+      dots[names(dots) %in% names(x)]
+    }else list()
+  }
+  
+  #argsPlot <- getArguments(x=formals(graphics::plot.default), dots=dots)
+  argsPlot <- getArguments(x=c(formals(graphics::plot.default), par()), dots=dots)
+  argsMatplot  <- getArguments(x=c(formals(graphics::matplot), par()), dots=dots)
+
+  argsImage <- getArguments(x=formals(graphics::image.default), dots=dots)
+  argsContour <- getArguments(x=formals(graphics::contour.default), dots=dots)
+  argsPersp <- getArguments(x=formals(graphics:::persp.default), dots=dots)
+  
+  plotWithArgs <- function(plotFun, args, myargs){        
+    args <- c(myargs[!names(myargs) %in% names(args)], args)        
+    do.call(plotFun, args)            
+  }
+  
+  #     #### Fabian´s superUtils
+  #     # colors in rgb
+  #     alpha <- function(x, alpha=25){
+  #       tmp <- sapply(x, col2rgb)
+  #       tmp <- rbind(tmp, rep(alpha, length(x)))/255
+  #       return(apply(tmp, 2, function(x) do.call(rgb, as.list(x))))
+  #     }      
+  #     clrs <- alpha( rainbow(x$ydim[1]), 125) 
+  
+  ### get the effects to be plotted
+  whichSpecified <- which
+  if(is.null(which)) which <- 1:length(x$baselearner) 
+  if(onlySelected){
+#     sel <- selected(x)
+#     if( !1 %in% sel  && length(x$offsetVec) > 1 && grepl("ONEx", names(x$baselearner)[[1]])){
+#       sel <- c(1, sel) # plot the offset as first effect
+#     } 
+    which <- intersect(which, c(0, selected(x)))
+  }
+  
+  # In the case that intercept and offset shuold be plotted and the intercept was never selected
+  # plot the offset
+  if( (1 %in% whichSpecified | is.null(whichSpecified))  & !1 %in% which) which <- c(0, which)
+  
+  if(length(which)==0) stop("Nothing selected for plotting.")
+
+  ### plot coefficients of model (smooth curves and surfaces)
+  if(!raw){ 
+        
+    # compute the coefficients of the smooth terms that should be plotted
+    coefMod <- coef(x, which=which, n1=n1, n2=n2, n3=n3, n4=n4)
+    terms <- coefMod$smterms
+    offsetTerms <- coefMod$offset
+    bl_data <- lapply(x$baselearner[which], function(x) x[["get_data"]]()) 
+    
+    # plot nothing but the offset
+    if(length(which)==1 && which==0){
+      terms <- list(offsetTerms)
+      bl_data <- c(offset = list( list(x$yind) ), bl_data)
+      names(bl_data[[1]]) <- attr(x$yind, "nameyind")
+    }
+    
+    # include the offset in the plot of the intercept
+    if( includeOffset && 1 %in% which && grepl("ONEx", names(terms)[1]) ){
+      terms[[1]]$value <- terms[[1]]$value + offsetTerms$value
+      terms[[1]]$main <- paste("offset", "+", terms[[1]]$main)
+    }
+    
+    # plot the offset as extra effect
+    # case 1: the offset should be included as extra plot
+    # case 2: the whole model is plotted, but the intercept-base-learner was never selected
+    if( (!includeOffset | (includeOffset & !1 %in% which)) & 
+         is.null(whichSpecified)){
+      terms <- c(offset = list(offsetTerms), terms)
+      bl_data <- c(offset = list( list(x$yind) ), bl_data)
+      names(bl_data[[1]]) <- attr(x$yind, "nameyind")     
+    } 
+   
+    if((length(terms)>1 | terms[[1]]$dim==3) & ask) par(ask=TRUE)
+    
+#     ### <TODO> implement common range
+#     if(commonRange){
+#       #range <- range(fit)
+#       #range[1] <- range[1]-0.02*diff(range)
+#     }else range <- NULL
+    
+    for(i in 1:length(terms)){
+      trm <- terms[[i]] 
+      
+      # plot for 1-dim effects
+      if(trm$dim==1){
+        if(!"add" %in% names(dots)){
+          plotWithArgs(plot, args=argsPlot, 
+                       myargs=list(x=trm$x, y=trm$value, xlab=trm$xlab, main=trm$main, 
+                                   ylab="coef", type="l"))
+        }else{
+          plotWithArgs(lines, args=argsPlot, 
+                       myargs=list(x=trm$x, y=trm$value, xlab=trm$xlab, main=trm$main, 
+                                   ylab="coef", type="l"))          
+        }
+        
+        if(rug & !is.factor(x=trm$x)){
+          if(grepl("bconcurrent", trm$main)){
+            rug(attr(bl_data[[i]][[1]], "signalIndex"), ticksize = 0.02)
+          }else ifelse(length(unique(bl_data[[i]][[1]]))!=1,
+                 rug(bl_data[[i]][[1]], ticksize = 0.02),
+                 rug(bl_data[[i]][[2]], ticksize = 0.02))
+        }
+      } 
+      
+      # plot with factor variable
+      if(trm$dim==2 & (is.factor(trm$x) | is.factor(trm$y)) ){
+        if(is.factor(trm$y)){ # effect with by-variable (by-variable is factor)
+          plotWithArgs(matplot, args=argsMatplot, 
+                       myargs=list( x=trm$z, y=t(trm$value), xlab=trm$ylab, main=trm$main, 
+                                    ylab="coef", type="l", col=as.numeric(trm$y) ) )
+          if(rug){
+            rug(bl_data[[i]][[3]], ticksize = 0.02) 
+          }
+        }else{ # effect of factor variable
+          plotWithArgs(matplot, args=argsMatplot, 
+                       myargs=list(x=trm$y, y=t(trm$value), xlab=trm$ylab, main=trm$main, 
+                                   ylab="coef", type="l"))
+          if(rug){
+            rug(bl_data[[i]][[2]], ticksize = 0.02) 
+          }
+        }    
+      }else{
+        # persp-plot for 2-dim effects
+        if(trm$dim==2 & perspPlot){
+          if(length(unique(as.vector(trm$value)))==1){
+            # persp() gives error if only a flat plane should be drawn
+            plot(y=trm$value[1,], x=trm$x, main=trm$main, type="l", xlab=trm$ylab, 
+                 ylab="coef")
+          }else{
+            plotWithArgs(persp, args=argsPersp,
+                         myargs=list(x=trm$x, y=trm$y, z=trm$value, xlab=trm$xlab, 
+                                     ylab=trm$ylab, zlab="coef", main=trm$main, theta=30, 
+                                     phi=30, ticktype="detailed"))
+          } 
+        }
+        # image for 2-dim effects
+        if(trm$dim==2 & !perspPlot){        
+          plotWithArgs(image, args=argsImage,
+                       myargs=list(x=trm$y, y=trm$x, z=t(trm$value), xlab=trm$ylab, ylab=trm$xlab, 
+                                   main=trm$main, col = terrain.colors(length(trm$x)^2)))          
+          plotWithArgs(contour, args=argsContour,
+                       myargs=list(trm$y, trm$x, z=t(trm$value), add = TRUE))
+          
+          if(rug){
+            ##points(expand.grid(bl_data[[i]][[1]], bl_data[[i]][[2]]))
+            ifelse(grepl("by", trm$main),
+                   rug(bl_data[[i]][[3]], ticksize = 0.02),
+                   rug(bl_data[[i]][[2]], ticksize = 0.02))
+            ifelse(grepl("bsignal", trm$main),
+              rug(attr(bl_data[[i]][[1]], "signalIndex"), ticksize = 0.02, side=2),
+              rug(bl_data[[i]][[1]], ticksize = 0.02, side=2))
+          }
+        }        
+      }
+      ### 3 dim plots
+      # persp-plot for 3-dim effects
+      if(trm$dim==3 & perspPlot){
+        for(j in 1:length(trm$z)){
+          plotWithArgs(persp, args=argsPersp,
+                       myargs=list(x=trm$x, y=trm$y, z=trm$value[[j]], xlab=trm$xlab, ylab=trm$ylab, 
+                                   zlab="coef", theta=30, phi=30, ticktype="detailed", 
+                                   zlim=range(trm$value), 
+                                   main= paste(trm$zlab ,"=", round(trm$z[j],2), ": ", trm$main, sep=""))
+            )         
+        }
+      }
+      # image for 3-dim effects
+      if(trm$dim==3 & !perspPlot){
+        for(j in 1:length(trm$z)){
+          plotWithArgs(image, args=argsImage,
+            myargs=list(x=trm$x, y=trm$y, z=trm$value[[j]], xlab=trm$xlab, ylab=trm$ylab,
+                        col = terrain.colors(length(trm$x)^2), zlim=range(trm$value),
+                        main= paste(trm$zlab ,"=", round(trm$z[j],2), ": ", trm$main, sep="")))
+          plotWithArgs(contour, args=argsContour,
+                       myargs=list(trm$x, trm$y, trm$value[[j]], xlab=trm$xlab, add = TRUE))
+          if(rug){
+            points(bl_data[[i]][[1]], bl_data[[i]][[2]]) 
+          }
+#           plotWithArgs(filled.contour, args=list(),
+#                        myargs=list(x=trm$x, y=trm$y, z=trm$value[[j]], xlab=trm$xlab, ylab=trm$ylab,
+#                                    zlim=range(trm$value), color.palette=terrain.colors,
+#                                    main= paste(trm$zlab ,"=", round(trm$z[j],2), ": ", trm$main, sep="")))
+        }        
+      }
+    } # end for-loop
+    if(length(terms)>1 & ask) par(ask=FALSE) 
+    
+  ### plot smooth effects as they are estimated for the original data
+  }else{
+        
+    ################################          
+    # predict the effects using the original data
+    terms <- predict(x, which=which)
+    if(length(which)==1 && which==0) terms <- attr(terms, "offset")
+        
+    if(length(which)==1) terms <- list(terms)
+    shrtlbls <- names(coef(x, which=which, n1=1, n2=1, n3=1, n4=1)$smterms) # get short names
+    if(is.null(shrtlbls)) shrtlbls <- "offset" 
+    time <- x$yind
+    
+    # include the offset in the plot of the intercept
+    if( includeOffset && 1 %in% which && grepl("ONEx", shrtlbls[1]) ){
+      terms[[1]] <- terms[[1]] + x$offset
+      shrtlbls[1] <- paste("offset", "+", shrtlbls[1])
+    }
+        
+    if(length(which)>1 & ask) par(ask=TRUE)
+    if(commonRange){
+      range <- range(terms)
+      range[1] <- range[1]-0.02*diff(range)
+    }else range <- NULL
+    for(i in 1:length(terms)){
+      plotWithArgs(matplot, args=argsMatplot, 
+                   myargs=list(x=time, y=t(terms[[i]]), type="l", ylab="effect", 
+                               xlab=attr(time, "nameyind"), ylim=range, main=shrtlbls[i]))
+        if(rug) rug(time)
+      }
+    if(length(which)>1 & ask) par(ask=FALSE) 
+    }       
+}
+
+
+
+########################################################################################
+
+#' Extract information of a base-learner
+#' 
+#' Takes a base-learner and extracts information.
+#' 
+#' @param object a base-learner
+#' @param what  a character specifying the quantities to extract.
+#' This can be a subset of "design" (default; design matrix), 
+#' "penalty" (penalty matrix) and "index" (index of ties used to expand 
+#' the design matrix)
+#' @param asmatrix a logical indicating whether the the returned matrix should be 
+#' coerced to a matrix (default) or if the returned object stays as it is 
+#' (i.e., potentially a sparse matrix). This option is only applicable if extract 
+#' returns matrices, i.e., what = "design" or what = "penalty".
+#' @param expand a logical indicating whether the design matrix should be expanded 
+#' (default: FALSE). This is useful if ties where taken into account either manually 
+#' (via argument index in a base-learner) or automatically for data sets with many 
+#' observations. expand = TRUE is equivalent to extract(B)[extract(B, what = "index"),] 
+#' for a base-learner B.
+#' @param ... currently not used
+#' @method extract blg
+#' @seealso \code{\link[mboost]{extract}} for the extract funcitons of the package mboost
+extract.blg <- function(object, what = c("design", "penalty", "index"),
+                        asmatrix = FALSE, expand = FALSE, ...){
+  what <- match.arg(what)
+  
+  if(grepl("%O%", object$get_call())){
+    object <- object$dpp( rep(1, NROW(object$model.frame()[[1]])) )    
+  }else{
+    object <- object$dpp(rep(1, nrow(object$model.frame())))
+  }  
+  return(extract(object, what = what,
+                 asmatrix = asmatrix, expand = expand))
+}
