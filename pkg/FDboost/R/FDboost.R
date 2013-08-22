@@ -1,4 +1,4 @@
-###############################################################################
+#################################################################################
 #' Model-based Gradient Boosting for Functional Response
 #' 
 #' Gradient boosting for optimizing arbitrary loss functions, where component-wise models 
