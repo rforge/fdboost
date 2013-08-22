@@ -381,7 +381,7 @@ funMRD <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,  ...
   
   # You cannot use observations that are 0, so set them to NA
   y1 <- y
-  y1[ round(y1, 4)==0 ] <- NA
+  y1[ round(y1, 1) == 0 ] <- NA
   
   if(global){
     ret <- mean( abs((y1 - yhat) / y1), na.rm=TRUE  )
