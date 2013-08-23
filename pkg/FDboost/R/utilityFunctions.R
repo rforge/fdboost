@@ -344,7 +344,7 @@ funMSE <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,
     attr(ret, "name") <- paste("root", attr(ret, "name"))
   }
   
-  return(as.vector(ret))
+  return(ret)
 }
 
 
@@ -407,7 +407,7 @@ funMRD <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,  ...
     }    
   }
   
-  return(as.vector(ret))
+  return(ret)
 }
 
 
