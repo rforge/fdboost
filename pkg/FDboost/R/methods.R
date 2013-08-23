@@ -675,7 +675,10 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
   # plot the offset
   if( (1 %in% whichSpecified | is.null(whichSpecified))  & !1 %in% which) which <- c(0, which)
   
-  if(length(which)==0) stop("Nothing selected for plotting.")
+  if(length(which)==0){
+    warning("Nothing selected for plotting.")
+    return(NULL)
+  } 
 
   ### plot coefficients of model (smooth curves and surfaces)
   if(!raw){ 

@@ -32,6 +32,10 @@
 
   \item{...}{currently not used}
 }
+\value{
+  Returns a vector with the calculated MSE and some extra
+  information in attributes.
+}
 \description{
   Claculates the functional MSE for a fitted FDboost-object
 }

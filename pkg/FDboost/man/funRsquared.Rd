@@ -24,6 +24,10 @@
 
   \item{...}{currently not used}
 }
+\value{
+  Returns a vector with the calculated R-squared and some
+  extra information in attributes.
+}
 \description{
   Claculates the functional R-squared for a fitted
   FDboost-object

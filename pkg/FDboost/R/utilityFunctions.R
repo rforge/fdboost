@@ -213,6 +213,8 @@ getYYhatTime <- function(object, breaks=object$yind){
 #' @references Ramsay, J., Silverman, B. (2006). Functional data analysis. 
 #' Wiley Online Library. chapter 16.3
 #' 
+#' @return Returns a vector with the calculated R-squared and some extra information in attributes.
+#' 
 #' @export
 funRsquared <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE, ...){
   
@@ -301,6 +303,8 @@ funRsquared <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,
 #' Formula to calculate MSE over subjects, \code{overTime=FALSE}: \cr
 #' \eqn{ MSE_i = \int (Y_i(t) - \hat{Y}_i(t))^2 dt  \approx G^{-1} \sum_g (Y_i(t_g) - \hat{Y}_i(t_g))^2}
 #' 
+#' @return Returns a vector with the calculated MSE and some extra information in attributes.
+#' 
 #' @export
 funMSE <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE, 
                    relative=FALSE, root=FALSE, ...){
@@ -340,7 +344,7 @@ funMSE <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,
     attr(ret, "name") <- paste("root", attr(ret, "name"))
   }
   
-  return(ret)
+  return(as.vector(ret))
 }
 
 
@@ -369,6 +373,8 @@ funMSE <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,
 #' 
 #' Formula to calculate MRD over subjects, \code{overTime=FALSE}: \cr
 #' \eqn{ MRD_i = \int |(Y_i(t) - \hat{Y}_i(t))^2|/|Y_i(t)| dt  \approx G^{-1} \sum_g |(Y_i(t_g) - \hat{Y}_i(t_g))^2| / |Y_i(t)|}
+#' 
+#' @return Returns a vector with the calculated MRD and some extra information in attributes.
 #' 
 #' @export
 funMRD <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,  ...){
@@ -401,7 +407,7 @@ funMRD <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,  ...
     }    
   }
   
-  return(ret)
+  return(as.vector(ret))
 }
 
 

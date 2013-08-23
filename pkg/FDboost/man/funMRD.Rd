@@ -24,6 +24,10 @@
 
   \item{...}{currently not used}
 }
+\value{
+  Returns a vector with the calculated MRD and some extra
+  information in attributes.
+}
 \description{
   Claculates the functional MRD for a fitted FDboost-object
 }
