@@ -86,7 +86,8 @@ funplot <- function(x, y, rug=TRUE, ...){
   if(any(!atLeast2values)) warning(sum(!atLeast2values), " rows contain less than 2 non-missing values.")  
   
   # Linear interpolation per row
-  yint <- t(apply(y[atLeast2values, ], 1, function(x) approx(time, x, xout=time)$y))
+  yint <- matrix(NA, ncol=ncol(y), nrow=nrow(y))
+  yint[atLeast2values, ] <- t(apply(y[atLeast2values, ], 1, function(x) approx(time, x, xout=time)$y))
    
   # Plot the observed points
   plotWithArgs(matplot, args=argsMatplot, 

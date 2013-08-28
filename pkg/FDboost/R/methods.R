@@ -834,8 +834,10 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
     # predict the effects using the original data
     terms <- predict(x, which=which)
     if(length(which)==1 && which==0) terms <- attr(terms, "offset")
-        
+    
     if(length(which)==1) terms <- list(terms)
+    if(class(terms)!="list") terms <- list(terms) 
+    
     shrtlbls <- names(coef(x, which=which, n1=1, n2=1, n3=1, n4=1)$smterms) # get short names
     if(is.null(shrtlbls)) shrtlbls <- "offset" 
     time <- x$yind
