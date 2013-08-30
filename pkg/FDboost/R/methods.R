@@ -574,6 +574,22 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL,
   }
 }
 
+# help funtion to color perspecite plots - col1 positive values, col2 negative values
+getColPersp <- function(z, col1="red", col2="lightblue"){
+  nrz <- nrow(z)
+  ncz <- ncol(z)
+  
+  # Compute the z-value at the facet centres
+  zfacet <- z[-1, -1] + z[-1, -ncz] + z[-nrz, -1] + z[-nrz, -ncz]
+  
+  # use the colors red and blue for negative and positive values
+  colfacet <- matrix(nrow=nrow(zfacet), ncol=ncol(zfacet))
+  colfacet[zfacet < 0] <- col2
+  colfacet[zfacet > 0] <- col1
+  
+  return(colfacet) 
+}
+
 
 #' Plot the fit or the coefficients of a boosted functional regression model 
 #' 
@@ -769,10 +785,12 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
             plot(y=trm$value[1,], x=trm$x, main=trm$main, type="l", xlab=trm$ylab, 
                  ylab="coef")
           }else{
+            
             plotWithArgs(persp, args=argsPersp,
                          myargs=list(x=trm$x, y=trm$y, z=trm$value, xlab=trm$xlab, 
                                      ylab=trm$ylab, zlab="coef", main=trm$main, theta=30, 
-                                     phi=30, ticktype="detailed"))
+                                     phi=30, ticktype="detailed",
+                                     col=getColPersp(trm$value)))
           } 
         }
         # image for 2-dim effects
@@ -801,7 +819,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
           plotWithArgs(persp, args=argsPersp,
                        myargs=list(x=trm$x, y=trm$y, z=trm$value[[j]], xlab=trm$xlab, ylab=trm$ylab, 
                                    zlab="coef", theta=30, phi=30, ticktype="detailed", 
-                                   zlim=range(trm$value), 
+                                   zlim=range(trm$value), col=getColPersp(trm$value[[j]]), 
                                    main= paste(trm$zlab ,"=", round(trm$z[j],2), ": ", trm$main, sep=""))
             )         
         }
