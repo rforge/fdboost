@@ -575,17 +575,17 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL,
 }
 
 # help funtion to color perspecite plots - col1 positive values, col2 negative values
-getColPersp <- function(z, col1="red", col2="lightblue"){
+getColPersp <- function(z, col1="tomato", col2="lightblue"){
   nrz <- nrow(z)
   ncz <- ncol(z)
   
   # Compute the z-value at the facet centres
   zfacet <- z[-1, -1] + z[-1, -ncz] + z[-nrz, -1] + z[-nrz, -ncz]
   
-  # use the colors red and blue for negative and positive values
+  # use the colors col1 and col2 for negative and positive values
   colfacet <- matrix(nrow=nrow(zfacet), ncol=ncol(zfacet))
   colfacet[zfacet < 0] <- col2
-  colfacet[zfacet > 0] <- col1
+  colfacet[zfacet >= 0] <- col1
   
   return(colfacet) 
 }
