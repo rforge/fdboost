@@ -109,7 +109,7 @@ FDboost <- function(formula,          ### response ~ xvars
     trmstrings[where.c] <- sapply(trmstrings[where.c], function(x){
       sub("\\)$", "", sub("^c\\(", "", x)) #c(BLA) --> BLA
     })
-    blconstant <- "bols(ONEtime, intercept = FALSE, df = 1)"
+    blconstant <- "bols(ONEtime, intercept = FALSE)"
     assign("ONEtime", rep(1.0, length(time)))
   }
     
@@ -139,13 +139,15 @@ FDboost <- function(formula,          ### response ~ xvars
   #xfm <- strsplit(cfm[2], "\\+")[[1]]
   xfm <- trmstrings
   if ( any( gsub(" ", "", strsplit(cfm[2], "\\+")[[1]]) ==  "1")){
-    xfm <- c("bols(ONEx, intercept = FALSE, df = 1)", xfm)
+    xfm <- c("bols(ONEx, intercept = FALSE)", xfm)
     where.c <- where.c + 1
-  } 
+  }
+  
   ### replace "1" with intercept base learner
 #   for (i in 1:length(xfm)) 
 #     if (gsub(" ", "", xfm[[i]]) == "1") 
-#       xfm[[i]] <- "bols(ONEx, intercept = FALSE, df = 1)"
+#       xfm[[i]] <- "bols(ONEx, intercept = FALSE)"
+  
   yfm <- strsplit(cfm[1], "\\+")[[1]]
   tfm <- paste(deparse(timeformula), collapse = "")
   tfm <- strsplit(tfm, "~")[[1]]
@@ -211,7 +213,7 @@ FDboost <- function(formula,          ### response ~ xvars
       }
     }   
     ### <FixMe> is the computation of k ok? 
-    modOffset <- try( gam(meanY ~ s(time, bs="ad", k = min(20, round(length(time)/2)) )), silent=TRUE )
+    modOffset <- try( gam(meanY ~ s(time, bs="ad", k = min(10, round(length(time)/2)) )), silent=TRUE )
     if(any(class(modOffset)=="try-error")){
       warning("Could not fit the smooth offset by adaptive splines (default), 
               use a simple spline expansion with 5 df instead.")
