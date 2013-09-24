@@ -1,6 +1,7 @@
 \name{plot.FDboost}
 \alias{plot.FDboost}
 \alias{plotPredicted}
+\alias{plotResiduals}
 \title{Plot the fit or the coefficients of a boosted functional regression model}
 \usage{
   \method{plot}{FDboost} (x, raw = FALSE, rug = TRUE,
@@ -10,6 +11,9 @@
     commonRange = FALSE, ...)
 
   plotPredicted(x, subset = 1:x$ydim[1],
+    posLegend = "topleft", ...)
+
+  plotResiduals(x, subset = 1:x$ydim[1],
     posLegend = "topleft", ...)
 }
 \arguments{

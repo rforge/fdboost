@@ -135,6 +135,24 @@ plotPredicted <- function(x, subset=1:x$ydim[1], posLegend="topleft", ...){
 }
 
 
+#####################################################################################
+
+#' @rdname plot.FDboost
+#' @export
+#' 
+### function to plot the residuals
+plotResiduals <- function(x, subset=1:x$ydim[1], posLegend="topleft", ...){
+  
+  stopifnot("FDboost" %in% class(x))
+  
+  response <- matrix(x$response, nrow=x$ydim[1], ncol=x$ydim[2])[subset, ] 
+  pred <- fitted(x)[subset, ]
+  pred[is.na(response)] <- NA
+  
+  # Observed - predicted values
+  funplot(x$yind, response-pred, ylab=x$yname, xlab=attr(x$yind, "nameyind"), ...) 
+}
+
 
 #####################################################################################
 ### Goodness of fit

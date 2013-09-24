@@ -632,7 +632,7 @@ getColPersp <- function(z, col1="tomato", col2="lightblue"){
 #' (only in plotPredicted). The default is "topleft".
 #' @param ... other arguments, not used.
 #' 
-#' @aliases plotPredicted
+#' @aliases plotPredicted plotResiduals
 #' 
 #' @seealso \code{\link{FDboost}} for the model fit and 
 #' \code{\link{coef.FDboost}} for the calculation of the coefficient functions. 
