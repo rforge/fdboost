@@ -1012,6 +1012,7 @@ brandomc <- function (..., contrasts.arg = "contr.dummy", df = 4) {
 ##################################################################################
 
 # further utility functions of library mboost, bl.R
+# necessary to copy them into FDboost?
 
 ### extract variables names from baselearner
 names.blg <- function(x)
