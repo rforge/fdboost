@@ -179,9 +179,7 @@ FDboost <- function(formula,          ### response ~ xvars
   }else{
     if(!numInt %in% c("equal", "Riemann")) warning("argument numInt is ignored as it is neither numeric nor one of (\"equal\", \"Riemann\")")
     if(numInt=="Riemann"){ 
-      # w <- w*as.vector(integrationWeights(X1=matrix(w, ncol=nc), time))
-      weights <- weights*integrationWeights(X1=matrix(1, ncol=nc), time)
-      w <- rep(weights, each=nr)
+      w <- w*as.vector(integrationWeights(X1=matrix(w, ncol=nc), time))
     }
   }
   
