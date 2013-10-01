@@ -192,6 +192,7 @@ FDboost <- function(formula,          ### response ~ xvars
   #browser()
     
   ## per default add smooth time-specific offset 
+  ## idea: use an offset linear in time?
   if(is.null(offset)){
     message("Use a smooth offset.")
     ### <FixMe> is the use of family@offset correct?
@@ -204,7 +205,7 @@ FDboost <- function(formula,          ### response ~ xvars
       try(meanY[i] <- offsetFun(response[,i], matrix(w, nrow=nr, ncol=nc)[ ,i] ), silent=TRUE)
     }
     if( is.null(meanY) ||  any(is.na(meanY)) ){
-      warning("Smooth offset cannot be computed by family@offset(). Use a weighted mean instead.")
+      warning("Mean offset cannot be computed by family@offset(). Use a weighted mean instead.")
       meanY <- c()
       for(i in 1:nc){
         meanY[i] <- Gaussian()@offset(response[,i], matrix(w, nrow=nr, ncol=nc)[ ,i] )
