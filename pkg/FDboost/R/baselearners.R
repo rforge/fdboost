@@ -41,8 +41,8 @@ integrationWeights <- function(X1, xind){
         xindL[is.na(x)] <- NA
         xindU <- xindL 
         
-        xindL <- zoo::na.locf(xindL, na.rm=FALSE) # weights for lower sum
-        xindU <- zoo::na.locf(xindU, fromLast=TRUE, na.rm=FALSE) # weights for upper sum
+        xindL <- na.locf(xindL, na.rm=FALSE) # weights for lower sum
+        xindU <- na.locf(xindU, fromLast=TRUE, na.rm=FALSE) # weights for upper sum
         
         if(is.na(xindL[1])){ # first observation is missing
           xindL[1] <- xind[1] - diff(c(xind[1], xind[2])) 
