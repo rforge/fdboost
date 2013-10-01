@@ -116,7 +116,7 @@ funplot <- function(x, y, rug=TRUE, ...){
 #' @export
 #' 
 ### function to plot the observed response and the predicted values of a model
-plotPredicted <- function(x, subset=1:x$ydim[1], posLegend="topleft", ...){
+plotPredicted <- function(x, subset=1:x$ydim[1], posLegend="topleft", lwdObs=1, lwdPred=1, ...){
   
   stopifnot("FDboost" %in% class(x))
   
@@ -127,9 +127,9 @@ plotPredicted <- function(x, subset=1:x$ydim[1], posLegend="topleft", ...){
   ylim <- range(response, pred, na.rm = TRUE)
   
   # Observed values
-  funplot(x$yind, response, lwd=1, pch=1, ylim=ylim, lty=3, 
-          ylab=x$yname, xlab=attr(x$yind, "nameyind"), ...)
-  funplot(x$yind, pred, lwd=1, pch=2, add=TRUE, ...)
+  funplot(x$yind, response, pch=1, ylim=ylim, lty=3, 
+          ylab=x$yname, xlab=attr(x$yind, "nameyind"), lwd=lwdObs, ...)
+  funplot(x$yind, pred, pch=2, lwd=lwdPred, add=TRUE, ...)
   # predicted values
   legend(posLegend, legend=c("observed","predicted"), col=1, pch=1:2)  
 }

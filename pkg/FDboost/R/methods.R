@@ -629,8 +629,10 @@ getColPersp <- function(z, col1="tomato", col2="lightblue"){
 #' @param subset subset of the observed response curves and their predictions that is plotted. 
 #' Per default all observations are plotted.
 #' @param posLegend location of the legend, if a legend is drawn automatically 
-#' (only in plotPredicted). The default is "topleft".
-#' @param ... other arguments, not used.
+#' (only used in plotPredicted). The default is "topleft".
+#' @param lwdObs lwd of observed curves (only used in plotPredicted)
+#' @param lwdPred lwd of predicted curves (only used in plotPredicted)
+#' @param ... other arguments, passed to \code{funplot} (only used in plotPredicted)
 #' 
 #' @aliases plotPredicted plotResiduals
 #' 

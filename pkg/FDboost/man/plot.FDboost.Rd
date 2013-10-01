@@ -11,7 +11,7 @@
     commonRange = FALSE, ...)
 
   plotPredicted(x, subset = 1:x$ydim[1],
-    posLegend = "topleft", ...)
+    posLegend = "topleft", lwdObs = 1, lwdPred = 1, ...)
 
   plotResiduals(x, subset = 1:x$ydim[1],
     posLegend = "topleft", ...)
@@ -71,10 +71,17 @@
   observations are plotted.}
 
   \item{posLegend}{location of the legend, if a legend is
-  drawn automatically (only in plotPredicted). The default
-  is "topleft".}
+  drawn automatically (only used in plotPredicted). The
+  default is "topleft".}
 
-  \item{...}{other arguments, not used.}
+  \item{lwdObs}{lwd of observed curves (only used in
+  plotPredicted)}
+
+  \item{lwdPred}{lwd of predicted curves (only used in
+  plotPredicted)}
+
+  \item{...}{other arguments, passed to \code{funplot}
+  (only used in plotPredicted)}
 }
 \description{
   Takes a fitted \code{FDboost}-object produced by
