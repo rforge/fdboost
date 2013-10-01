@@ -4,9 +4,10 @@
 #' @param X1 matrix of functional variable
 #' @param xind index of functional variable
 #' @export
+#' @importFrom zoo na.locf
 ################################# 
 # Trapezoidal integration weights for a functional covariable X1 on grid xind
-# corresponds to mean of left and right Riemann integration 
+# corresponds to mean of left and right Riemann integration sum
 integrationWeights <- function(X1, xind){
   if( ncol(X1)!=length(xind) ) stop("Dimension of xind and X1 do not match")
   #Li <- c(diff(xind)[1]/2, diff(xind)[2:(length(xind)-1)], diff(xind)[length(xind)-1]/2)
@@ -27,8 +28,42 @@ integrationWeights <- function(X1, xind){
   #Li <- 0.5 * c(diffs[1],  filter(diffs, filter=c(1,1))[-(nxgrid-1)], diffs[(nxgrid-1)] )
     
   L <- matrix(Li, nrow=nrow(X1), ncol=ncol(X1), byrow=TRUE)
-  return(L)  
+  
+  # taking into account missing values
+  if(any(is.na(X1))){
+    Lneu <- sapply(1:nrow(X1), function(i){
+      x <- X1[i,]
+      
+      if(!any(is.na(x))){
+        l <- L[i, ] # no missing values in curve i
+      }else{
+        xindL <- xind 
+        xindL[is.na(x)] <- NA
+        xindU <- xindL 
+        
+        xindL <- zoo::na.locf(xindL, na.rm=FALSE) # weights for lower sum
+        xindU <- zoo::na.locf(xindU, fromLast=TRUE, na.rm=FALSE) # weights for upper sum
+        
+        if(is.na(xindL[1])){ # first observation is missing
+          xindL[1] <- xind[1] - diff(c(xind[1], xind[2])) 
+        } 
+        if(is.na(xindU[length(xind)])){ # last observation is missing
+          xindU[length(xind)] <- xind[length(xind)] + diff(c(xind[length(xind)-1], xind[length(xind)])) 
+        }   
+        l <- colMeans(rbind(c(0,diff(xindL)), c(diff(xindU), 0)))
+      }
+      return(l)
+    }
+           )
+    
+    return(t(Lneu))  
+    
+  }else{ 
+    return(L)
+  }
 }
+
+
 # # test integrationWeights()
 # xind <- seq(0,1,l=5)
 # xind <- c(0, 0.2, 0.4, 0.5, 1)
@@ -37,6 +72,15 @@ integrationWeights <- function(X1, xind){
 # intW <- integrationWeights(X1, xind)[1,]
 # plot(X1[1,]~xind, type="b")
 # points(rep(0,5)~cumsum(intW), col=2)
+# 
+# X1 <- matrix(c(1:5, 1:5, 1:5, 1:5), ncol=5, byrow=TRUE)
+# X1[1,1] <- NA
+# X1[2,2] <- NA
+# X1[3,5] <- NA
+# xind <- c(2,4,6,8,10)
+# 
+# intW <- integrationWeights(X1, xind)
+# rowSums(intW*X1, na.rm=TRUE)
 
 
 ################################################################################
