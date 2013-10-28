@@ -8,6 +8,8 @@
 ### see Currie, Durban, Eilers (2006, JRSS B)
 bl_lin_matrix <- function(blg, Xfun, args) {
   
+  message("Use the new bl_lin_matrix.")
+  
     mf <- blg$get_data()
     index <- blg$get_index()
     vary <- blg$get_vary()
@@ -298,4 +300,55 @@ bl_lin_matrix <- function(blg, Xfun, args) {
     ret$dpp <- bl_lin_matrix(ret, Xfun = Xfun, args = args)
 
     return(ret)
+}
+
+
+
+
+#### functions of mboostDevel in helpers.R that are necessary in bl_lin_matrix
+
+nnls1D <- function(XtX, X, y) {
+  
+  my <- switch(attr(X, "Ts_constraint"),  "increasing" = {
+    ### first column is intercept
+    stopifnot(max(abs(X[,1,drop = TRUE] - 1)) < sqrt(.Machine$double.eps))
+    min(y)
+  }, "decreasing" = {
+    stopifnot(max(abs(X[,1,drop = TRUE] + 1)) < sqrt(.Machine$double.eps))
+    max(y)
+  })
+  y <- y - my
+  cf <- nnls(XtX, crossprod(X, y))$x
+  cf[1] <- cf[1] + switch(attr(X, "Ts_constraint"),  "increasing" = my,
+                          "decreasing" = -my)
+  cf
+}
+
+nnls2D <- function(X, XtX, Y) {
+  
+  constr <- which(c(!is.null(attr(X$X1, "Ts_constraint")),
+                    !is.null(attr(X$X2, "Ts_constraint"))))
+  if (length(constr) == 2)
+    stop("only one dimension may be subject to constraints")
+  Xc <- paste("X", constr, sep = "")
+  my <- switch(attr(X[[Xc]], "Ts_constraint"),  "increasing" = {
+    ### first column is intercept
+    stopifnot(max(abs(X[[Xc]][,1,drop = TRUE] - 1)) < sqrt(.Machine$double.eps))
+    min(Y)
+  }, "decreasing" = {
+    stopifnot(max(abs(X[[Xc]][,1,drop = TRUE] + 1)) < sqrt(.Machine$double.eps))
+    max(Y)
+  })
+  Y <- Y - my
+  
+  XWY <- as.vector(crossprod(X$X1, Y) %*% X$X2)
+  cf <- nnls(XtX, matrix(as(XWY, "matrix"), ncol = 1))$x
+  cf <- matrix(cf, nrow = ncol(X$X1))
+  if (constr == 1) cf[1,] <- cf[1,] + switch(attr(X[[Xc]], "Ts_constraint"),
+                                             "increasing" = my,
+                                             "decreasing" = -my)
+  if (constr == 2) cf[,1] <- cf[,1] + switch(attr(X[[Xc]], "Ts_constraint"),
+                                             "increasing" = my,
+                                             "decreasing" = -my)
+  cf
 }
