@@ -216,15 +216,17 @@ FDboost <- function(formula,          ### response ~ xvars
     } else offsetFun <- dots$family@offset
     meanY <- c()
     # do a linear interpolation of the response to prevent bias because of missing values
-    responseInter <- t(apply(response, 1, function(x) approx(time, x, rule=1, xout=time)$y))
+    # only use responses with less than 90% missings for the calculation of the offset
+    meanNA <- apply(response, 1, function(x) mean(is.na(x)))
+    responseInter <- t(apply(response[meanNA<0.9,], 1, function(x) approx(time, x, rule=1, xout=time)$y))
     for(i in 1:nc){
-      try(meanY[i] <- offsetFun(responseInter[,i], matrix(w, nrow=nr, ncol=nc)[ ,i] ), silent=TRUE)
+      try(meanY[i] <- offsetFun(responseInter[,i], matrix(w, nrow=nr, ncol=nc)[meanNA<0.9,i] ), silent=TRUE)
     }
     if( is.null(meanY) ||  any(is.na(meanY)) ){
       warning("Mean offset cannot be computed by family@offset(). Use a weighted mean instead.")
       meanY <- c()
       for(i in 1:nc){
-        meanY[i] <- Gaussian()@offset(responseInter[,i], matrix(w, nrow=nr, ncol=nc)[ ,i] )
+        meanY[i] <- Gaussian()@offset(responseInter[,i], matrix(w, nrow=nr, ncol=nc)[meanNA<0.9 ,i] )
       }
     }   
     ### <FixMe> is the computation of k ok? 
