@@ -1,10 +1,9 @@
 #' Function to compute integration weights
 #' 
-#' Computes trapezoidal integration weights for a functional covariable X1 on grid xind.
+#' Computes trapezoidal integration weights for a functional variable X1 on grid xind.
 #' @param X1 matrix of functional variable
 #' @param xind index of functional variable
 #' @export
-#' @importFrom zoo na.locf
 ################################# 
 # Trapezoidal integration weights for a functional covariable X1 on grid xind
 # corresponds to mean of left and right Riemann integration sum
@@ -176,7 +175,7 @@ X_bsignal <- function(mf, vary, args) {
 #' @param df trace of the hat matrix for the base-learner defining the 
 #' base-learner complexity. Low values of \code{df} correspond to a 
 #' large amount of smoothing and thus to "weaker" base-learners.
-#' @param cyclic to explain
+#' @param cyclic not yet implemented
 #' 
 #' @aliases bconcurrent 
 #' 
