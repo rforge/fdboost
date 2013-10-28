@@ -139,24 +139,36 @@ FDboost <- function(formula,          ### response ~ xvars
   cfm <- strsplit(cfm, "~")[[1]]
   #xfm <- strsplit(cfm[2], "\\+")[[1]]
   xfm <- trmstrings
+  ### replace "1" with intercept base learner
   if ( any( gsub(" ", "", strsplit(cfm[2], "\\+")[[1]]) ==  "1")){
-    xfm <- c("bols(ONEx, intercept = FALSE)", xfm)
+    if( grepl("lambda", deparse(timeformula)) || 
+         ( grepl("bols", deparse(timeformula)) &  !grepl("df", deparse(timeformula))) ){
+      xfm <- c("bols(ONEx, intercept = FALSE)", xfm)
+    } else{
+      xfm <- c("bols(ONEx, intercept = FALSE, df=1)", xfm)
+    }
     where.c <- where.c + 1
   }
-  
-  ### replace "1" with intercept base learner
-#   for (i in 1:length(xfm)) 
-#     if (gsub(" ", "", xfm[[i]]) == "1") 
-#       xfm[[i]] <- "bols(ONEx, intercept = FALSE)"
-  
+    
   yfm <- strsplit(cfm[1], "\\+")[[1]]
   tfm <- paste(deparse(timeformula), collapse = "")
   tfm <- strsplit(tfm, "~")[[1]]
   tfm <- strsplit(tfm[2], "\\+")[[1]]
   
-  ### set c_df to the degrees of freedom in timeformula
-  c_df <- eval(parse(text=paste(tfm, "$dpp(rep(1.0,", length(time), "))$df()", sep="")))["df"]
-  cfm <- paste("bols(ONEtime, intercept = FALSE, df = ", c_df ,")")
+  ## set up formula for effects constant in time
+  if(length(where.c) > 0){
+    ### set c_df to the df/lambda in timeformula
+    ##<FIXME> Does this make sense for bols() base-learner?
+    if( grepl("lambda", tfm) || 
+          ( grepl("bols", tfm) &  !grepl("df", tfm)) ){
+      c_lambda <- eval(parse(text=paste(tfm, "$dpp(rep(1.0,", length(time), "))$df()", sep="")))["lambda"]
+      cfm <- paste("bols(ONEtime, intercept = FALSE, lambda = ", c_lambda ,")")
+    } else{
+      c_df <- eval(parse(text=paste(tfm, "$dpp(rep(1.0,", length(time), "))$df()", sep="")))["df"]
+      cfm <- paste("bols(ONEtime, intercept = FALSE, df = ", c_df ,")")
+    }
+  }
+
   tmp <- outer(xfm, tfm, function(x, y) paste(x, y, sep = "%O%"))
   # do not expand an effect bconcurrent() by a Kronecker product
   if(length(grep("bconcurrent", tmp))>0) 
@@ -193,7 +205,7 @@ FDboost <- function(formula,          ### response ~ xvars
   #browser()
     
   ## per default add smooth time-specific offset 
-  ## idea: use an offset linear in time?
+  ## idea: allow to use an offset linear in time?
   if(is.null(offset)){
     message("Use a smooth offset.")
     ### <FixMe> is the use of family@offset correct?
@@ -202,18 +214,21 @@ FDboost <- function(formula,          ### response ~ xvars
       offsetFun <- Gaussian()@offset
     } else offsetFun <- dots$family@offset
     meanY <- c()
+    # do a linear interpolation of the response to prevent bias because of missing values
+    responseInter <- t(apply(response, 1, function(x) approx(time, x, rule=1, xout=time)$y))
     for(i in 1:nc){
-      try(meanY[i] <- offsetFun(response[,i], matrix(w, nrow=nr, ncol=nc)[ ,i] ), silent=TRUE)
+      try(meanY[i] <- offsetFun(responseInter[,i], matrix(w, nrow=nr, ncol=nc)[ ,i] ), silent=TRUE)
     }
     if( is.null(meanY) ||  any(is.na(meanY)) ){
       warning("Mean offset cannot be computed by family@offset(). Use a weighted mean instead.")
       meanY <- c()
       for(i in 1:nc){
-        meanY[i] <- Gaussian()@offset(response[,i], matrix(w, nrow=nr, ncol=nc)[ ,i] )
+        meanY[i] <- Gaussian()@offset(responseInter[,i], matrix(w, nrow=nr, ncol=nc)[ ,i] )
       }
     }   
     ### <FixMe> is the computation of k ok? 
-    modOffset <- try( gam(meanY ~ s(time, bs="ad", k = min(10, round(length(time)/2)) )), silent=TRUE )
+    ### <FixMe> how to give the user the possibility to
+    modOffset <- try( gam(meanY ~ s(time, bs="ad", k = min(40, round(length(time)/2)) )), silent=TRUE )
     if(any(class(modOffset)=="try-error")){
       warning("Could not fit the smooth offset by adaptive splines (default), 
               use a simple spline expansion with 5 df instead.")
