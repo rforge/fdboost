@@ -11,8 +11,7 @@ Depends:
     mboost
 Imports:
     Matrix,
-    mgcv,
-    zoo
+    mgcv
 License: GPL-2
 Packaged: 2013-04-30 08:41:28 UTC; brockhaus
 Collate:

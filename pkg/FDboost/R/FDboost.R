@@ -56,6 +56,7 @@
 #' @import mboost Matrix 
 #' @importFrom splines bs splineDesign
 #' @importFrom mgcv gam s
+#' @importFrom zoo na.locf
 FDboost <- function(formula,          ### response ~ xvars
                     timeformula,      ### time
                     numInt="equal",   ### option for approximation of integral over loss

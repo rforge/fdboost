@@ -11,6 +11,6 @@
 }
 \description{
   Computes trapezoidal integration weights for a functional
-  covariable X1 on grid xind.
+  variable X1 on grid xind.
 }
 

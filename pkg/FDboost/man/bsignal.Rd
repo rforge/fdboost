@@ -38,7 +38,7 @@
   \code{df} correspond to a large amount of smoothing and
   thus to "weaker" base-learners.}
 
-  \item{cyclic}{to explain}
+  \item{cyclic}{not yet implemented}
 }
 \value{
   Equally to the base-learners of the package mboost:
