@@ -220,13 +220,13 @@ FDboost <- function(formula,          ### response ~ xvars
     meanNA <- apply(response, 1, function(x) mean(is.na(x)))
     responseInter <- t(apply(response[meanNA<0.9,], 1, function(x) approx(time, x, rule=1, xout=time)$y))
     for(i in 1:nc){
-      try(meanY[i] <- offsetFun(responseInter[,i], matrix(w, nrow=nr, ncol=nc)[meanNA<0.9,i] ), silent=TRUE)
+      try(meanY[i] <- offsetFun(responseInter[,i], 1*!is.na(responseInter[,i]) ), silent=TRUE)
     }
     if( is.null(meanY) ||  any(is.na(meanY)) ){
       warning("Mean offset cannot be computed by family@offset(). Use a weighted mean instead.")
       meanY <- c()
       for(i in 1:nc){
-        meanY[i] <- Gaussian()@offset(responseInter[,i], matrix(w, nrow=nr, ncol=nc)[meanNA<0.9 ,i] )
+        meanY[i] <- Gaussian()@offset(responseInter[,i], 1*!is.na(responseInter[,i]) )
       }
     }   
     ### <FixMe> is the computation of k ok? 
