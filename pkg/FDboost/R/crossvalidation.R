@@ -3,6 +3,8 @@
 #' Validate the model fit by refitting the model $n$ times. Each time leaving out one observation.
 #' 
 #' @param object fitted FDboost-object
+#' @param response you can specify a response vector to calculate predictions errors. 
+#' Defaults fo NULL which means that the response of the fitted model is used.
 #' @param type character argument for specifying the cross-validation method.
 #' Currently cross-validation over curves (\code{curves}) 
 #' and random cross-validation (\code{kfold}) are impelemted.
@@ -106,7 +108,7 @@ validateFDboost <- function(object, response=NULL,
     #     call$formula <- get("formulaFDboost", environment(object$predictOffset))
     #     call$timeformula <- get("timeformula", environment(object$predictOffset))
     
-    mod <- withCallingHandlers(eval(call), warning = h) # suppress the warning of missing responses    
+    mod <- withCallingHandlers(suppressMessages(eval(call)), warning = h) # suppress the warning of missing responses    
     #test <- FDboost(object$formulaFDboost, timeformula=object$timeformula, data=dathelp)
     
     mod[max(grid)]
@@ -349,17 +351,23 @@ validateFDboost <- function(object, response=NULL,
 #' @export
 #' 
 # Function to extract the optimal stopping iteration
-mstop.validateFDboost <- function(x, risk=c("median","mean")){
+mstop.validateFDboost <- function(object, ...){
   
-  risk <- match.arg(risk)
+  dots <- list(...)
+  
+  if(is.null(dots$risk)){
+    risk <- "median"
+  }else{
+    risk <- dots$risk
+  }
   
   if(risk=="median"){
-    riskMedian <- apply(x$oobrisk, 2, median) 
-    mstop <- x$grid[which.min(riskMedian)]
+    riskMedian <- apply(object$oobrisk, 2, median) 
+    mstop <- object$grid[which.min(riskMedian)]
     attr(mstop, "risk") <- "minimize median risk"
   }else{
-    riskMean <- colMeans(x$oobrisk)
-    mstop <- x$grid[which.min(riskMean)]
+    riskMean <- colMeans(object$oobrisk)
+    mstop <- object$grid[which.min(riskMean)]
     attr(mstop, "risk") <- "minimize mean risk"
   }  
   return(mstop) 
@@ -372,12 +380,15 @@ mstop.validateFDboost <- function(x, risk=c("median","mean")){
 #' prediciton error of a model fitted by FDboost.
 #' 
 #' @param x object of class validateFDboost
+#' @param object object of class validateFDboost
 #' @param risk which risk is minimized to obtain the optimal stopping iteration?
 #' defaults to the median
-#' @param object if the original object is given predicted values of the whole model
-#' can be compared to the predictions of the cross-validated models
+#' @param modObject if the original model object of class \code{FDboost} is given 
+#' predicted values of the whole model can be compared to the predictions of the cross-validated models
+#' @param predictNA should missing values in the response be predicted? Defaults to FALSE.
 #' @param names.arg names of the observed curves
 #' @param ask par(ask=ask)
+#' @param ... additional arguments passed to callies.
 #' 
 #' @details \code{plot.validateFDboost} plots cross-validated risk, RMSE, MRD, measured and predicted values 
 #' and residuals as determined by validateFDboost.
@@ -389,7 +400,7 @@ mstop.validateFDboost <- function(x, risk=c("median","mean")){
 #' 
 #' @export
 plot.validateFDboost <- function(x, risk=c("median","mean"),
-                                 object=NULL, predictNA=FALSE, 
+                                 modObject=NULL, predictNA=FALSE, 
                                  names.arg=NULL, ask=TRUE, ...){
   
   # get the optimal mstop
@@ -459,7 +470,7 @@ plot.validateFDboost <- function(x, risk=c("median","mean"),
   # Plot coefficients
   
   #   # example: plot coeficients of 5th effect for folds 1-4 each for the optimal mstop
-  #   plot(object, which=5, n1 = 20, n2 = 20, n3 = 15, n4 = 10, levels=seq(-.4, 1.4, by=0.4))
+  #   plot(modObject, which=5, n1 = 20, n2 = 20, n3 = 15, n4 = 10, levels=seq(-.4, 1.4, by=0.4))
   #   contour(x$coefCV[[1]][[5]]$x,
   #           x$coefCV[[1]][[5]]$y,
   #           t(x$coefCV[[1]][[5]]$value[[mpos]]), lty=2, add=TRUE, col=2, levels=seq(-.4, 1.4, by=0.4))
@@ -475,9 +486,9 @@ plot.validateFDboost <- function(x, risk=c("median","mean"),
   #   matplot(x$coefCV[[4]][[5]]$value[[mpos]], type="l", lty=4, add=TRUE)
   
   # old possibility to plot the coefficients
-  #   if(!is.null(object)){  
+  #   if(!is.null(modObject)){  
   #     for(j in 1:length(x$predFunCoef)){      
-  #       predObject <- predict(object, which=j)
+  #       predObject <- predict(modObject, which=j)
   #       if(j==1) predObject <- predObject + attr(predObject, "offset")
   #       funplot(x$yind, x$predFunCoef[[j]], lty=3, xlab="t", ylab="",
   #               ylim=range(x$predFunCoef[[j]], predObject, na.rm=TRUE))

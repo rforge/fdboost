@@ -10,6 +10,10 @@
 \arguments{
   \item{object}{fitted FDboost-object}
 
+  \item{response}{you can specify a response vector to
+  calculate predictions errors. Defaults fo NULL which
+  means that the response of the fitted model is used.}
+
   \item{type}{character argument for specifying the
   cross-validation method. Currently cross-validation over
   curves (\code{curves}) and random cross-validation
