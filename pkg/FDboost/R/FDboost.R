@@ -289,8 +289,16 @@ FDboost <- function(formula,          ### response ~ xvars
   # offsetVec is an integer if no smooth offset was calculated
   ret$offsetVec <- offsetVec
   if(is.null(offsetVec)) ret$offsetVec <- ret$offset 
-    
+  
+  # save the call
   ret$call <- match.call()
+  
+  # save the evaluated call
+  ret$callEval <- ret$call
+  ret$callEval[-1] <- lapply(ret$call[-1], eval)
+  ret$callEval$data <- NULL # do not save data and weights again to spare memory
+  ret$callEval$weights <- NULL
+  
   ret$timeformula <- timeformula
   ret$formulaFDboost <- formulaFDboost
   ret$formulaMboost <- fm
