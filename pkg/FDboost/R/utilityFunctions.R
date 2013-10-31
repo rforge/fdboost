@@ -1,4 +1,18 @@
 
+#' Function to control estimation of smooth offset
+#' 
+#' @param k_min maximal number of k in s()
+#' @param silent print error messages of model fit?
+
+#' @export 
+o_control <- function(k_min=20, silent=TRUE) { 
+  RET <- list(k_min=k_min, silent=silent)
+  class(RET) <- c("offset_control")
+  RET
+}
+
+
+
 #' Function to truncate time in functional data 
 #' 
 #' @param funVar names of functional variables that should be truncated

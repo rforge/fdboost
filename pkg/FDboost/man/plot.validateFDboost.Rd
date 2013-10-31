@@ -1,13 +1,17 @@
 \name{mstop.validateFDboost}
 \alias{mstop.validateFDboost}
 \alias{plot.validateFDboost}
-\title{Methods for objects of calss validateFDboost}
+\alias{plotPredCoef}
+\title{Methods for objects of class validateFDboost}
 \usage{
   \method{mstop}{validateFDboost} (object, ...)
 
   \method{plot}{validateFDboost} (x,
     risk = c("median", "mean"), modObject = NULL,
     predictNA = FALSE, names.arg = NULL, ask = TRUE, ...)
+
+  plotPredCoef(x, commonRange = TRUE, showNumbers = FALSE,
+    ask = TRUE, ...)
 }
 \arguments{
   \item{x}{object of class validateFDboost}
@@ -28,6 +32,12 @@
   \item{names.arg}{names of the observed curves}
 
   \item{ask}{par(ask=ask)}
+
+  \item{commonRange,}{plot predicted coefficients on a
+  common range, defaults to TRUE}
+
+  \item{showNumbers}{show number of curve in plot of
+  predicted coefficients, defaults to FALSE}
 
   \item{...}{additional arguments passed to callies.}
 }

@@ -31,6 +31,8 @@
 #' (2) alternatively weights can be specified for single observations then
 #' length(weights) has to be \code{nrow(response)}*\code{ncol(response)}
 #' per default weights is constantly 1. 
+#' @param offset_control parameters for the calculation of the offset, 
+#' defaults to \code{offset_control(k_min=20, silent=TRUE)}.  
 #' @param offset a numeric vector to be used as offset over the index of the response (optional).
 #' If no offset is specified, per default a smooth time-specific offset is calculated and used 
 #' within the model fit. If you do not want to use an offset you can set offset=0.
@@ -64,10 +66,12 @@ FDboost <- function(formula,          ### response ~ xvars
                     data,             ### list of response, time, xvars
                     weights = NULL,   ### optional
                     offset = NULL,    ### optional
+                    offset_control = o_control(),
+                    #offset_control = list(k_min=20, silent=TRUE),
                     ...)              ### goes directly to mboost
 {
   dots <- list(...)
-  
+
   ### save formula of FDboost
   formulaFDboost <- formula
   
@@ -202,6 +206,7 @@ FDboost <- function(formula,          ### response ~ xvars
     #warning(paste("The response contains", sum(is.na(dresponse)) ,"missing values. The corresponding weights are set to 0."))
     w[which(is.na(dresponse))] <- 0
   }
+  
     
   ## per default add smooth time-specific offset 
   ## idea: allow to use an offset linear in time?
@@ -230,11 +235,13 @@ FDboost <- function(formula,          ### response ~ xvars
       }
     }   
     ### <FixMe> is the computation of k ok? 
-    ### <FixMe> how to give the user the possibility to
-    modOffset <- try( gam(meanY ~ s(time, bs="ad", k = min(40, round(length(time)/2)) )), silent=TRUE )
+    modOffset <- try( gam(meanY ~ s(time, bs="ad", 
+                                    k = min(offset_control$k_min, round(length(time)/2))  )), 
+                      silent=offset_control$silent )
     if(any(class(modOffset)=="try-error")){
       warning("Could not fit the smooth offset by adaptive splines (default), 
               use a simple spline expansion with 5 df instead.")
+      if(round(length(time)/2) < 8) warning("Most likely because of too few time-points.")
       modOffset <- lm(meanY ~ bs(time, df=5))
     } 
     offsetVec <- modOffset$fitted.values 

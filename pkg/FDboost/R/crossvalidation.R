@@ -359,6 +359,8 @@ validateFDboost <- function(object, response=NULL,
       })
     }
     
+    niceNames <- c("offset", lapply(coefCV, function(x) x$main))
+    
     # predictions of terms based on the coefficients for each model
     for(l in 1:(length(modRisk[[1]]$mod$baselearner)+1)){
       predCV[[l]] <- t(sapply(1:length(modRisk), function(g){
@@ -379,7 +381,7 @@ validateFDboost <- function(object, response=NULL,
         }
         return(ret)
       }))
-      names(predCV)[l] <- c("offset", names(modRisk[[1]]$mod$baselearner))[l]
+      names(predCV)[l] <- niceNames[l]
 #       matplot(modRisk[[1]]$mod$yind, t(predCV[[l]]), type="l", 
 #               main=names(predCV)[l], xlab=attr(modRisk[[1]]$mod$yind, "nameyind"), ylab="coef")
     }
@@ -433,7 +435,7 @@ mstop.validateFDboost <- function(object, ...){
 }
 
 
-#' Methods for objects of calss validateFDboost
+#' Methods for objects of class validateFDboost
 #' 
 #' Methods for objects that are fitted to determine the optimal mstop and the 
 #' prediciton error of a model fitted by FDboost.
@@ -447,6 +449,8 @@ mstop.validateFDboost <- function(object, ...){
 #' @param predictNA should missing values in the response be predicted? Defaults to FALSE.
 #' @param names.arg names of the observed curves
 #' @param ask par(ask=ask)
+#' @param commonRange, plot predicted coefficients on a common range, defaults to TRUE
+#' @param showNumbers show number of curve in plot of predicted coefficients, defaults to FALSE
 #' @param ... additional arguments passed to callies.
 #' 
 #' @details \code{plot.validateFDboost} plots cross-validated risk, RMSE, MRD, measured and predicted values 
@@ -558,9 +562,37 @@ plot.validateFDboost <- function(x, risk=c("median","mean"),
 }
 
 
-
-
-
+#' @rdname plot.validateFDboost
+#' @export
+#' 
+plotPredCoef <- function(x, commonRange=TRUE, showNumbers=FALSE, ask=TRUE, ...){
+  
+  stopifnot(any(class(x)=="validateFDboost"))
+  
+  par(ask=ask)
+  
+  ylim <- NULL
+  if(commonRange){
+    ylim <- range(x$predCV[-1]) # exclude offset in calculation of common range
+  }
+  
+  for(l in 1:length(x$predCV)){
+    
+    if(l==1){ # do not use common range for offset
+      matplot(x$yind, t(x$predCV[[l]]), type="l", 
+              main=names(x$predCV)[l], xlab=attr(x$yind, "nameyind"), ylab="coef", ylim=NULL, ...)
+    }else{
+      matplot(x$yind, t(x$predCV[[l]]), type="l", 
+              main=names(x$predCV)[l], xlab=attr(x$yind, "nameyind"), ylab="coef", ylim=ylim, ...)
+    }
+    
+    if(showNumbers){
+      matplot(x$yind, t(x$predCV[[l]]), add=TRUE )
+    }
+  }
+  
+  par(ask=FALSE)
+}
 
 
 #' Function to set up folds for a response-matrix  
@@ -687,3 +719,5 @@ cvMa <- function(ydim=NULL, Y=NULL, weights=NULL,
   
   return(foldsMa)
 }
+
+

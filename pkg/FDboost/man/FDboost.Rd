@@ -3,7 +3,8 @@
 \title{Model-based Gradient Boosting for Functional Response}
 \usage{
   FDboost(formula, timeformula, numInt = "equal", data,
-    weights = NULL, offset = NULL, ...)
+    weights = NULL, offset = NULL,
+    offset_control = o_control(), ...)
 }
 \arguments{
   \item{formula}{a symbolic description of the model to be
@@ -30,6 +31,10 @@
   specified for single observations then length(weights)
   has to be \code{nrow(response)}*\code{ncol(response)} per
   default weights is constantly 1.}
+
+  \item{offset_control}{parameters for the calculation of
+  the offset, defaults to \code{offset_control(k_min=20,
+  silent=TRUE)}.}
 
   \item{offset}{a numeric vector to be used as offset over
   the index of the response (optional). If no offset is
