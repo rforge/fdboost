@@ -137,7 +137,7 @@ validateFDboost <- function(object, response=NULL,
     # estimations of the coefficients
     # use the coef.FDboost() function to calculate the coefficients 
     
-    # Compute coefficients all mstops in grid -> takes some time!
+    # Compute coefficients for all mstops in grid -> takes some time!
     coefCV <- list()
     
     if(getCoefCV){
@@ -153,7 +153,7 @@ validateFDboost <- function(object, response=NULL,
       }
     }
     
-    return(list(risk=risk, predGrid=predGrid, coefCV=coefCV)) # , mod=mod
+    return(list(risk=risk, predGrid=predGrid, coefCV=coefCV, mod=mod))  # return model to be able to compute coefficients
   }
   
   #   ###### Function to fit the model
@@ -255,6 +255,17 @@ validateFDboost <- function(object, response=NULL,
   colnames(oobrisk) <- grid
   rownames(oobrisk) <- which(modFitted)
   
+  ## check for curves with extreme risk-values at the global median
+  riskOptimal <- oobrisk[ , which.min(apply(oobrisk, 2, median))]
+  bound <- median(riskOptimal) + 1.5*(quantile(riskOptimal, 0.75) - quantile(riskOptimal, 0.25))
+  
+  if(any(riskOptimal>bound)){
+    message("Curves with high values in oobrisk:")
+    message(paste("Curve ", which(riskOptimal>bound), ": " ,
+                  round(riskOptimal[which(riskOptimal>bound)], 2), collapse=",  ", sep="" )  )  
+  }
+
+  
   ## predict response for all mstops in grid out of bag
   # predictions for each response are in a vector!
   oobpreds0 <- lapply(modRisk, function(x) x$predGrid)
@@ -328,11 +339,59 @@ validateFDboost <- function(object, response=NULL,
     coefCV <- NULL
   } 
   
+  # calculate coefficients for the median mstop
+  coefCV <- list()
+  predCV <- list()
+  
+  if(getCoefCV){
+    
+    optimalMstop <- grid[which.min(apply(oobrisk, 2, median))]
+
+    # estiamtes of coefficients
+    for(l in 1:length(modRisk[[1]]$mod$baselearner)){
+      # estimate the coefficients for the model of the first fold
+      coefCV[[l]] <- coef(modRisk[[1]]$mod[optimalMstop], 
+                          which=l, n1 = 20, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]
+      coefCV[[l]]$value <- lapply(1:length(modRisk), function(g){
+        ret <- coef(modRisk[[g]]$mod[optimalMstop], 
+                    which=l, n1 = 50, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]$value
+        return(ret)
+      })
+    }
+    
+    # predictions of terms based on the coefficients for each model
+    for(l in 1:(length(modRisk[[1]]$mod$baselearner)+1)){
+      predCV[[l]] <- t(sapply(1:length(modRisk), function(g){
+        if(l==1){
+          ret <- attr(predict(modRisk[[g]]$mod[optimalMstop], which=l), "offset")          
+          if( !is.null(dim(ret)) ){
+            ret <- ret[1,]
+          }else{
+            ret <- rep(ret, modRisk[[1]]$mod$ydim[2])
+          }
+        }else{
+          ret <- predict(modRisk[[g]]$mod[optimalMstop], which=l-1)
+          if( !is.null(dim(ret)) ){
+            ret <- ret[g,]
+          }else{
+            ret <- rep(0, modRisk[[1]]$mod$ydim[2])
+          }
+        }
+        return(ret)
+      }))
+      names(predCV)[l] <- c("offset", names(modRisk[[1]]$mod$baselearner))[l]
+#       matplot(modRisk[[1]]$mod$yind, t(predCV[[l]]), type="l", 
+#               main=names(predCV)[l], xlab=attr(modRisk[[1]]$mod$yind, "nameyind"), ylab="coef")
+    }
+    
+  }
+  
   rm(modRisk)
   
   ret <- list(response=response, yind=object$yind,
               folds=folds, grid=grid,
               coefCV=coefCV,
+              predCV=predCV,
               oobpreds=oobpreds, 
               oobrisk=oobrisk, 
               oobriskMean=colMeans(oobrisk),

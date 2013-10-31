@@ -202,8 +202,6 @@ FDboost <- function(formula,          ### response ~ xvars
     #warning(paste("The response contains", sum(is.na(dresponse)) ,"missing values. The corresponding weights are set to 0."))
     w[which(is.na(dresponse))] <- 0
   }
-  
-  #browser()
     
   ## per default add smooth time-specific offset 
   ## idea: allow to use an offset linear in time?
@@ -217,8 +215,10 @@ FDboost <- function(formula,          ### response ~ xvars
     meanY <- c()
     # do a linear interpolation of the response to prevent bias because of missing values
     # only use responses with less than 90% missings for the calculation of the offset
+    # only use response curves whose weights are not completely 0 (important for resampling methods)
     meanNA <- apply(response, 1, function(x) mean(is.na(x)))
-    responseInter <- t(apply(response[meanNA<0.9,], 1, function(x) approx(time, x, rule=1, xout=time)$y))
+    responseInter <- t(apply(response[meanNA < 0.9 & rowSums(matrix(w, ncol=nc))!=0 , ], 1, function(x) 
+      approx(time, x, rule=1, xout=time)$y))
     for(i in 1:nc){
       try(meanY[i] <- offsetFun(responseInter[,i], 1*!is.na(responseInter[,i]) ), silent=TRUE)
     }
