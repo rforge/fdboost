@@ -224,6 +224,18 @@ FDboost <- function(formula,          ### response ~ xvars
     meanNA <- apply(response, 1, function(x) mean(is.na(x)))
     responseInter <- t(apply(response[meanNA < 0.9 & rowSums(matrix(w, ncol=nc))!=0 , ], 1, function(x) 
       approx(time, x, rule=1, xout=time)$y))
+    # check wether first ore last columns of the response contain soley NA
+    # then use the values of the next column
+    if(any(apply(responseInter, 2, function(x) all(is.na(x)) ) )){
+      warning("Column of interpolated response contains nothing but NA.")
+      allNA <- apply(responseInter, 2, function(x) all(is.na(x)) ) 
+      allNAlower <- allNAupper <- allNA
+      allNAupper[1:round(ncol(responseInter)/2)] <- FALSE # missing columns with low index 
+      allNAlower[round(ncol(responseInter)/2):ncol(responseInter)] <- FALSE # missing columns with high index 
+      responseInter[, allNAlower] <- responseInter[, max(which(allNAlower))+1]
+      responseInter[, allNAupper] <- responseInter[, min(which(allNAlower))-1]
+    }
+  
     for(i in 1:nc){
       try(meanY[i] <- offsetFun(responseInter[,i], 1*!is.na(responseInter[,i]) ), silent=TRUE)
     }

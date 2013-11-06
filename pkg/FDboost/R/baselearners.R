@@ -40,16 +40,17 @@ integrationWeights <- function(X1, xind){
         xindL[is.na(x)] <- NA
         xindU <- xindL 
         
-        xindL <- na.locf(xindL, na.rm=FALSE) # weights for lower sum
-        xindU <- na.locf(xindU, fromLast=TRUE, na.rm=FALSE) # weights for upper sum
-        
         if(is.na(xindL[1])){ # first observation is missing
           xindL[1] <- xind[1] - diff(c(xind[1], xind[2])) 
         } 
         if(is.na(xindU[length(xind)])){ # last observation is missing
           xindU[length(xind)] <- xind[length(xind)] + diff(c(xind[length(xind)-1], xind[length(xind)])) 
-        }   
-        l <- colMeans(rbind(c(0,diff(xindL)), c(diff(xindU), 0)))
+        }
+        
+        xindL <- na.locf(xindL, na.rm=FALSE) # index for lower sum
+        xindU <- na.locf(xindU, fromLast=TRUE, na.rm=FALSE) # index for upper sum
+        
+        l <- colMeans(rbind(c(0,diff(xindL)), c(diff(xindU), 0))) # weight is 0 for missing values
       }
       return(l)
     }
@@ -72,14 +73,16 @@ integrationWeights <- function(X1, xind){
 # plot(X1[1,]~xind, type="b")
 # points(rep(0,5)~cumsum(intW), col=2)
 # 
-# X1 <- matrix(c(1:5, 1:5, 1:5, 1:5), ncol=5, byrow=TRUE)
+# X1 <- matrix(c(1:5, 1:5+1, 1:5+2, 1:5+3), ncol=5, byrow=TRUE)
 # X1[1,1] <- NA
+# X1[1,2] <- NA
 # X1[2,2] <- NA
 # X1[3,5] <- NA
 # xind <- c(2,4,6,8,10)
 # 
 # intW <- integrationWeights(X1, xind)
-# rowSums(intW*X1, na.rm=TRUE)
+# rowSums(intW*X1, na.rm=TRUE) -c(0, 5, 10, 15)
+# matplot(xind, t(X1), type="b")
 
 
 ################################################################################
