@@ -451,6 +451,9 @@ mstop.validateFDboost <- function(object, ...){
 #' @param ask par(ask=ask)
 #' @param commonRange, plot predicted coefficients on a common range, defaults to TRUE
 #' @param showNumbers show number of curve in plot of predicted coefficients, defaults to FALSE
+#' @param terms, logical, defaults to TRUE plot the added terms (default) or the coefficients?
+#' @param probs vector of qunatiles to be used in the plotting of 2-dimensional coefficients surfaces,
+#' defaults to \code{probs=c(0.25, 0.5, 0.75)}
 #' @param ... additional arguments passed to callies.
 #' 
 #' @details \code{plot.validateFDboost} plots cross-validated risk, RMSE, MRD, measured and predicted values 
@@ -565,34 +568,82 @@ plot.validateFDboost <- function(x, risk=c("median","mean"),
 #' @rdname plot.validateFDboost
 #' @export
 #' 
-plotPredCoef <- function(x, commonRange=TRUE, showNumbers=FALSE, ask=TRUE, ...){
+plotPredCoef <- function(x, commonRange=TRUE, showNumbers=FALSE, ask=TRUE, 
+                         terms=TRUE,         
+                         probs=c(0.25, 0.5, 0.75), # quantiles of variables to use for plotting
+                         ...){
   
   stopifnot(any(class(x)=="validateFDboost"))
   
   par(ask=ask)
   
   ylim <- NULL
-  if(commonRange){
-    ylim <- range(x$predCV[-1]) # exclude offset in calculation of common range
-  }
   
-  for(l in 1:length(x$predCV)){
-    
-    if(l==1){ # do not use common range for offset
-      matplot(x$yind, t(x$predCV[[l]]), type="l", 
-              main=names(x$predCV)[l], xlab=attr(x$yind, "nameyind"), ylab="coef", ylim=NULL, ...)
-    }else{
-      matplot(x$yind, t(x$predCV[[l]]), type="l", 
-              main=names(x$predCV)[l], xlab=attr(x$yind, "nameyind"), ylab="coef", ylim=ylim, ...)
+  if(terms){
+    if(commonRange){
+      ylim <- range(x$predCV[-1]) # exclude offset in calculation of common range
     }
     
-    if(showNumbers){
-      matplot(x$yind, t(x$predCV[[l]]), add=TRUE )
+    for(l in 1:length(x$predCV)){
+      
+      if(l==1){ # do not use common range for offset
+        matplot(x$yind, t(x$predCV[[l]]), type="l", 
+                main=names(x$predCV)[l], xlab=attr(x$yind, "nameyind"), ylab="coef", ylim=NULL, ...)
+      }else{
+        matplot(x$yind, t(x$predCV[[l]]), type="l", 
+                main=names(x$predCV)[l], xlab=attr(x$yind, "nameyind"), ylab="coef", ylim=ylim, ...)
+      }
+      
+      if(showNumbers){
+        matplot(x$yind, t(x$predCV[[l]]), add=TRUE )
+      }
     }
+  }else{ # plot coefficients
+    
+    if(commonRange){
+      ylim <- range(lapply(x$coefCV[-1], function(x) range(x$value))) # exclude offset in calculation of common range
+    }
+    
+    for(l in 2:length(x$coefCV)){ # loop over effects
+      
+      # coef() of a certain term
+      temp <- x$coefCV[l][[1]]
+      
+      if(temp$dim==2){
+        quantx <- quantile(temp$x, probs=probs, type=1)
+        quanty <- quantile(temp$y, probs=probs, type=1)
+        
+        for(j in 1:length(probs)){ 
+          
+          # impute matrix of 0 if effect was never chosen
+          temp$value[sapply(temp$value, function(x) is.null(dim(x)))] <- list(matrix(0, ncol=20, nrow=20))
+          
+          myCol <- sapply(temp$value, function(x) x[, quanty[j]==temp$y]) # first column
+          matplot(temp$x, myCol, type="l", xlab=temp$xlab, ylim=ylim,
+                  main=paste(temp$main, " at ", probs[j]*100, "% of ", temp$ylab, sep=""), ylab="coef")
+          
+          if(showNumbers){
+            matplot(temp$x, myCol, add=TRUE )
+          }
+        }
+        
+        for(j in 1:length(probs)){  
+          myRow <- sapply(temp$value, function(x) x[quantx[j]==temp$x, ]) # first column
+          matplot(temp$x, myRow, type="l", xlab=temp$ylab, ylim=ylim,
+                  main=paste(temp$main, " at ", probs[j]*100, "% of ", temp$xlab, sep=""), ylab="coef")
+          
+          if(showNumbers){
+            matplot(temp$x, myRow, add=TRUE )
+          }
+        }
+      }
+      
+    } # end loop over effects
   }
-  
   par(ask=FALSE)
 }
+
+
 
 
 #' Function to set up folds for a response-matrix  

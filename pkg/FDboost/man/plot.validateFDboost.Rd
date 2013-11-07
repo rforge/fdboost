@@ -11,7 +11,8 @@
     predictNA = FALSE, names.arg = NULL, ask = TRUE, ...)
 
   plotPredCoef(x, commonRange = TRUE, showNumbers = FALSE,
-    ask = TRUE, ...)
+    ask = TRUE, terms = TRUE, probs = c(0.25, 0.5, 0.75),
+    ...)
 }
 \arguments{
   \item{x}{object of class validateFDboost}
@@ -38,6 +39,13 @@
 
   \item{showNumbers}{show number of curve in plot of
   predicted coefficients, defaults to FALSE}
+
+  \item{terms,}{logical, defaults to TRUE plot the added
+  terms (default) or the coefficients?}
+
+  \item{probs}{vector of qunatiles to be used in the
+  plotting of 2-dimensional coefficients surfaces, defaults
+  to \code{probs=c(0.25, 0.5, 0.75)}}
 
   \item{...}{additional arguments passed to callies.}
 }
