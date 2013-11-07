@@ -2,11 +2,14 @@
 #' Function to control estimation of smooth offset
 #' 
 #' @param k_min maximal number of k in s()
+#' @param rule which rule to use in approx() of the response before calculating the 
+#' global mean, rule=1 means no extrapolation, rule=2 means to extrapolate the 
+#' closest non-missing value, see \code{\link[stats]{approx}}
 #' @param silent print error messages of model fit?
 
 #' @export 
-o_control <- function(k_min=20, silent=TRUE) { 
-  RET <- list(k_min=k_min, silent=silent)
+o_control <- function(k_min=20, rule=2, silent=TRUE) { 
+  RET <- list(k_min=k_min, rule=rule, silent=silent)
   class(RET) <- c("offset_control")
   RET
 }

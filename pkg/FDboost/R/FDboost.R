@@ -211,7 +211,7 @@ FDboost <- function(formula,          ### response ~ xvars
   ## per default add smooth time-specific offset 
   ## idea: allow to use an offset linear in time?
   if(is.null(offset)){
-    message("Use a smooth offset.")
+    message("Use a smooth offset.") 
     ### <FixMe> is the use of family@offset correct?
     #meanY <- colMeans(response, na.rm=TRUE)
     if(! "family" %in% names(dots) ){
@@ -223,7 +223,7 @@ FDboost <- function(formula,          ### response ~ xvars
     # only use response curves whose weights are not completely 0 (important for resampling methods)
     meanNA <- apply(response, 1, function(x) mean(is.na(x)))
     responseInter <- t(apply(response[meanNA < 0.9 & rowSums(matrix(w, ncol=nc))!=0 , ], 1, function(x) 
-      approx(time, x, rule=1, xout=time)$y))
+      approx(time, x, rule=offset_control$rule, xout=time)$y))
     # check wether first ore last columns of the response contain soley NA
     # then use the values of the next column
     if(any(apply(responseInter, 2, function(x) all(is.na(x)) ) )){

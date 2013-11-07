@@ -2,10 +2,15 @@
 \alias{o_control}
 \title{Function to control estimation of smooth offset}
 \usage{
-  o_control(k_min = 20, silent = TRUE)
+  o_control(k_min = 20, rule = 2, silent = TRUE)
 }
 \arguments{
   \item{k_min}{maximal number of k in s()}
+
+  \item{rule}{which rule to use in approx() of the response
+  before calculating the global mean, rule=1 means no
+  extrapolation, rule=2 means to extrapolate the closest
+  non-missing value, see \code{\link[stats]{approx}}}
 
   \item{silent}{print error messages of model fit?}
 }
