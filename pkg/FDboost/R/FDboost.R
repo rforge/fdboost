@@ -176,8 +176,8 @@ FDboost <- function(formula,          ### response ~ xvars
 
   tmp <- outer(xfm, tfm, function(x, y) paste(x, y, sep = "%O%"))
   # do not expand an effect bconcurrent() by a Kronecker product
-  if(length(grep("bconcurrent", tmp))>0) 
-    tmp[grep("bconcurrent", tmp)] <- xfm[grep("bconcurrent", tmp)]   
+  if( length(c(grep("bconcurrent", tmp), grep("bhis", tmp)) ) > 0 ) 
+    tmp[c(grep("bconcurrent", tmp), grep("bhis", tmp))] <- xfm[c(grep("bconcurrent", tmp), grep("bhis", tmp))]   
   if(length(where.c) > 0) 
     tmp[where.c] <- outer(xfm[where.c], cfm, function(x, y) paste(x, y, sep = "%O%"))
   xpart <- paste(as.vector(tmp), collapse = " + ")
