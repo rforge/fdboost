@@ -122,18 +122,21 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
     assign(nameyind, newdata[[nameyind]])
     newdata$ONEtime <- rep(1.0, lengthYind)
     
-    # In the case of bsignal() and bconcurrent() it is necessary 
+    # In the case of bsignal(), bconcurrent() and bhist() it is necessary 
     # to add the index of the signal-matrix as attribute
     posBsignal <- grep("bsignal", names(object$baselearner))
     posBconc <- grep("bconcurrent", names(object$baselearner))
+    posBhist <- grep("bhist", names(object$baselearner))
     whichHelp <- which
     if(is.null(which)) whichHelp <- 1:length(object$baselearner)
     posBsignal <- whichHelp[whichHelp %in% posBsignal]
     posBconc <- whichHelp[whichHelp %in% posBconc]
+    posBhist <- whichHelp[whichHelp %in% posBhist]
     newdataConc <- list() # data to predict concurrent effect
-    if(length(c(posBsignal, posBconc))>0){
+    newdataHist <- list() # data to predict historic effect
+    if(length(c(posBsignal, posBconc, posBhist))>0){
       #if(!is.list(newdata)) newdata <- list(newdata)
-      for(i in c(posBsignal, posBconc)){
+      for(i in c(posBsignal, posBconc, posBhist)){
         form <- strsplit(object$baselearner[[i]]$get_call(), "%O%")[[1]][1]
         form <- substr(form, 2, nchar(form))
         formula_help <- formula(paste("resHelp ~", form))
@@ -150,6 +153,9 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
         
         # save data of concurrent effects
         if(i %in% posBconc) newdataConc[[xname]] <- newdata[[xname]]
+        
+        # save data of historic effects
+        if(i %in% posBhist) newdataHist[[xname]] <- newdata[[xname]]
         
         ## delete signalIndex if newdata is a list 
         # - not a good idea if you have the same index for several functional covariates
@@ -178,6 +184,16 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
       whichHelp <- whichHelp[-which(whichHelp %in% posBconc)]
     }
     
+    # Predict historic effect extra
+    predMboostHist <- 0
+    if(length(posBhist) > 0){ 
+      if(length(unique(sapply(newdataHist, NROW))) != 1) stop(paste("Dimensions of newdata do not match:", 
+                                                                    paste(names(newdataConc), sapply(newdataConc, NROW), sep=": ", collapse=", ")))
+      predMboostHist <- rowSums(predict(object=object, newdata=as.data.frame(newdataHist), 
+                                        which=posBhist, ...))
+      whichHelp <- whichHelp[-which(whichHelp %in% posBhist)]
+    }
+    
     # Predict effect of offset
     predOffset <- object$offsetVec # offset is just an integer 
     #if(1 %in% whichHelp && grepl("ONEx", names(object$baselearner)[[1]])){
@@ -193,15 +209,16 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
     }
     
     if(length(predMboostConc)!=1 & length(predMboost0)!=1) stopifnot(dim(predMboostConc)==dim(predMboost0))
+    if(length(predMboostHist)!=1 & length(predMboost0)!=1) stopifnot(dim(predMboostHist)==dim(predMboost0))
     
-    # Sum up the prediction of the offset, concurrent effects and other effects
+    # Sum up the prediction of the offset, concurrent effects, historic effects and other effects
     # if the whole model is predicted
     if(is.null(which)){
-      predMboost <-  predMboost0 + predMboostConc + predOffset
+      predMboost <-  predMboost0 + predMboostConc + predMboostHist + predOffset
     }else{
-      predMboost <-  predMboost0 + predMboostConc
+      predMboost <-  predMboost0 + predMboostConc + predMboostHist
       attr(predMboost, "offset") <- predOffset
-        #matrix(predOffset, ncol=ncol(predMboost)) 
+      # matrix(predOffset, ncol=ncol(predMboost)) 
     }  
     
 #     # add the scalar offset in the case that the intercept is part of the prediction
@@ -231,7 +248,7 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
 #          }     
   }
   
-  # save the offset as matrix if it isa vector
+  # save the offset as matrix if it is a vector
   offsetTemp <- attr(predMboost, "offset")
     
   ### Reshape prediction of mboost for FDboost
@@ -423,18 +440,23 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL,
           ### get variables for x, y and eventually z direction
           
           # Extra setup of dataframe in the case of a functional covariate
-          if(grepl("bsignal", trm$get_call())){
+          if(grepl("bsignal", trm$get_call()) | grepl("bhist", trm$get_call())){
             x <- attr(trm$model.frame()[[1]], "signalIndex")
             xg <- seq(min(x), max(x),length=ng) 
-            varnms[1] <- attr(trm$model.frame()[[1]], "indname")            
+            varnms[1] <- attr(trm$model.frame()[[1]], "indname")             
           }else{ # scalar covariate
             x <- trm$model.frame()[[1]]
             xg <- if(is.factor(x)) {
               unique(x)
             } else seq(min(x), max(x),length=ng)            
           }
-          yListPlace <- ifelse(grepl("by", trm$get_call()), 3, 2) 
-          y <- trm$model.frame()[[yListPlace]] # index of response or second scalar covariate
+          yListPlace <- ifelse(grepl("by", trm$get_call()), 3, 2)
+          if(!grepl("bhist", trm$get_call())){
+            y <- trm$model.frame()[[yListPlace]] # index of response or second scalar covariate
+          }else{
+            y <- object$yind
+            varnms <- paste(varnms, c("_cov", ""), sep="")
+          }
           yg <- if(is.factor(y)) {
             unique(y)
           } else seq(min(y), max(y),length=ng)
@@ -461,7 +483,8 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL,
           attr(d, "varnms") <- varnms[c(1, yListPlace, zListPlace)] 
         }
         ## add dummy signal to data
-        if(grepl("bsignal", trm$get_call())){
+        ### <FIXME> how is dummy-signal for bhist()?
+        if(grepl("bsignal", trm$get_call()) | grepl("bhist", trm$get_call()) ){
           d[[attr(trm$model.frame()[[1]], "xname")]] <- I(diag(ng)/integrationWeights(diag(ng), d[[varnms[1]]]))
         }
         ## add dummy signal to data
@@ -522,6 +545,10 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL,
       if(any(grepl("ONEx", trm$get_names()), 
              grepl("ONEtime", trm$get_names()))) trm$dim <- trm$dim - 1 
       
+      if( grepl("bhist", trm$get_call()) ){
+        trm$dim <- 2
+      }
+      
       # If a by-variable was specified, reduce number of dimensions
       # as smooth linear effect in several groups can be plotted in one plot 
       if( grepl("by", trm$get_call()) && grepl("bols", trm$get_call())) trm$dim <- trm$dim - 1
@@ -574,7 +601,7 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL,
   }
 }
 
-# help funtion to color perspecite plots - col1 positive values, col2 negative values
+# help funtion to color perspective plots - col1 positive values, col2 negative values
 getColPersp <- function(z, col1="tomato", col2="lightblue"){
   nrz <- nrow(z)
   ncz <- ncol(z)
@@ -585,7 +612,8 @@ getColPersp <- function(z, col1="tomato", col2="lightblue"){
   # use the colors col1 and col2 for negative and positive values
   colfacet <- matrix(nrow=nrow(zfacet), ncol=ncol(zfacet))
   colfacet[zfacet < 0] <- col2
-  colfacet[zfacet >= 0] <- col1
+  colfacet[zfacet > 0] <- col1
+  colfacet[zfacet == 0] <- "white"
   
   return(colfacet) 
 }
@@ -786,8 +814,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
             # persp() gives error if only a flat plane should be drawn
             plot(y=trm$value[1,], x=trm$x, main=trm$main, type="l", xlab=trm$ylab, 
                  ylab="coef")
-          }else{
-            
+          }else{  
             plotWithArgs(persp, args=argsPersp,
                          myargs=list(x=trm$x, y=trm$y, z=trm$value, xlab=trm$xlab, 
                                      ylab=trm$ylab, zlab="coef", main=trm$main, theta=30, 

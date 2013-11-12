@@ -1,5 +1,6 @@
 \name{bsignal}
 \alias{bconcurrent}
+\alias{bhist}
 \alias{bsignal}
 \title{Base-learners for Functional Covarites}
 \usage{
@@ -8,6 +9,9 @@
 
   bconcurrent(..., knots = 10, boundary.knots = NULL,
     degree = 3, differences = 2, df = 4)
+
+  bhist(..., knots = 10, boundary.knots = NULL, degree = 3,
+    differences = 2, df = 8)
 }
 \arguments{
   \item{...}{matrix of functional data and the vector of

@@ -488,6 +488,210 @@ bconcurrent <- function(..., #by = NULL, index = NULL,
 # test$get_data()
 # #test$dpp(rep(1,nrow(testX)))
 
+
+
+
+
+
+#################################
+#### Base-learner for historic effect of functional covariable
+### with integral over s<t
+
+### model.matrix for P-splines baselearner of signal matrix mf
+X_hist <- function(mf, vary, args) {
+  
+  stopifnot(is.data.frame(mf))
+  xname <- attr(mf[[1]], "xname")
+  X1 <- as.matrix(mf[[1]])
+  class(X1) <- "matrix"
+  xind <- attr(mf[[1]], "signalIndex")
+  
+  #   stopifnot(is.list(mf))
+  #   xname <- names(mf)[1]
+  #   X1 <- mf[[1]]
+  #   xind <- mf[[2]]
+  
+  if(ncol(X1)!=length(xind)) stop("Dimension of signal matrix and its index do not match.")
+  
+  ### Construct spline basis over index xind of X1 
+  if(is.null(args$boundary.knots))  args$boundary.knots <- range(xind, na.rm = TRUE)
+  knots <- seq(from = args$boundary.knots[1], to = args$boundary.knots[2], length = args$knots + 2)
+  knots <- knots[2:(length(knots) - 1)]
+  
+  # B-spline basis of specified degree  
+  #X <- bs(xind, knots=knots, degree=args$degree, intercept=TRUE) # old version   
+  B.s <- mboost:::bsplines(xind, knots=knots, boundary.knots=args$boundary.knots, 
+                           degree=args$degree) 
+  
+  #   # to do: extra feature: cyclic splines
+  #   if (args$cyclic) {
+  #     B.s <- mboost:::cbs(xind,
+  #              knots = knots,
+  #              boundary.knots = args$boundary.knots,
+  #              degree = args$degree)
+  #   }
+  
+  colnames(B.s) <- paste(xname, 1:ncol(B.s), sep="")
+  
+  # Weighting with matrix of functional covariable
+  L <- integrationWeights(X1=X1, xind=xind)
+  X1L <- L*X1
+  
+  # set up design matrix for historical model
+  # expand matrix of original observations to lower triangular matrix 
+  X1des <- matrix(0, ncol=ncol(X1), nrow=ncol(X1)*nrow(X1))
+  for(i in 1:ncol(X1des)){
+    #print(nrow(X1)*(i-1)+1)
+    X1des[(nrow(X1)*(i-1)+1):nrow(X1des) ,i] <- X1L[,i] # use fun. variable * integration weights
+  }
+  
+  # Design matrix is product of expanded X1 and basis expansion over xind 
+  X1des <- X1des %*% B.s
+  
+  # design matrix over index of response for one response
+  # <FIXME> works only for s==t!! 
+  B.t <- B.s
+  # stack design-matrix of response n-times
+  B.t <- B.t[rep(1:nrow(B.t), each=nrow(X1)), ]
+  
+  # calculate row-tensor
+  # X <- (X1 %x% t(rep(1, ncol(X2))) ) * ( t(rep(1, ncol(X1))) %x% X2  )
+  X <- X1des[,rep(1:ncol(X1des), each=ncol(B.t))] * B.t[,rep(1:ncol(B.t), times=ncol(X1des))] 
+  
+  ### Penalty matrix: product differences matrix
+  K1 <- diff(diag(ncol(X1des)), differences = 2)
+  K1 <- crossprod(K1)
+  K2 <- diff(diag(ncol(B.t)), differences = 2)
+  K2 <- crossprod(K2)  
+  K <- kronecker(K2, diag(ncol(X1des))) +
+    kronecker(diag(ncol(B.t)), K1)
+  
+  
+  ## compare specified degrees of freedom to dimension of null space
+  if (!is.null(args$df)){
+    rns <- ncol(K) - qr(as.matrix(K))$rank # compute rank of null space
+    if (rns == args$df)
+      warning( sQuote("df"), " equal to rank of null space ",
+               "(unpenalized part of P-spline);\n  ",
+               "Consider larger value for ", sQuote("df"),
+               " or set ", sQuote("center = TRUE"), ".", immediate.=TRUE)
+    if (rns > args$df)
+      stop("not possible to specify ", sQuote("df"),
+           " smaller than the rank of the null space\n  ",
+           "(unpenalized part of P-spline). Use larger value for ",
+           sQuote("df"), " or set ", sQuote("center = TRUE"), ".")
+  }
+  return(list(X = X, K = K))
+}
+
+
+### P-spline base learner for signal matrix with index vector
+### for historical model s<=t
+#' @rdname bsignal
+#' @export
+bhist <- function(..., #by = NULL, index = NULL, 
+                  knots = 10, boundary.knots = NULL, degree = 3, differences = 2, df = 8 
+                  #lambda = NULL, center = FALSE, cyclic = FALSE
+){
+  
+  #  if (!is.null(lambda)) df <- NULL
+  
+  cll <- match.call()
+  cll[[1]] <- as.name("bhist")
+  #print(cll)
+  
+  mfL <- list(...)
+  if(length(mfL)>2) stop("bhist has too many arguments")
+  if(!is.matrix(mfL[[1]])) stop("signal has to be a matrix")
+  
+  varnames <- all.vars(cll)
+  if(length(mfL)==1){ 
+    mfL[[2]] <- 1:ncol(mfL[[1]]); cll[[3]] <- "xind" 
+    varnames <- c(all.vars(cll), "xindDefault")
+  }
+  
+  # Reshape mfL so that it is the dataframe of the signal with the index as attribute
+  mf <- mfL[[1]]
+  colnames(mf) <- paste(cll[[2]], 1:ncol(mf), sep="_")
+  attr(mf, "signalIndex") <- mfL[[2]]
+  xname <- varnames[1]
+  indname <- varnames[2]
+  attr(mf, "xname") <- xname
+  attr(mf, "indname") <- indname
+  
+  mf <- data.frame("z"=I(mf))
+  names(mf) <- as.character(cll[[2]]) 
+  
+  #   if(all(round(colSums(mf, na.rm = TRUE), 4)!=0)){
+  #     warning(xname, " is not centered. 
+  #     Functional covariates should be mean-centered in each measurement point.")
+  #   }
+  
+  #   mf <- mfL
+  #   names(mf) <- varnames
+  
+  vary <- ""
+  
+  CC <- all(mboost:::Complete.cases(mf))
+  #  CC <- all(mboost:::Complete.cases(mf[1]))
+  if (!CC)
+    warning("base-learner contains missing values;\n",
+            "missing values are excluded per base-learner, ",
+            "i.e., base-learners may depend on different",
+            " numbers of observations.")
+  
+  index <- NULL  
+  
+  ret <- list(model.frame = function() 
+    if (is.null(index)) return(mf) else return(mf[index,,drop = FALSE]),
+              get_call = function(){
+                cll <- deparse(cll, width.cutoff=500L)
+                if (length(cll) > 1)
+                  cll <- paste(cll, collapse="")
+                cll
+              },
+              get_data = function() mf,
+              get_index = function() index,
+              get_vary = function() vary,
+              get_names = function(){
+                attr(xname, "indname") <- indname 
+                xname 
+              }, #colnames(mf),
+              set_names = function(value) {
+                #if(length(value) != length(colnames(mf)))
+                if(length(value) != names(mf[1]))
+                  stop(sQuote("value"), " must have same length as ",
+                       sQuote("names(mf[1])"))
+                for (i in 1:length(value)){
+                  cll[[i+1]] <<- as.name(value[i])
+                }
+                attr(mf, "names") <<- value
+              })
+  class(ret) <- "blg"
+  
+  ret$dpp <- mboost:::bl_lin(ret, Xfun = X_hist,
+                             args = list(mf, vary, knots = knots, boundary.knots = boundary.knots, 
+                                         degree = degree, differences = differences,
+                                         df = df, lambda = NULL, center = FALSE, cyclic = FALSE))
+  return(ret)
+}
+
+# testX <- I(matrix(rnorm(40), ncol=5))
+# s <- seq(0,1,l=5)
+# test <- bhist(testX, s, knots=5)
+# #test <- bhist(testX)
+# test$get_names()
+# test$get_data()
+# #test$dpp(rep(1,nrow(testX)))
+# extract(test)
+
+
+
+
+
+
+
+
 #################################
 # Base-learner with constraints for smooth varying scalar covariable
 
