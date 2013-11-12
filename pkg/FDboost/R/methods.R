@@ -832,10 +832,14 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
           
           if(rug){
             ##points(expand.grid(bl_data[[i]][[1]], bl_data[[i]][[2]]))
-            ifelse(grepl("by", trm$main),
-                   rug(bl_data[[i]][[3]], ticksize = 0.02),
-                   rug(bl_data[[i]][[2]], ticksize = 0.02))
-            ifelse(grepl("bsignal", trm$main),
+            if(grepl("bhist", trm$main)){
+              rug(x$yind, ticksize = 0.02)
+            }else{
+              ifelse(grepl("by", trm$main),
+                     rug(bl_data[[i]][[3]], ticksize = 0.02),
+                     rug(bl_data[[i]][[2]], ticksize = 0.02))
+            }
+            ifelse(grepl("bsignal", trm$main) | grepl("bhist", trm$main),
               rug(attr(bl_data[[i]][[1]], "signalIndex"), ticksize = 0.02, side=2),
               rug(bl_data[[i]][[1]], ticksize = 0.02, side=2))
           }
@@ -885,7 +889,11 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
     if(length(which)==1) terms <- list(terms)
     if(class(terms)!="list") terms <- list(terms) 
     
-    shrtlbls <- names(coef(x, which=which, n1=1, n2=1, n3=1, n4=1)$smterms) # get short names
+    shrtlbls <- try(names(coef(x, which=which, n1=5, n2=5, n3=5, n4=5)$smterms)) # get short names
+    if(class(shrtlbls)=="try-error"){
+      shrtlbls <- names(x$baselearner)[which[which!=0]]
+      if(0 %in% which) shrtlbls <- c("offset", which)
+    }
     if(is.null(shrtlbls)) shrtlbls <- "offset" 
     time <- x$yind
     
