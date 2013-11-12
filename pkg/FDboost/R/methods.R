@@ -769,6 +769,10 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
     for(i in 1:length(terms)){
       trm <- terms[[i]] 
       
+      if(grepl("bhist", trm$main)){
+        trm$value[lower.tri(trm$value, diag = FALSE)] <- NA
+      }
+      
       # plot for 1-dim effects
       if(trm$dim==1){
         if(!"add" %in% names(dots)){
