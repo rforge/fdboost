@@ -454,6 +454,7 @@ mstop.validateFDboost <- function(object, ...){
 #' @param terms, logical, defaults to TRUE plot the added terms (default) or the coefficients?
 #' @param probs vector of qunatiles to be used in the plotting of 2-dimensional coefficients surfaces,
 #' defaults to \code{probs=c(0.25, 0.5, 0.75)}
+#' @param ylim values for limits of y-axis
 #' @param ... additional arguments passed to callies.
 #' 
 #' @details \code{plot.validateFDboost} plots cross-validated risk, RMSE, MRD, measured and predicted values 
@@ -571,13 +572,11 @@ plot.validateFDboost <- function(x, risk=c("median","mean"),
 plotPredCoef <- function(x, commonRange=TRUE, showNumbers=FALSE, ask=TRUE, 
                          terms=TRUE,         
                          probs=c(0.25, 0.5, 0.75), # quantiles of variables to use for plotting
-                         ...){
+                         ylim=NULL, ...){
   
   stopifnot(any(class(x)=="validateFDboost"))
   
   par(ask=ask)
-  
-  ylim <- NULL
   
   if(terms){
     if(commonRange){
@@ -608,6 +607,9 @@ plotPredCoef <- function(x, commonRange=TRUE, showNumbers=FALSE, ask=TRUE,
       
       # coef() of a certain term
       temp <- x$coefCV[l][[1]]
+      
+      # set the range for each effect individually
+      if(FALSE) ylim <- range(temp$value)
       
       if(temp$dim==2){
         quantx <- quantile(temp$x, probs=probs, type=1)

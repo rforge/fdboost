@@ -12,7 +12,7 @@
 
   plotPredCoef(x, commonRange = TRUE, showNumbers = FALSE,
     ask = TRUE, terms = TRUE, probs = c(0.25, 0.5, 0.75),
-    ...)
+    ylim = NULL, ...)
 }
 \arguments{
   \item{x}{object of class validateFDboost}
@@ -46,6 +46,8 @@
   \item{probs}{vector of qunatiles to be used in the
   plotting of 2-dimensional coefficients surfaces, defaults
   to \code{probs=c(0.25, 0.5, 0.75)}}
+
+  \item{ylim}{values for limits of y-axis}
 
   \item{...}{additional arguments passed to callies.}
 }
