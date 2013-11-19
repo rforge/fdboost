@@ -32,6 +32,7 @@ validateFDboost <- function(object, response=NULL,
                             grid=1:mstop(object), getCoefCV=FALSE, mrdDelete=0, ...){
   
   type <- match.arg(type)
+  call <- match.call()
   
   nObs <- object$ydim[1] # number of curves
   Gy <- object$ydim[2] # number of time-points per curve
@@ -60,6 +61,9 @@ validateFDboost <- function(object, response=NULL,
       folds1 <- cv(weights=rep(1, length(weights)), type="kfold", B=B)
       folds <- folds1*weights
     } 
+  }else{
+    folds1 <- folds
+    folds <- folds1*weights
   }
   
   # out-of-bag-weights: i.e. the left out curve/ the left out observations
@@ -129,10 +133,26 @@ validateFDboost <- function(object, response=NULL,
     
     # mod[grid[which.min(risk)]]
     
+    # matrix(oobweights, nObs, Gy)
+    
     # prediction for all observations, not only oob! 
     # -> oob-predictions have to be merged out of predGrid
     predGrid <- predict(mod, aggregate="cumsum", unlist=FALSE)
     predGrid <- sapply(predGrid, function(x) as.vector(x) )[,grid] # save vectors of predictions in matrix
+    
+    # predict oob and save responses that were predicted
+    predOOB <- predict(mod, aggregate="cumsum", unlist=FALSE)
+    keepOOB <- matrix(oobweights, nObs, Gy)
+    keepRow <- apply(keepOOB, 1, function(x) any(x!=0))
+    if(any(keepRow)){
+      predOOB <- sapply(predOOB, function(x) as.vector(x[keepRow,]) )[,grid]
+      respOOB <- as.vector(matrix(mod$response, nObs, Gy)[keepRow,] )
+      attr(respOOB, "curves") <- which(keepRow)
+    }else{
+      predOOB <- NULL
+      respOOB <- NULL
+    }
+
     
     # estimations of the coefficients
     # use the coef.FDboost() function to calculate the coefficients 
@@ -153,7 +173,7 @@ validateFDboost <- function(object, response=NULL,
       }
     }
     
-    return(list(risk=risk, predGrid=predGrid, coefCV=coefCV, mod=mod))  # return model to be able to compute coefficients
+    return(list(risk=risk, predGrid=predGrid, predOOB=predOOB, respOOB=respOOB, coefCV=coefCV, mod=mod))  # return model to be able to compute coefficients
   }
   
   #   ###### Function to fit the model
@@ -255,19 +275,22 @@ validateFDboost <- function(object, response=NULL,
   colnames(oobrisk) <- grid
   rownames(oobrisk) <- which(modFitted)
   
-  ## check for curves with extreme risk-values at the global median
+  ## check for folds with extreme risk-values at the global median
   riskOptimal <- oobrisk[ , which.min(apply(oobrisk, 2, median))]
   bound <- median(riskOptimal) + 1.5*(quantile(riskOptimal, 0.75) - quantile(riskOptimal, 0.25))
   
+  # fold equals curve if type="curves"
   if(any(riskOptimal>bound)){
-    message("Curves with high values in oobrisk:")
-    message(paste("Curve ", which(riskOptimal>bound), ": " ,
+    message("Fold with high values in oobrisk (median is ", round(median(riskOptimal),2), "):")
+    message(paste("In fold ", which(riskOptimal>bound), ": " ,
                   round(riskOptimal[which(riskOptimal>bound)], 2), collapse=",  ", sep="" )  )  
   }
 
-  
+  ## only makes sense for type="curves" with leaving-out one curve per fold!!
+  if(is.null(call$folds) & type=="curves"){
   ## predict response for all mstops in grid out of bag
   # predictions for each response are in a vector!
+  # if a curve was several times not in the training data the last prediction is taken
   oobpreds0 <- lapply(modRisk, function(x) x$predGrid)
   oobpreds <- matrix(nrow=nrow(oobpreds0[[1]]) , ncol=ncol(oobpreds0[[1]]))
   for(j in 1:length(oobpreds0)){
@@ -283,55 +306,73 @@ validateFDboost <- function(object, response=NULL,
   
   # Almost equal: look at 2nd mstop in grid
   # mean(oobrisk[, 2]); mean((oobpreds[,2] - response)^2, na.rm=TRUE)
+  }else{
+    oobpreds <- NULL
+  }
+    
+  # alternative OOB-prediction 
+  predOOB <- lapply(modRisk, function(x) x$predOOB)
+  predOOB <- do.call('rbind', predOOB)
+  colnames(predOOB) <- grid
+  respOOB <- lapply(modRisk, function(x) x$respOOB)
+  respOOB <- do.call('c', respOOB)
+  indexOOB <- lapply(modRisk, function(x) attr(x$respOOB, "curves"))
+  indexOOB <- lapply(indexOOB, function(x) rep(x, times=Gy) )
+  indexOOB <- unlist(indexOOB)
+  attr(respOOB, "index") <- indexOOB
   
   ############################
   # calculate mean squared error and root mean squared error for each mstop!
-  mse <- colMeans((oobpreds - response)^2, na.rm=TRUE)
+#  mseOld <- colMeans((oobpreds - response)^2, na.rm=TRUE)
+  mse <- colMeans((predOOB - respOOB)^2, na.rm=TRUE)
   
   # Calculate MSE for each curve
-  # apply over the columns of oobpreds, i.e. over grid
-  # tapply over the individual curves denoted by index
-  mseCurves <- apply( ((oobpreds - response)^2), 2, function(xvec){
-    tapply(xvec, index, function(x) mean(x, na.rm=TRUE))
+#   # apply over the columns of oobpreds, i.e. over grid
+#   # tapply over the individual curves denoted by index
+#   mseCurvesOld <- apply( ((oobpreds - response)^2), 2, function(xvec){
+#     tapply(xvec, index, function(x) mean(x, na.rm=TRUE))
+#   } )
+  mseCurves <- apply( ((predOOB - respOOB)^2), 2, function(xvec){
+    tapply(xvec, indexOOB, function(x) mean(x, na.rm=TRUE))
   } )
   
   # Check the calculation of mseCurves and mse
   # nPerCurve <- tapply(response, index, function(x) sum(!is.na(x)))
-  # weighted.mean(mseCurves[,1], nPerCurve)
+  # weighted.mean(mseCurves[,1], nPerCurve); mse[1]
   
-  # compare: colMeans(oobrisk); mse
+  # compare: cbind(colMeans(oobrisk), mse, mseOld)
   # they are slightly different 
   
   rmse <- sqrt(mse)
   rmseCurves <- sqrt(mseCurves)
   
-  # mean relative deviation
+  ### mean relative deviation
   # do not use values that are 0
-  response1 <- response
-  sum(round(response1, 1) == 0, na.rm=TRUE)
-  response1[ round(response1, 1) == 0 ] <- NA
+  respOOB1 <- respOOB
+  sum(round(respOOB, 1) == 0, na.rm=TRUE)
+  respOOB1[ round(respOOB1, 1) == 0 ] <- NA
   
   if(mrdDelete>0){
     # do not use points that are less than 20% of the overall mean without 0 observations
-    respNotused <- 0.2*mean(abs(response1), na.rm=TRUE) > abs(response1)
+    respNotused <- mrdDelete*mean(abs(respOOB1), na.rm=TRUE) > abs(respOOB1)
     #if(sum(respNotused, na.rm=TRUE)>0) print(sum(respNotused, na.rm=TRUE))
-    response1[ respNotused ] <- NA
+    respOOB1[ respNotused ] <- NA
   }
   
-  mrd <- colMeans( abs((oobpreds - response1) / response1), na.rm=TRUE ) 
+  mrd <- colMeans( abs((predOOB - respOOB1) / respOOB1), na.rm=TRUE ) 
   
   if(mrdDelete>0){
     attr(mrd, "notUsed") <- sum(respNotused, na.rm=TRUE)
   }
   
-  mrdCurves <- apply( (abs((oobpreds - response1) / response1)), 2, function(xvec){
-    tapply(xvec, index, function(x) mean(x, na.rm=TRUE))
+  mrdCurves <- apply( abs((predOOB - respOOB1) / respOOB1), 2, function(xvec){
+    tapply(xvec, indexOOB, function(x) mean(x, na.rm=TRUE))
   } )
   
   # Check the calculation of mrdCurves and mrd
   # nPerCurve <- tapply(response, index, function(x) sum(!is.na(x)))
-  # weighted.mean(mrdCurves[,1], nPerCurve)
-  
+  # weighted.mean(mrdCurves[,1], nPerCurve); mrd[1]
+    
   # get the coefficient estimates
   if(getCoefCV){
     coefCV <- lapply(modRisk, function(x) x$coefCV)
@@ -345,13 +386,15 @@ validateFDboost <- function(object, response=NULL,
   
   if(getCoefCV){
     
+    # use median of oobrisk!
     optimalMstop <- grid[which.min(apply(oobrisk, 2, median))]
 
-    # estiamtes of coefficients
+    ### estimates of coefficients
     for(l in 1:length(modRisk[[1]]$mod$baselearner)){
       # estimate the coefficients for the model of the first fold
       coefCV[[l]] <- coef(modRisk[[1]]$mod[optimalMstop], 
                           which=l, n1 = 20, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]
+      # add estimates for the models of the other folds
       coefCV[[l]]$value <- lapply(1:length(modRisk), function(g){
         ret <- coef(modRisk[[g]]$mod[optimalMstop], 
                     which=l, n1 = 50, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]$value
@@ -361,32 +404,35 @@ validateFDboost <- function(object, response=NULL,
     
     niceNames <- c("offset", lapply(coefCV, function(x) x$main))
     
-    # predictions of terms based on the coefficients for each model
-    for(l in 1:(length(modRisk[[1]]$mod$baselearner)+1)){
-      predCV[[l]] <- t(sapply(1:length(modRisk), function(g){
-        if(l==1){
-          ret <- attr(predict(modRisk[[g]]$mod[optimalMstop], which=l), "offset")          
-          if( !is.null(dim(ret)) ){
-            ret <- ret[1,]
-          }else{
-            ret <- rep(ret, modRisk[[1]]$mod$ydim[2])
+    ### predictions of terms based on the coefficients for each model
+    # only makes sense for type="curves" with leaving-out one curve per fold!!
+    if(is.null(call$folds) & type=="curves"){
+      for(l in 1:(length(modRisk[[1]]$mod$baselearner)+1)){
+        predCV[[l]] <- t(sapply(1:length(modRisk), function(g){
+          if(l==1){ # save offset of model
+            ret <- attr(predict(modRisk[[g]]$mod[optimalMstop], which=l), "offset")          
+            if( !is.null(dim(ret)) ){
+              ret <- ret[1,]
+            }else{
+              ret <- rep(ret, modRisk[[1]]$mod$ydim[2])
+            }
+          }else{ # other effects
+            ret <- predict(modRisk[[g]]$mod[optimalMstop], which=l-1) # model g
+            if( !is.null(dim(ret)) ){
+              ret <- ret[g,] # save g-th row
+            }else{
+              ret <- rep(0, modRisk[[1]]$mod$ydim[2])
+            }
           }
-        }else{
-          ret <- predict(modRisk[[g]]$mod[optimalMstop], which=l-1)
-          if( !is.null(dim(ret)) ){
-            ret <- ret[g,]
-          }else{
-            ret <- rep(0, modRisk[[1]]$mod$ydim[2])
-          }
-        }
-        return(ret)
-      }))
-      names(predCV)[l] <- niceNames[l]
-#       matplot(modRisk[[1]]$mod$yind, t(predCV[[l]]), type="l", 
-#               main=names(predCV)[l], xlab=attr(modRisk[[1]]$mod$yind, "nameyind"), ylab="coef")
+          return(ret)
+        }))
+        names(predCV)[l] <- niceNames[l]
+        #       matplot(modRisk[[1]]$mod$yind, t(predCV[[l]]), type="l", 
+        #               main=names(predCV)[l], xlab=attr(modRisk[[1]]$mod$yind, "nameyind"), ylab="coef")
+      } 
     }
     
-  }
+  } # end of if(getCoefCV)
   
   rm(modRisk)
   
@@ -395,6 +441,7 @@ validateFDboost <- function(object, response=NULL,
               coefCV=coefCV,
               predCV=predCV,
               oobpreds=oobpreds, 
+              predOOB=predOOB, respOOB=respOOB,
               oobrisk=oobrisk, 
               oobriskMean=colMeans(oobrisk),
               mseCurves=mseCurves, rmseCurves=rmseCurves, mrdCurves=mrdCurves, 
@@ -515,24 +562,38 @@ plot.validateFDboost <- function(x, risk=c("median","mean"),
   abline(h=x$mrd[mpos], lty=2)
   
   # Plot the predictions for the optimal mstop
-  response <- x$response
-  pred <- x$oobpreds[,mpos]
-  if(!predictNA){
-    pred[is.na(response)] <- NA
+  if(!is.null(x$oobpreds[,mpos])){
+    response <- x$response
+    pred <- x$oobpreds[,mpos]
+    if(!predictNA){
+      pred[is.na(response)] <- NA
+    }
+    predMat <- matrix(pred, ncol=length(x$yind))
+    responseMat <- matrix(response, ncol=length(x$yind))
+    
+    ylim <- range(response, pred, na.rm = TRUE)
+    funplot(x$yind, responseMat, lwd = 1, pch = 1, ylim = ylim,  
+            ylab = "", xlab = attr(x$yind, "nameyind"), main="Measured and Predicted Values", ...)
+    funplot(x$yind, predMat, lwd = 1.5, pch = 2, add = TRUE, ...)
+    
+    # Plot residuals for the optimal mstop
+    funplot(x$yind, responseMat-predMat, ylab = "", xlab = attr(x$yind, "nameyind"), 
+            main="Residuals", ...)
+    abline(h=0, lty=2, col="grey")
   }
   
-  predMat <- matrix(pred, ncol=length(x$yind))
-  responseMat <- matrix(response, ncol=length(x$yind))
-  
-  ylim <- range(response, pred, na.rm = TRUE)
-  funplot(x$yind, responseMat, lwd = 1, pch = 1, ylim = ylim,  
-          ylab = "", xlab = attr(x$yind, "nameyind"), main="Measured and Predicted Values", ...)
-  funplot(x$yind, predMat, lwd = 1.5, pch = 2, add = TRUE, ...)
-  
-  # Plot residuals for the optimal mstop
-  funplot(x$yind, responseMat-predMat, ylab = "", xlab = attr(x$yind, "nameyind"), 
-          main="Residuals", ...)
-  abline(h=0, lty=2, col="grey")
+#   }else{
+#     response <- x$respOOB
+#     pred <- x$predOOB[,mpos]
+#     if(!predictNA){
+#       pred[is.na(response)] <- NA
+#     }
+#     indexOOB <- attr(x$respOOB, "index")
+#     predMat <- matrix(pred, ncol=length(x$yind))
+#     responseMat <- matrix(response, ncol=length(x$yind))
+#   }
+
+
   
   # Plot coefficients
   
@@ -579,6 +640,12 @@ plotPredCoef <- function(x, commonRange=TRUE, showNumbers=FALSE, ask=TRUE,
   par(ask=ask)
   
   if(terms){
+    
+    if( length(x$predCV)==0 ){
+      warning("terms=TRUE, but predCV is empty.")
+      return(NULL)
+    }
+    
     if(commonRange){
       ylim <- range(x$predCV[-1]) # exclude offset in calculation of common range
     }
@@ -612,8 +679,11 @@ plotPredCoef <- function(x, commonRange=TRUE, showNumbers=FALSE, ask=TRUE,
       if(FALSE) ylim <- range(temp$value)
       
       if(temp$dim==2){
-        quantx <- quantile(temp$x, probs=probs, type=1)
-        quanty <- quantile(temp$y, probs=probs, type=1)
+        
+        if(!is.factor(temp$x)){
+          quantx <- quantile(temp$x, probs=probs, type=1)
+        } else quantx <- temp$x
+        if(!is.factor(temp$x)) quanty <- quantile(temp$y, probs=probs, type=1)
         
         for(j in 1:length(probs)){ 
           
@@ -629,7 +699,7 @@ plotPredCoef <- function(x, commonRange=TRUE, showNumbers=FALSE, ask=TRUE,
           }
         }
         
-        for(j in 1:length(probs)){  
+        for(j in 1:length(quantx)){  
           myRow <- sapply(temp$value, function(x) x[quantx[j]==temp$x, ]) # first column
           matplot(temp$x, myRow, type="l", xlab=temp$ylab, ylim=ylim,
                   main=paste(temp$main, " at ", probs[j]*100, "% of ", temp$xlab, sep=""), ylab="coef")
