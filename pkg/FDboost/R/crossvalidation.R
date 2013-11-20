@@ -107,6 +107,7 @@ validateFDboost <- function(object, response=NULL,
     
     #call$control <- boost_control(risk="oobag")
     
+    # this code does no longer work as the formulas in FDboost are saved as strings
     #     # <FIXME> is there a more elegant way to make sure that formula, timeformula are known in
     #     # the environment of the model fit?
     #     call$formula <- get("formulaFDboost", environment(object$predictOffset))

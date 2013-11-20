@@ -317,12 +317,18 @@ FDboost <- function(formula,          ### response ~ xvars
   ret$callEval[-1] <- lapply(ret$call[-1], function(x){  
     eval(x, parent.frame(3)) # use the environment of the call to FDboost()
   })
-  ret$callEval$data <- NULL # do not save data and weights in callEval to spare memory
+  ret$callEval$data <- NULL # do not save data and weights in callEval to save memory
   ret$callEval$weights <- NULL
   
-  ret$timeformula <- timeformula
-  ret$formulaFDboost <- formulaFDboost
-  ret$formulaMboost <- fm
+  # save formulas as character strings to save memory
+  ret$timeformula <- paste(deparse(timeformula), collapse="")
+  ret$formulaFDboost <- paste(deparse(formulaFDboost), collapse="")
+  ret$formulaMboost <- paste(deparse(fm), collapse="")
+  
+#   ret$timeformula <- timeformula
+#   ret$formulaFDboost <- formulaFDboost
+#   ret$formulaMboost <- fm
+  
   ret
 }
 
