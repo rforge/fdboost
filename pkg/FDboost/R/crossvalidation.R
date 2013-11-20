@@ -683,32 +683,51 @@ plotPredCoef <- function(x, commonRange=TRUE, showNumbers=FALSE, ask=TRUE,
         if(!is.factor(temp$x)){
           quantx <- quantile(temp$x, probs=probs, type=1)
         } else quantx <- temp$x
-        if(!is.factor(temp$x)) quanty <- quantile(temp$y, probs=probs, type=1)
         
-        for(j in 1:length(probs)){ 
+        quanty <- quantile(temp$y, probs=probs, type=1)
+        
+        if(!is.factor(temp$x)){ # temp$x is metric
           
-          # impute matrix of 0 if effect was never chosen
-          temp$value[sapply(temp$value, function(x) is.null(dim(x)))] <- list(matrix(0, ncol=20, nrow=20))
-          
-          myCol <- sapply(temp$value, function(x) x[, quanty[j]==temp$y]) # first column
-          matplot(temp$x, myCol, type="l", xlab=temp$xlab, ylim=ylim,
-                  main=paste(temp$main, " at ", probs[j]*100, "% of ", temp$ylab, sep=""), ylab="coef")
-          
-          if(showNumbers){
-            matplot(temp$x, myCol, add=TRUE )
+          for(j in 1:length(quanty)){ 
+            
+            # impute matrix of 0 if effect was never chosen
+            temp$value[sapply(temp$value, function(x) is.null(dim(x)))] <- list(matrix(0, ncol=20, nrow=20))
+            
+            myCol <- sapply(temp$value, function(x) x[, quanty[j]==temp$y]) # first column
+            matplot(temp$x, myCol, type="l", xlab=temp$xlab, ylim=ylim,
+                    main=paste(temp$main, " at ", probs[j]*100, "% of ", temp$ylab, sep=""), ylab="coef")
+            
+            if(showNumbers){
+              matplot(temp$x, myCol, add=TRUE )
+            }
           }
+          
+          for(j in 1:length(quantx)){  
+            myRow <- sapply(temp$value, function(x) x[quantx[j]==temp$x, ]) # first column
+            matplot(temp$x, myRow, type="l", xlab=temp$ylab, ylim=ylim,
+                    main=paste(temp$main, " at ", probs[j]*100, "% of ", temp$xlab, sep=""), ylab="coef")
+            
+            if(showNumbers){
+              matplot(temp$x, myRow, add=TRUE )
+            }
+          }
+        }else{ # temp$x is factor
+          for(j in 1:length(quantx)){ 
+            
+            # impute matrix of 0 if effect was never chosen
+            temp$value[sapply(temp$value, function(x) is.null(dim(x)))] <- list(matrix(0, ncol=20, nrow=length(quantx)))
+            
+            myRow <- sapply(temp$value, function(x) x[quantx[j]==temp$x, ]) # first column
+            matplot(myRow, type="l", xlab=temp$ylab, ylim=ylim,
+                    main=paste(temp$main, " at ", temp$xlab,"=" ,quantx[j], sep=""), ylab="coef")
+            
+            if(showNumbers){
+              matplot(myRow, add=TRUE )
+            }
+          } 
         }
         
-        for(j in 1:length(quantx)){  
-          myRow <- sapply(temp$value, function(x) x[quantx[j]==temp$x, ]) # first column
-          matplot(temp$x, myRow, type="l", xlab=temp$ylab, ylim=ylim,
-                  main=paste(temp$main, " at ", probs[j]*100, "% of ", temp$xlab, sep=""), ylab="coef")
-          
-          if(showNumbers){
-            matplot(temp$x, myRow, add=TRUE )
-          }
-        }
-      }
+      } # end if(temp$dim==2)
       
     } # end loop over effects
   }
