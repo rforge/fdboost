@@ -63,7 +63,6 @@ integrationWeights <- function(X1, xind){
   }
 }
 
-
 # # test integrationWeights()
 # xind <- seq(0,1,l=5)
 # xind <- c(0, 0.2, 0.4, 0.5, 1)
@@ -83,6 +82,22 @@ integrationWeights <- function(X1, xind){
 # intW <- integrationWeights(X1, xind)
 # rowSums(intW*X1, na.rm=TRUE) -c(0, 5, 10, 15)
 # matplot(xind, t(X1), type="b")
+
+
+
+#### Computes Riemann-weights that only take into account the distance to the previous 
+# observation point
+# important for bhist()
+integrationWeightsLeft <- function(X1, xind){
+  if( ncol(X1)!=length(xind) ) stop("Dimension of xind and X1 do not match")
+  
+  # use lower Riemann sum
+  Li <- diff(xind)
+  Li <- c(Li[1], Li)
+  L <- matrix(Li, nrow=nrow(X1), ncol=ncol(X1), byrow=TRUE)
+  
+  return(L)
+}
 
 
 ################################################################################
@@ -534,7 +549,7 @@ X_hist <- function(mf, vary, args) {
   colnames(B.s) <- paste(xname, 1:ncol(B.s), sep="")
   
   # Weighting with matrix of functional covariable
-  L <- integrationWeights(X1=X1, xind=xind)
+  L <- integrationWeightsLeft(X1=X1, xind=xind)
   X1L <- L*X1
   
   # set up design matrix for historical model
