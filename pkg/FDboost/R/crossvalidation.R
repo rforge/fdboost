@@ -160,21 +160,23 @@ validateFDboost <- function(object, response=NULL,
     
     # Compute coefficients for all mstops in grid -> takes some time!
     coefCV <- list()
+   
+    #### OLD!
+#     if(getCoefCV){
+#       # <ToDo> deal with j=1 in more intelligent way.
+#       for(j in 1:length(object$baselearner)){
+#         coefCV[[j]] <- coef(mod, which=j, n1 = 50, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]
+#         coefCV[[j]]$value <- lapply(grid, function(g){
+#           ret <- coef(mod[g], which=j, n1 = 50, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]$value
+#           if(j>1) attr(ret, "offset") <- NULL # as offset is the same within one model
+#           return(ret)
+#         })
+#         names(coefCV[[j]]$value) <- grid
+#       }
+#     }
     
-    if(getCoefCV){
-      # <ToDo> deal with j=1 in more intelligent way.
-      for(j in 1:length(object$baselearner)){
-        coefCV[[j]] <- coef(mod, which=j, n1 = 20, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]
-        coefCV[[j]]$value <- lapply(grid, function(g){
-          ret <- coef(mod[g], which=j, n1 = 50, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]$value
-          if(j>1) attr(ret, "offset") <- NULL # as offset is the same within one model
-          return(ret)
-        })
-        names(coefCV[[j]]$value) <- grid
-      }
-    }
-    
-    return(list(risk=risk, predGrid=predGrid, predOOB=predOOB, respOOB=respOOB, coefCV=coefCV, mod=mod))  # return model to be able to compute coefficients
+    return(list(risk=risk, predGrid=predGrid, predOOB=predOOB, respOOB=respOOB, 
+                coefCV=coefCV, mod=mod))  # return model to be able to compute coefficients
   }
   
   #   ###### Function to fit the model
@@ -209,7 +211,7 @@ validateFDboost <- function(object, response=NULL,
   #     if(getCoefCV){
   #       # <ToDo> deal with j=1 in more intelligent way.
   #       for(j in 1:length(object$baselearner)){
-  #         coefCV[[j]] <- coef(mod, which=j, n1 = 20, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]
+  #         coefCV[[j]] <- coef(mod, which=j, n1 = 50, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]
   #         coefCV[[j]]$value <- lapply(grid, function(g){
   #           ret <- coef(mod[g], which=j, n1 = 50, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]$value
   #           if(j>1) attr(ret, "offset") <- NULL # as offset is the same within one model
@@ -373,13 +375,14 @@ validateFDboost <- function(object, response=NULL,
   # Check the calculation of mrdCurves and mrd
   # nPerCurve <- tapply(response, index, function(x) sum(!is.na(x)))
   # weighted.mean(mrdCurves[,1], nPerCurve); mrd[1]
-    
-  # get the coefficient estimates
-  if(getCoefCV){
-    coefCV <- lapply(modRisk, function(x) x$coefCV)
-  }else{
-    coefCV <- NULL
-  } 
+
+  ##### OLD
+#   # get the coefficient estimates
+#   if(getCoefCV){
+#     coefCV <- lapply(modRisk, function(x) x$coefCV)
+#   }else{
+#     coefCV <- NULL
+#   } 
   
   # calculate coefficients for the median mstop
   coefCV <- list()
@@ -394,11 +397,21 @@ validateFDboost <- function(object, response=NULL,
     for(l in 1:length(modRisk[[1]]$mod$baselearner)){
       # estimate the coefficients for the model of the first fold
       coefCV[[l]] <- coef(modRisk[[1]]$mod[optimalMstop], 
-                          which=l, n1 = 20, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]
+                          which=l, n1 = 50, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]
+      if(l==1){
+        coefCV[[l]]$offset <- matrix(ncol=50, nrow=length(modRisk))
+        coefCV[[l]]$offset[1,] <- modRisk[[1]]$mod$predictOffset(time=seq(min(mod$yind), max(mod$yind), l=50))
+      }
+      attr(coefCV[[l]]$value, "offset") <- NULL # as offset is the same within one model
+
       # add estimates for the models of the other folds
       coefCV[[l]]$value <- lapply(1:length(modRisk), function(g){
         ret <- coef(modRisk[[g]]$mod[optimalMstop], 
                     which=l, n1 = 50, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]$value
+        if(l==1){
+          coefCV[[l]]$offset[g,] <- modRisk[[g]]$mod$predictOffset(time=seq(min(mod$yind), max(mod$yind), l=50))
+        }
+        attr(ret, "offset") <- NULL # as offset is the same within one model
         return(ret)
       })
     }
@@ -599,7 +612,7 @@ plot.validateFDboost <- function(x, risk=c("median","mean"),
   # Plot coefficients
   
   #   # example: plot coeficients of 5th effect for folds 1-4 each for the optimal mstop
-  #   plot(modObject, which=5, n1 = 20, n2 = 20, n3 = 15, n4 = 10, levels=seq(-.4, 1.4, by=0.4))
+  #   plot(modObject, which=5, n1 = 50, n2 = 20, n3 = 15, n4 = 10, levels=seq(-.4, 1.4, by=0.4))
   #   contour(x$coefCV[[1]][[5]]$x,
   #           x$coefCV[[1]][[5]]$y,
   #           t(x$coefCV[[1]][[5]]$value[[mpos]]), lty=2, add=TRUE, col=2, levels=seq(-.4, 1.4, by=0.4))
@@ -671,13 +684,41 @@ plotPredCoef <- function(x, commonRange=TRUE, showNumbers=FALSE, ask=TRUE,
       ylim <- range(lapply(x$coefCV[-1], function(x) range(x$value))) # exclude offset in calculation of common range
     }
     
-    for(l in 2:length(x$coefCV)){ # loop over effects
+    for(l in 1:length(x$coefCV)){ # loop over effects
       
       # coef() of a certain term
       temp <- x$coefCV[l][[1]]
       
       # set the range for each effect individually
       if(FALSE) ylim <- range(temp$value)
+      
+      # plot the estimated offset
+      if(l==1){
+        #temp <- x$coefCV[[1]]
+        myMat <- temp$offset
+        
+        matplot(seq(min(x$yind), max(x$yind), length=ncol(myMat)), t(myMat), type="l", 
+                xlab=attr(x$yind,"nameyind"),
+                main="offset", ylab="coef")
+        
+        if(showNumbers){
+          matplot(seq(min(x$yind), max(x$yind), length=ncol(myMat)), t(myMat), add=TRUE )
+        }
+        
+      }
+      
+      if(temp$dim==1){
+        # impute vector of 0 if effect was never chosen
+        temp$value[sapply(temp$value, function(x) length(x)==1)] <- list(rep(0, 50))
+        myMat <- sapply(temp$value, function(x) x) # as one matrix
+        
+        matplot(temp$x, myMat, type="l", xlab=temp$xlab,
+                main=temp$main, ylab="coef")
+        
+        if(showNumbers){
+          matplot(temp$x, myMat, add=TRUE )
+        }
+      }
       
       if(temp$dim==2){
         
@@ -718,12 +759,19 @@ plotPredCoef <- function(x, commonRange=TRUE, showNumbers=FALSE, ask=TRUE,
             # impute matrix of 0 if effect was never chosen
             temp$value[sapply(temp$value, function(x) is.null(dim(x)))] <- list(matrix(0, ncol=20, nrow=length(quantx)))
             
-            myRow <- sapply(temp$value, function(x) x[quantx[j]==temp$x, ]) # first column
-            matplot(myRow, type="l", xlab=temp$ylab, ylim=ylim,
-                    main=paste(temp$main, " at ", temp$xlab,"=" ,quantx[j], sep=""), ylab="coef")
-            
+            if(is.null(temp$z)){
+              myRow <- sapply(temp$value, function(x) x[quantx[j]==temp$x, ]) # first column
+              matplot(temp$y, myRow, type="l", xlab=temp$ylab, ylim=ylim,
+                      main=paste(temp$main, " at ", temp$xlab,"=" ,quantx[j], sep=""), ylab="coef")
+            }else{
+              quantz <- temp$z
+              myRow <- sapply(temp$value, function(x) x[quantx[j]==temp$x & quantz[j]==temp$z, ]) # first column
+              matplot(temp$y, myRow, type="l", xlab=temp$ylab, ylim=ylim,
+                      main=paste(temp$main, " at ", temp$xlab,"=" , quantx[j], ", " , 
+                                 temp$zlab,"=" ,quantz[j], sep=""), ylab="coef")
+            }
             if(showNumbers){
-              matplot(myRow, add=TRUE )
+              matplot(temp$y, myRow, add=TRUE )
             }
           } 
         }

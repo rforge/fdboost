@@ -471,9 +471,13 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL,
               unique(z)
             }else ifelse(grepl("by", trm$get_call()), 1, seq(min(z), max(z), length=ng)) 
             d <- list(xg, yg, zg)  # data.frame
+#             # special case of factor by-variable 
+#             if(grepl("by", trm$get_call()) && grepl("bols", trm$get_call()) && is.factor(z)){
+#               d <- list(rep(xg, length(yg)), rep(yg, each=length(xg)), zg)
+#             }
             # special case of factor by-variable 
             if(grepl("by", trm$get_call()) && grepl("bols", trm$get_call()) && is.factor(z)){
-              d <- list(rep(xg, length(yg)), rep(yg, each=length(xg)), zg)
+              d <- list(rep(xg, length(zg)), yg, rep(zg, each=length(zg)))
             }
             attr(d, "xm") <- d[[1]]
             attr(d, "ym") <- d[[2]]
