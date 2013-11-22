@@ -1,8 +1,17 @@
-#' Function to compute integration weights
+#' Functions to compute integration weights
 #' 
 #' Computes trapezoidal integration weights for a functional variable X1 on grid xind.
 #' @param X1 matrix of functional variable
 #' @param xind index of functional variable
+#' 
+#' @aliases integrationWeightsLeft
+#' 
+#'  @details The function \code{integrationWeights()} computes trapezoidal integraion weights, 
+#'  that are symmetric. The function \code{integrationWeightsLeft()} computes weights,
+#'  that take into account soley the distance to the prior observation point. 
+#'  Those weights are adequate for historical effects.
+#'   
+#' 
 #' @export
 ################################# 
 # Trapezoidal integration weights for a functional covariable X1 on grid xind
@@ -88,6 +97,7 @@ integrationWeights <- function(X1, xind){
 #### Computes Riemann-weights that only take into account the distance to the previous 
 # observation point
 # important for bhist()
+#' @export
 integrationWeightsLeft <- function(X1, xind){
   
   if( ncol(X1)!=length(xind) ) stop("Dimension of xind and X1 do not match")
