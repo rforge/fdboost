@@ -313,7 +313,7 @@ validateFDboost <- function(object, response=NULL,
     oobpreds <- NULL
   }
     
-  # alternative OOB-prediction 
+  # alternative OOB-prediction: works for general folds not oly oob
   predOOB <- lapply(modRisk, function(x) x$predOOB)
   predOOB <- do.call('rbind', predOOB)
   colnames(predOOB) <- grid
@@ -394,13 +394,14 @@ validateFDboost <- function(object, response=NULL,
     optimalMstop <- grid[which.min(apply(oobrisk, 2, median))]
 
     ### estimates of coefficients
+    timeHelp <- seq(min(modRisk[[1]]$mod$yind), max(modRisk[[1]]$mod$yind), l=50)
     for(l in 1:length(modRisk[[1]]$mod$baselearner)){
       # estimate the coefficients for the model of the first fold
       coefCV[[l]] <- coef(modRisk[[1]]$mod[optimalMstop], 
                           which=l, n1 = 50, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]
       if(l==1){
         coefCV[[l]]$offset <- matrix(ncol=50, nrow=length(modRisk))
-        coefCV[[l]]$offset[1,] <- modRisk[[1]]$mod$predictOffset(time=seq(min(mod$yind), max(mod$yind), l=50))
+        coefCV[[l]]$offset[1,] <- modRisk[[1]]$mod$predictOffset(time=timeHelp)
       }
       attr(coefCV[[l]]$value, "offset") <- NULL # as offset is the same within one model
 
@@ -409,7 +410,7 @@ validateFDboost <- function(object, response=NULL,
         ret <- coef(modRisk[[g]]$mod[optimalMstop], 
                     which=l, n1 = 50, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]$value
         if(l==1){
-          coefCV[[l]]$offset[g,] <- modRisk[[g]]$mod$predictOffset(time=seq(min(mod$yind), max(mod$yind), l=50))
+          coefCV[[l]]$offset[g,] <- modRisk[[g]]$mod$predictOffset(time=timeHelp)
         }
         attr(ret, "offset") <- NULL # as offset is the same within one model
         return(ret)
@@ -734,6 +735,13 @@ plotPredCoef <- function(x, commonRange=TRUE, showNumbers=FALSE, ask=TRUE,
             
             # impute matrix of 0 if effect was never chosen
             temp$value[sapply(temp$value, function(x) is.null(dim(x)))] <- list(matrix(0, ncol=20, nrow=20))
+            
+            # set lower triangular matrix to NA for historic effect
+            if(grepl("bhist", temp$main)){
+              for(k in 1:length(temp$value)){
+                temp$value[[k]][outer(1:nrow(temp$value[[k]]), 1:ncol(temp$value[[k]]), "<=")==FALSE] <- NA
+              }
+            }
             
             myCol <- sapply(temp$value, function(x) x[, quanty[j]==temp$y]) # first column
             matplot(temp$x, myCol, type="l", xlab=temp$xlab, ylim=ylim,

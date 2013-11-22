@@ -487,9 +487,12 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL,
           attr(d, "varnms") <- varnms[c(1, yListPlace, zListPlace)] 
         }
         ## add dummy signal to data
-        ### <FIXME> how is dummy-signal for bhist()?
-        if(grepl("bsignal", trm$get_call()) | grepl("bhist", trm$get_call()) ){
+        if(grepl("bsignal", trm$get_call()) ){
           d[[attr(trm$model.frame()[[1]], "xname")]] <- I(diag(ng)/integrationWeights(diag(ng), d[[varnms[1]]]))
+        }
+        ### <FIXME> is dummy-signal for bhist() correct?
+        if(grepl("bhist", trm$get_call()) ){
+          d[[attr(trm$model.frame()[[1]], "xname")]] <- I(diag(ng)/integrationWeightsLeft(diag(ng), d[[varnms[1]]]))
         }
         ## add dummy signal to data
         if(grepl("bconcurrent", trm$get_call())){
@@ -691,6 +694,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
   #argsPlot <- getArguments(x=formals(graphics::plot.default), dots=dots)
   argsPlot <- getArguments(x=c(formals(graphics::plot.default), par()), dots=dots)
   argsMatplot  <- getArguments(x=c(formals(graphics::matplot), par()), dots=dots)
+  argsFunplot  <- getArguments(x=c(formals(funplot), par()), dots=dots)
 
   argsImage <- getArguments(x=formals(graphics::image.default), dots=dots)
   argsContour <- getArguments(x=formals(graphics::contour.default), dots=dots)
@@ -917,8 +921,10 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
       range[1] <- range[1]-0.02*diff(range)
     }else range <- NULL
     for(i in 1:length(terms)){
-      plotWithArgs(matplot, args=argsMatplot, 
-                   myargs=list(x=time, y=t(terms[[i]]), type="l", ylab="effect", 
+      # set values of predicted effect to missing if response is missing
+      terms[[i]][is.na(x$response)] <- NA
+      plotWithArgs(funplot, args=argsFunplot, 
+                   myargs=list(x=time, y=terms[[i]], type="l", ylab="effect", lty=1, rug=FALSE,
                                xlab=attr(time, "nameyind"), ylim=range, main=shrtlbls[i]))
         if(rug) rug(time)
       }

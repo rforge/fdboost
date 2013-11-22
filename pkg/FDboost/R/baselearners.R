@@ -89,6 +89,7 @@ integrationWeights <- function(X1, xind){
 # observation point
 # important for bhist()
 integrationWeightsLeft <- function(X1, xind){
+  
   if( ncol(X1)!=length(xind) ) stop("Dimension of xind and X1 do not match")
   
   # use lower Riemann sum
