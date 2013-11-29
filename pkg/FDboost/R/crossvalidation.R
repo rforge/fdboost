@@ -1,70 +1,130 @@
-#' Validate model by resampling over curves
+
+
+#' @export
+# wrapper for function cv() of mboost, additional type "curves"
+# add option id to sample on the level of id if there are reapeated measures
+cvMa <- function(ydim, weights=NULL, 
+                 type = c("bootstrap", "kfold", "subsampling", "curves"), 
+                 B = ifelse(type == "kfold", 10, 25), prob = 0.5, strata = NULL, id=NULL){
+  
+  ncolY <- ydim[2]
+  nrowY <- ydim[1]  
+  if(is.null(weights)) weights <- rep(1, nrowY*ncolY)
+  
+  type <- match.arg(type)
+  n <- length(weights)
+  
+  if ( (nrowY*ncolY) != n) stop("Weights and ydim do not match.")
+
+
+  if(type=="curves"){
+    if(!is.null(id)) warning("Sampling is done over curves not on the level of id!")
+    # set up folds so that always one curve is left out for the estimation
+    foldsMa <- kronecker( rep(1, l=ncolY), -diag(nrowY)+1)*weights # folds are row-wise!
+    # matrix(folds[,1], nrow=nrowY, ncol=ncolY)
+    B <- nrowY
+  }else{
+    # expand folds over the functional measures of the response
+    if(is.null(id)){
+      folds <- cv(weights=rep(1, nrowY), type = type, B = B, prob = prob, strata = strata)
+      #foldsMa <- apply(folds, 2, function(x) rep(x, times=ncolY))*weights #the same
+      foldsMa <- folds[rep(1:nrowY, times=ncolY), ]*weights
+    }else{
+      stopifnot(length(id)==nrowY)
+      folds <- cv(weights=rep(1, length(unique(id))), type = type, B = B, prob = prob, strata = strata)
+      folds <- folds[id, ] # reapeat folds according to id
+      foldsMa <- folds[rep(1:nrowY, times=ncolY), ]*weights
+    }
+    
+  }
+  attr(foldsMa, "type") <- paste(B, "-fold ", type, sep = "")  
+  return(foldsMa)
+}
+
+
+#' Cross-Validation over Curves
 #' 
-#' Validate the model fit by refitting the model $n$ times. Each time leaving out one observation.
+#' Cross-Validation over Curves. 
 #' 
 #' @param object fitted FDboost-object
 #' @param response you can specify a response vector to calculate predictions errors. 
 #' Defaults fo NULL which means that the response of the fitted model is used.
-#' @param type character argument for specifying the cross-validation method.
-#' Currently cross-validation over curves (\code{curves}) 
-#' and random cross-validation (\code{kfold}) are impelemted.
-#' @param B number of folds for random cross-validation.
 #' @param folds a weight matrix with number of rows equal to the number of observations. 
-#' The number of columns corresponds to the number of cross-validation runs. 
-#' Can be computed using function \code{cvMa} or \code{cv}.
 #' @param grid the grid over which the optimal mstop is searched 
-#' @param getCoefCV logical, defaults to FALSE. Should the coefficient-functions/surfaces
+#' @param getCoefCV logical, defaults to TRUE Should the coefficients and predictions
 #'  be computed for all the models on the sampled data?
-#'  @param mrdDelete Delete values that are mrdDelete percent smaller then the mean
+#' @param mrdDelete Delete values that are mrdDelete percent smaller then the mean
 #'  of the response. Defaults to 0 which means that only response values beeing 0
 #'  are not used in the calculaiton of the MRD (= mean relative deviation)
+#' @param ydim dimensions of reponse-matrix
+#' @param weights a numeric vector of weights for the model to be cross-validated.
+#' if weights=NULL all weights are taken to be 1.
+#' @param type character argument for specifying the cross-validation 
+#' method. Currently (stratified) bootstrap, k-fold cross-validation 
+#' and subsampling are implemented.
+#' The argument curves implies that a cross-validation leaving out one curve at 
+#' a time is performed.
+#' @param B number of folds, per default 25 for \code{bootstrap} and
+#' \code{subsampling} and 10 for \code{kfold}.
+#' @param prob percentage of observations to be included in the learning samples 
+#' for subsampling.
+#' @param strata a factor of the same length as \code{weights} for stratification.
+#' @param id id-variable to sample upon ids instead of sampling single observations. 
+#' (Only interesting in the case that several observations per individual were made.)
 #' @param ... further arguments passed to mclapply if parallel=TRUE, otherwise ignored
 #' 
-#' @details Calculates honest estimates of prediction errors as the curve
-#' that should be predicted is not part of the model fit. 
+#' @details The funciton \code{validateFDboost} calculates honest estimates 
+#' of prediction errors as the curve/observations
+#' that should be predicted is not part of the model fit.
+#'   The function \code{cvMa} can be used to build an appropriate 
+#'   weight matrix to be used with \code{cvrisk} or \code{validateFDboost}. 
+#'   In \code{cvMa} whole trajectories are sampled. The probability for each 
+#'   trajectory to enter a fold is equal over all trajectories. 
+#'   If \code{strata} is defined 
+#'   sampling is performed in each stratum separately thus preserving 
+#'   the distribution of the \code{strata} variable in each fold. 
+#'   If \code{id} is defined sampling is performed on the level of \code{id} 
+#'   thus sampling individuals. 
 #' 
 #' @note Use argument \code{mc.cores = 1L} to set the numbers of cores that is used in 
 #' parallel computation.
 #' 
+#' @seealso \code{\link{cvrisk}} to perform cross-validation.
+#' @return \code{cvMa} retruns a matrix of weights to be used in \code{cvrisk} or \code{validateFDboost}.
+#' @examples
+#' Ytest <- matrix(rnorm(15), ncol=3) # 5 trajectories, each with 3 observations 
+#' cvMa(ydim=c(5,3), type="bootstrap", B=4) 
+#' 
+#' @aliases cvMa
+#' 
 #' @export
-validateFDboost <- function(object, response=NULL,
-                            type = c("curves", "kfold"), B = 5, folds=NULL,
-                            grid=1:mstop(object), getCoefCV=FALSE, mrdDelete=0, ...){
+validateFDboost <- function(object, response=NULL, weights=model.weights(object), 
+                            folds=cvMa(ydim=object$ydim, weights=model.weights(object), type="bootstrap"),
+                            grid=1:mstop(object), getCoefCV=TRUE, mrdDelete=0, ...){
   
-  type <- match.arg(type)
+  if(is.null(folds)){
+    warning("is.null(folds), per default folds=cvMa(ydim=object$ydim, weights=model.weights(object), type=\"bootstrap\")")
+    folds <- cvMa(ydim=object$ydim, weights=model.weights(object), type="bootstrap")
+  }
+  
+  type <- attr(folds, "type")
   call <- match.call()
   
   nObs <- object$ydim[1] # number of curves
   Gy <- object$ydim[2] # number of time-points per curve
   
-  # weights of mboost-model 
-  weights <- model.weights(object)
+  # if weights=NULL set all weights to 1 
+  if(is.null(weights)){
+    weights <- rep(1.0, nObs*Gy)
+  }
   # matrix(weights, nrow=nObs, ncol=Gy)
   
   if(is.null(response)) response <- object$response # response as vector!
   #plot(response)
   #points(response, col=3)
   
+  # index of observations that belong to the same trajectory
   index <- rep(1:object$ydim[1], times=object$ydim[2])
-  
-  if(is.null(folds)){
-    if(type=="curves"){
-      # set up folds so that always one curve is left out for the estimation
-      folds1 <- kronecker( rep(1, l=Gy), -diag(nObs)+1) # folds are row-wise!
-      folds <- folds1*weights
-      # matrix(folds[,1], nrow=nObs, ncol=Gy)
-      attr(folds, "type") <- "over curves"
-      B <- nObs
-    }
-    if(type=="kfold"){
-      # set up folds so that cross-validation is done at random over all curves
-      folds1 <- cv(weights=rep(1, length(weights)), type="kfold", B=B)
-      folds <- folds1*weights
-    } 
-  }else{
-    folds1 <- folds
-    folds <- folds1*weights
-  }
   
   # out-of-bag-weights: i.e. the left out curve/ the left out observations
   OOBweights <- matrix(rep(weights, ncol(folds)), ncol = ncol(folds))
@@ -105,13 +165,8 @@ validateFDboost <- function(object, response=NULL,
     # as weights of original model fit are used they should not be transformed again
     call$numInt <- "equal" 
     
+    # <FIXME> check whether the risk is calculated oob?
     #call$control <- boost_control(risk="oobag")
-    
-    # this code does no longer work as the formulas in FDboost are saved as strings
-    #     # <FIXME> is there a more elegant way to make sure that formula, timeformula are known in
-    #     # the environment of the model fit?
-    #     call$formula <- get("formulaFDboost", environment(object$predictOffset))
-    #     call$timeformula <- get("timeformula", environment(object$predictOffset))
     
     mod <- withCallingHandlers(suppressMessages(eval(call)), warning = h) # suppress the warning of missing responses    
     #test <- FDboost(object$formulaFDboost, timeformula=object$timeformula, data=dathelp)
@@ -153,30 +208,8 @@ validateFDboost <- function(object, response=NULL,
       predOOB <- NULL
       respOOB <- NULL
     }
-
     
-    # estimations of the coefficients
-    # use the coef.FDboost() function to calculate the coefficients 
-    
-    # Compute coefficients for all mstops in grid -> takes some time!
-    coefCV <- list()
-   
-    #### OLD!
-#     if(getCoefCV){
-#       # <ToDo> deal with j=1 in more intelligent way.
-#       for(j in 1:length(object$baselearner)){
-#         coefCV[[j]] <- coef(mod, which=j, n1 = 50, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]
-#         coefCV[[j]]$value <- lapply(grid, function(g){
-#           ret <- coef(mod[g], which=j, n1 = 50, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]$value
-#           if(j>1) attr(ret, "offset") <- NULL # as offset is the same within one model
-#           return(ret)
-#         })
-#         names(coefCV[[j]]$value) <- grid
-#       }
-#     }
-    
-    return(list(risk=risk, predGrid=predGrid, predOOB=predOOB, respOOB=respOOB, 
-                coefCV=coefCV, mod=mod))  # return model to be able to compute coefficients
+    return(list(risk=risk, predGrid=predGrid, predOOB=predOOB, respOOB=respOOB, mod=mod))  
   }
   
   #   ###### Function to fit the model
@@ -262,8 +295,7 @@ validateFDboost <- function(object, response=NULL,
     
     warning("Model fit did not work in fold ", paste(which(!modFitted), collapse=", "))
     modRisk <- modRisk[modFitted]
-    OOBweights <- OOBweights[,modFitted]  
-    folds1 <- folds1[,modFitted] 
+    OOBweights <- OOBweights[,modFitted]   
     folds <- folds[,modFitted]
   } 
   
@@ -290,14 +322,14 @@ validateFDboost <- function(object, response=NULL,
   }
 
   ## only makes sense for type="curves" with leaving-out one curve per fold!!
-  if(is.null(call$folds) & type=="curves"){
+  if(grepl( "curves", type)){
   ## predict response for all mstops in grid out of bag
   # predictions for each response are in a vector!
   # if a curve was several times not in the training data the last prediction is taken
   oobpreds0 <- lapply(modRisk, function(x) x$predGrid)
   oobpreds <- matrix(nrow=nrow(oobpreds0[[1]]) , ncol=ncol(oobpreds0[[1]]))
   for(j in 1:length(oobpreds0)){
-    oobpreds[folds1[,j]==0] <- oobpreds0[[j]][folds1[,j]==0] 
+    oobpreds[folds[,j]==0] <- oobpreds0[[j]][folds[,j]==0] 
   }
   colnames(oobpreds) <- grid
   rm(oobpreds0)
@@ -421,7 +453,7 @@ validateFDboost <- function(object, response=NULL,
     
     ### predictions of terms based on the coefficients for each model
     # only makes sense for type="curves" with leaving-out one curve per fold!!
-    if(is.null(call$folds) & type=="curves"){
+    if(grepl( "curves", type)){
       for(l in 1:(length(modRisk[[1]]$mod$baselearner)+1)){
         predCV[[l]] <- t(sapply(1:length(modRisk), function(g){
           if(l==1){ # save offset of model
@@ -789,83 +821,6 @@ plotPredCoef <- function(x, commonRange=TRUE, showNumbers=FALSE, ask=TRUE,
     } # end loop over effects
   }
   par(ask=FALSE)
-}
-
-
-
-
-#' Function to set up folds for a response-matrix  
-#' 
-#' Function to set up folds for a response-matrix that are used in cross-validation
-#' 
-#' @param ydim dimensions of reponse-matrix
-#' @param Y response-matrix
-#' @param weights a numeric vector of weights for the model to be cross-validated.
-#' @param type character argument for specifying the cross-validation 
-#' method. Currently (stratified) bootstrap, k-fold cross-validation 
-#' and subsampling are implemented.
-#' @param B number of folds, per default 25 for \code{bootstrap} and
-#' \code{subsampling} and 10 for \code{kfold}.
-#' @param prob percentage of observations to be included in the learning samples 
-#' for subsampling.
-#' @param strata a factor of the same length as \code{weights} for stratification.
-#' @param id id-variable to sample upon ids instead of sampling single observations. 
-#' (Only interesting in the case that several observations per individual were made.)
-#' @seealso \code{\link{cvrisk}} to perform cross-validation.
-#' @return \code{cvMa} retruns a matrix of weights to be used in \code{cvrisk}.
-#' @keywords models, regression
-#' 
-#' @details
-#'   It is sufficient to specify one of \code{ydim} and \code{Y}. 
-#'   
-#'   The function \code{cvMa} can be used to build an appropriate 
-#'   weight matrix to be used with \code{cvrisk}. 
-#'   In \code{cvMa()} whole trajectories are sampled.
-#'   If \code{strata} is defined 
-#'   sampling is performed in each stratum separately thus preserving 
-#'   the distribution of the \code{strata} variable in each fold. 
-#'   If \code{id} is defined sampling is performed on the level of \code{id} 
-#'   thus sampling whole individuals.
-#' 
-#' @examples
-#' Ytest <- matrix(rnorm(15), ncol=3) # 5 trajectories, each with 3 observations 
-#' cvMa(Y=Ytest, type="bootstrap", B=4) # 4 columns with bootstrap-weights
-#' cvMa(ydim=c(5,3), type="bootstrap", B=4) # the same
-#' @export
-# Modified version of funciton cv() taken from package mboost
-# add option id to sample on the level of id if there are reapeated measures
-cvMa <- function(ydim=NULL, Y=NULL, weights=NULL, 
-                 type = c("bootstrap", "kfold", "subsampling"), 
-                 B = ifelse(type == "kfold", 10, 25), prob = 0.5, strata = NULL, id=NULL){
-  
-  if(is.null(ydim) & is.null(Y)) stop("You have to specify Y or ydim")
-  
-  ncolY <- if(is.null(ydim)) ncol(Y) else ydim[2]
-  nrowY <- if(is.null(ydim)) nrow(Y) else ydim[1]  
-  if(is.null(weights)) weights <- rep(1, nrowY*ncolY)
-  
-  type <- match.arg(type)
-  n <- length(weights)
-  
-  if ( (nrowY*ncolY) != n) stop("Weights and Y/ydim have to match")
- # if (is.null(strata)) strata <- gl(1, n)
- # if (!is.factor(strata)) stop(sQuote("strata"), " must be a factor")
-    
-  # expand folds over the functional measures of the response
-  # foldsMa <- apply(folds, 2, function(x) rep(x, each=ncolY))
-  if(is.null(id)){
-    folds <- cv(weights=rep(1, nrowY), type = type, B = B, prob = prob, strata = strata)
-    #foldsMa <- apply(folds, 2, function(x) rep(x, times=ncolY))*weights #the same
-    foldsMa <- folds[rep(1:nrowY, times=ncolY), ]*weights
-  }else{
-    stopifnot(length(id)==nrowY)
-    folds <- cv(weights=rep(1, length(unique(id))), type = type, B = B, prob = prob, strata = strata)
-    folds <- folds[id, ] # reapeat folds according to id
-    foldsMa <- folds[rep(1:nrowY, times=ncolY), ]*weights
-  }
-  attr(foldsMa, "type") <- paste(B, "-fold ", type, sep = "")
-  
-  return(foldsMa)
 }
 
 
