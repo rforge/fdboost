@@ -343,6 +343,7 @@ residuals.FDboost <- function(object, ...){
 #' should be computed (numeric vector), 
 #' defaults to NULL which is the same as \code{which=1:length(object$baselearner)}
 #' In the special case of \code{which=0}, only the coefficients of the offset are returned.
+#' @param computeCoef defaults to TRUE, if FALSE only the names of the terms are returned
 #' @param n1 see below
 #' @param n2 see below
 #' @param n3 n1, n2, n3 give the number of gridpoints for 1-/2-/3-dimensional 
@@ -367,8 +368,9 @@ residuals.FDboost <- function(object, ...){
 #' @method coef FDboost
 #' @export
 ### similar to coef.pffr() by Fabian Scheipl in package refund 
-coef.FDboost <- function(object, raw=FALSE, which=NULL, 
+coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE, 
                          n1=100, n2=40, n3=20, n4=10,...){
+  
   if(raw){
     return(object$coefficients)  
   } else {
@@ -469,7 +471,9 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL,
             z <- trm$model.frame()[[zListPlace]]
             zg <- if(is.factor(z)) {
               unique(z)
-            }else ifelse(grepl("by", trm$get_call()), 1, seq(min(z), max(z), length=ng)) 
+            }else{
+              if(grepl("by", trm$get_call())){ 1 }else{ seq(min(z), max(z), length=n4) }
+            } 
             d <- list(xg, yg, zg)  # data.frame
 #             # special case of factor by-variable 
 #             if(grepl("by", trm$get_call()) && grepl("bols", trm$get_call()) && is.factor(z)){
@@ -587,24 +591,32 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL,
         commaSep <- unlist(strsplit(xpart[i], ","))
         xpart[i] <- if(length(commaSep)==1){
           paste(paste(commaSep[1:nvar], collapse=","), sep="")
-        }else paste(paste(commaSep[1:nvar], collapse=","), ")", sep="")                   
+        }else paste(paste(commaSep[1:nvar], collapse=","), ")", sep="") 
+        if(substr(xpart[i], nchar(xpart[i])-2, nchar(xpart[i])-1)==") "){
+          xpart[i] <- substr(xpart[i], 1, nchar(xpart[i])-2)
+        }
       }
       ret <- xpart
       if(length(xpart)>1) ret <- paste(xpart, collapse=" %O%")
       ret
     }
     
+    if(is.null(which)) which <- 1:length(object$baselearner)
+    
     ## short names for the terms, if shortnames() doesn´t work, use the original names
     shrtlbls <- try(unlist(lapply(names(object$baselearner), shortnames)))
     if(class(shrtlbls)=="try-error") shrtlbls <- names(object$baselearner) 
     
-    ### smooth terms
-    if(is.null(which)) which <- 1:length(object$baselearner)
-    ret$smterms <- lapply(which, getCoefs)         
-    names(ret$smterms) <- sapply(seq_along(ret$smterms), function(i){
-      ret$smterms[[i]]$main
-    })
-    return(ret)    
+    if(computeCoef){
+      ### smooth terms
+      ret$smterms <- lapply(which, getCoefs)         
+      names(ret$smterms) <- sapply(seq_along(ret$smterms), function(i){
+        ret$smterms[[i]]$main
+      })
+      return(ret)
+    }else{
+      return(shrtlbls[which])
+    }  
   }
 }
 
@@ -803,22 +815,25 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
       } 
       
       # plot with factor variable
-      if(trm$dim==2 & (is.factor(trm$x) | is.factor(trm$y)) ){
+      if(trm$dim==2 & (is.factor(trm$x) | is.factor(trm$y)) | is.factor(trm$z) ){
         if(is.factor(trm$y)){ # effect with by-variable (by-variable is factor)
           plotWithArgs(matplot, args=argsMatplot, 
                        myargs=list( x=trm$z, y=t(trm$value), xlab=trm$ylab, main=trm$main, 
                                     ylab="coef", type="l", col=as.numeric(trm$y) ) )
           if(rug){
-            rug(bl_data[[i]][[3]], ticksize = 0.02) 
+            #rug(bl_data[[i]][[3]], ticksize = 0.02) 
+            rug(x$yind, ticksize = 0.02)
           }
         }else{ # effect of factor variable
           plotWithArgs(matplot, args=argsMatplot, 
                        myargs=list(x=trm$y, y=t(trm$value), xlab=trm$ylab, main=trm$main, 
                                    ylab="coef", type="l"))
           if(rug){
-            rug(bl_data[[i]][[2]], ticksize = 0.02) 
+            #rug(bl_data[[i]][[2]], ticksize = 0.02) 
+            rug(x$yind, ticksize = 0.02)
           }
-        }    
+        }
+        
       }else{
         # persp-plot for 2-dim effects
         if(trm$dim==2 & perspPlot){
@@ -901,7 +916,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
     if(length(which)==1) terms <- list(terms)
     if(class(terms)!="list") terms <- list(terms) 
     
-    shrtlbls <- try(names(coef(x, which=which, n1=5, n2=5, n3=5, n4=5)$smterms)) # get short names
+    shrtlbls <- try(coef(x, which=which, computeCoef=FALSE))# get short names
     if(class(shrtlbls)=="try-error"){
       shrtlbls <- names(x$baselearner)[which[which!=0]]
       if(0 %in% which) shrtlbls <- c("offset", which)

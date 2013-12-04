@@ -3,7 +3,8 @@
 \title{Coefficients of boosted functional regression model}
 \usage{
   \method{coef}{FDboost} (object, raw = FALSE,
-    which = NULL, n1 = 100, n2 = 40, n3 = 20, n4 = 10, ...)
+    which = NULL, computeCoef = TRUE, n1 = 100, n2 = 40,
+    n3 = 20, n4 = 10, ...)
 }
 \arguments{
   \item{object}{a fitted \code{FDboost}-object}
@@ -18,6 +19,9 @@
   \code{which=1:length(object$baselearner)} In the special
   case of \code{which=0}, only the coefficients of the
   offset are returned.}
+
+  \item{computeCoef}{defaults to TRUE, if FALSE only the
+  names of the terms are returned}
 
   \item{n1}{see below}
 
