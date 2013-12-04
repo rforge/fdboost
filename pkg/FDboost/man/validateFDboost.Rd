@@ -1,8 +1,13 @@
-\name{validateFDboost}
+\name{cvMa}
 \alias{cvMa}
 \alias{validateFDboost}
 \title{Cross-Validation over Curves}
 \usage{
+  cvMa(ydim, weights = NULL,
+    type = c("bootstrap", "kfold", "subsampling", "curves"),
+    B = ifelse(type == "kfold", 10, 25), prob = 0.5,
+    strata = NULL, id = NULL)
+
   validateFDboost(object, response = NULL,
     weights = model.weights(object),
     folds = cvMa(ydim = object$ydim, weights = model.weights(object), type = "bootstrap"),
@@ -15,6 +20,10 @@
   \item{response}{you can specify a response vector to
   calculate predictions errors. Defaults fo NULL which
   means that the response of the fitted model is used.}
+
+  \item{weights}{a numeric vector of weights for the model
+  to be cross-validated. if weights=NULL all weights are
+  taken to be 1.}
 
   \item{folds}{a weight matrix with number of rows equal to
   the number of observations.}
@@ -33,10 +42,6 @@
   deviation)}
 
   \item{ydim}{dimensions of reponse-matrix}
-
-  \item{weights}{a numeric vector of weights for the model
-  to be cross-validated. if weights=NULL all weights are
-  taken to be 1.}
 
   \item{type}{character argument for specifying the
   cross-validation method. Currently (stratified)

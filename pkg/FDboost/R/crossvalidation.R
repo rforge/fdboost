@@ -1,5 +1,5 @@
 
-
+#' @rdname validateFDboost
 #' @export
 # wrapper for function cv() of mboost, additional type "curves"
 # add option id to sample on the level of id if there are reapeated measures
@@ -49,6 +49,8 @@ cvMa <- function(ydim, weights=NULL,
 #' @param object fitted FDboost-object
 #' @param response you can specify a response vector to calculate predictions errors. 
 #' Defaults fo NULL which means that the response of the fitted model is used.
+#' @param weights a numeric vector of weights for the model to be cross-validated.
+#' if weights=NULL all weights are taken to be 1.
 #' @param folds a weight matrix with number of rows equal to the number of observations. 
 #' @param grid the grid over which the optimal mstop is searched 
 #' @param getCoefCV logical, defaults to TRUE Should the coefficients and predictions
@@ -57,8 +59,6 @@ cvMa <- function(ydim, weights=NULL,
 #'  of the response. Defaults to 0 which means that only response values beeing 0
 #'  are not used in the calculaiton of the MRD (= mean relative deviation)
 #' @param ydim dimensions of reponse-matrix
-#' @param weights a numeric vector of weights for the model to be cross-validated.
-#' if weights=NULL all weights are taken to be 1.
 #' @param type character argument for specifying the cross-validation 
 #' method. Currently (stratified) bootstrap, k-fold cross-validation 
 #' and subsampling are implemented.
