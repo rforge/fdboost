@@ -5,7 +5,8 @@
 \title{Base-learners for Functional Covarites}
 \usage{
   bsignal(..., knots = 10, boundary.knots = NULL,
-    degree = 3, differences = 2, df = 4, cyclic = FALSE)
+    degree = 3, differences = 2, df = 4, lambda = NULL,
+    cyclic = FALSE)
 
   bconcurrent(..., knots = 10, boundary.knots = NULL,
     degree = 3, differences = 2, df = 4)
@@ -41,6 +42,8 @@
   defining the base-learner complexity. Low values of
   \code{df} correspond to a large amount of smoothing and
   thus to "weaker" base-learners.}
+
+  \item{lambda}{smoothing penalty}
 
   \item{cyclic}{not yet implemented}
 }

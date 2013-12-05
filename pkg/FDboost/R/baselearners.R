@@ -118,7 +118,7 @@ integrationWeightsLeft <- function(X1, xind){
 
 ################################################################################
 ################################################################################
-# Base-learners for functional covariable
+# Base-learners for functional covariable 
 
 ### model.matrix for P-splines baselearner of signal matrix mf
 X_bsignal <- function(mf, vary, args) {
@@ -204,6 +204,7 @@ X_bsignal <- function(mf, vary, args) {
 #' @param df trace of the hat matrix for the base-learner defining the 
 #' base-learner complexity. Low values of \code{df} correspond to a 
 #' large amount of smoothing and thus to "weaker" base-learners.
+#' @param lambda smoothing penalty
 #' @param cyclic not yet implemented
 #' 
 #' @aliases bconcurrent 
@@ -249,11 +250,11 @@ X_bsignal <- function(mf, vary, args) {
 ### P-spline base learner for signal matrix with index vector
 bsignal <- function(..., #by = NULL, index = NULL, 
                     knots = 10, boundary.knots = NULL, degree = 3, differences = 2, df = 4, 
-                    #lambda = NULL, center = FALSE, 
+                    lambda = NULL, #center = FALSE, 
                     cyclic = FALSE
 ){
   
-  #  if (!is.null(lambda)) df <- NULL
+  if (!is.null(lambda)) df <- NULL
   
   cll <- match.call()
   cll[[1]] <- as.name("bsignal")
@@ -331,7 +332,7 @@ bsignal <- function(..., #by = NULL, index = NULL,
   ret$dpp <- mboost:::bl_lin(ret, Xfun = X_bsignal,
                     args = list(mf, vary, knots = knots, boundary.knots =
                       boundary.knots, degree = degree, differences = differences,
-                                df = df, lambda = NULL, center = FALSE, cyclic = cyclic))
+                                df = df, lambda = lambda, center = FALSE, cyclic = cyclic))
   return(ret)
 }
 
