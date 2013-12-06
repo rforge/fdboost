@@ -433,7 +433,7 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
           attr(d, "xm") <- xg
           attr(d, "xname") <- varnms
           # For effect constant over index of response: add dummy-index so that length in clear
-          if(attr(object$yind, "nameyind") != varnms) d[[attr(object$yind, "nameyind")]] <- 1:n1          
+          if(attr(object$yind, "nameyind") != varnms) d[[attr(object$yind, "nameyind")]] <- object$yind          
         }        
         
         if(trm$dim > 1){          

@@ -2,7 +2,8 @@
 \alias{o_control}
 \title{Function to control estimation of smooth offset}
 \usage{
-  o_control(k_min = 20, rule = 2, silent = TRUE)
+  o_control(k_min = 20, rule = 2, silent = TRUE,
+    cyclic = FALSE, knots = NULL)
 }
 \arguments{
   \item{k_min}{maximal number of k in s()}
@@ -13,6 +14,12 @@
   non-missing value, see \code{\link[stats]{approx}}}
 
   \item{silent}{print error messages of model fit?}
+
+  \item{cyclic}{defaults to FALSE, if TRUE cyclic splines
+  are used}
+
+  \item{knots}{arguments knots passed to
+  \code{\link[mgcv]{gam}}}
 }
 \description{
   Function to control estimation of smooth offset

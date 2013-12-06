@@ -6,10 +6,12 @@
 #' global mean, rule=1 means no extrapolation, rule=2 means to extrapolate the 
 #' closest non-missing value, see \code{\link[stats]{approx}}
 #' @param silent print error messages of model fit?
+#' @param cyclic defaults to FALSE, if TRUE cyclic splines are used
+#' @param knots arguments knots passed to \code{\link[mgcv]{gam}}
 
 #' @export 
-o_control <- function(k_min=20, rule=2, silent=TRUE) { 
-  RET <- list(k_min=k_min, rule=rule, silent=silent)
+o_control <- function(k_min=20, rule=2, silent=TRUE, cyclic=FALSE, knots=NULL) { 
+  RET <- list(k_min=k_min, rule=rule, silent=silent, cyclic=cyclic, knots=knots)
   class(RET) <- c("offset_control")
   RET
 }

@@ -247,12 +247,21 @@ FDboost <- function(formula,          ### response ~ xvars
       }
     }   
     ### <FixMe> is the computation of k ok? 
-    modOffset <- try( gam(meanY ~ s(time, bs="ad", 
-                                    k = min(offset_control$k_min, round(length(time)/2))  )), 
-                      silent=offset_control$silent )
+    if(!offset_control$cyclic){
+      modOffset <- try( gam(meanY ~ s(time, bs="ad", 
+                                      k = min(offset_control$k_min, round(length(time)/2))  ),
+                            knots=offset_control$knots), 
+                        silent=offset_control$silent )
+    }else{ # use cyclic splines
+      modOffset <- try( gam(meanY ~ s(time, bs="cc", 
+                                      k = min(offset_control$k_min, round(length(time)/2))  ),
+                            knots=offset_control$knots), 
+                        silent=offset_control$silent )
+    }
+
     if(any(class(modOffset)=="try-error")){
-      warning("Could not fit the smooth offset by adaptive splines (default), 
-              use a simple spline expansion with 5 df instead.")
+      warning(paste("Could not fit the smooth offset by adaptive splines (default), use a simple spline expansion with 5 df instead.",
+              if(offset_control$cyclic) "This offset is not cyclic!"))
       if(round(length(time)/2) < 8) warning("Most likely because of too few time-points.")
       modOffset <- lm(meanY ~ bs(time, df=5))
     } 
