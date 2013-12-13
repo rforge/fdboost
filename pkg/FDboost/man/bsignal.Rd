@@ -6,7 +6,7 @@
 \usage{
   bsignal(..., knots = 10, boundary.knots = NULL,
     degree = 3, differences = 2, df = 4, lambda = NULL,
-    cyclic = FALSE)
+    cyclic = FALSE, Z = NULL)
 
   bconcurrent(..., knots = 10, boundary.knots = NULL,
     degree = 3, differences = 2, df = 4)
@@ -45,7 +45,15 @@
 
   \item{lambda}{smoothing penalty}
 
-  \item{cyclic}{not yet implemented}
+  \item{cyclic}{if cyclic = TRUE the fitted coefficient
+  function coincides at the boundaries (useful for cyclic
+  covariates such as day time etc.).}
+
+  \item{Z}{a transformation matrix for the design-matrix
+  over the index of the covariate. Z can be calculated as
+  the transformation matrix for a sum-to-zero constraint in
+  the case that all trajectories have the same mean (then a
+  shift in the coefficient function is not identifiable).}
 }
 \value{
   Equally to the base-learners of the package mboost:

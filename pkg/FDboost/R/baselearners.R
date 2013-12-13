@@ -134,7 +134,7 @@ X_bsignal <- function(mf, vary, args) {
   #   xind <- mf[[2]]
   
   if(ncol(X1)!=length(xind)) stop("Dimension of signal matrix and its index do not match.")
-  
+    
   ### Construct spline basis over index xind of X1 
   if(is.null(args$boundary.knots))  args$boundary.knots <- range(xind, na.rm = TRUE)
   knots <- seq(from = args$boundary.knots[1], to = args$boundary.knots[2], length = args$knots + 2)
@@ -143,9 +143,9 @@ X_bsignal <- function(mf, vary, args) {
   # B-spline basis of specified degree  
   #X <- bs(xind, knots=knots, degree=args$degree, intercept=TRUE) # old version   
   X <- mboost:::bsplines(xind, knots=knots, boundary.knots=args$boundary.knots, 
-                         degree=args$degree) 
+                         degree=args$degree)
   
-  # <TODO>: extra feature: cyclic splines
+  # use cyclic splines
   if (args$cyclic) {
     X <- mboost:::cbs(xind,
              knots = knots,
@@ -154,16 +154,71 @@ X_bsignal <- function(mf, vary, args) {
   }
     
   colnames(X) <- paste(xname, 1:ncol(X), sep="")
+      
+  ### center the design matrix if necessary  
+  centerX <- FALSE
+  ### Check whether integral over trajectories is different
+  if(all(rowMeans(X1)-mean(rowMeans(X1)) < .Machine$double.eps *10^10)){
+    message(paste("All trajectories in ", xname, " have the same mean. Coefficient function is centered.", sep=""))
+    centerX <- TRUE
+  }
   
-  # Weighting with matrix of functional covariable
+  #browser()
+  
+  if(centerX  | !is.null(args$Z)){
+    
+    #----------------------------------
+    ### <SB> Calculate constraints
+    
+    # If the argument Z is not NULL use the given Z (important for prediction!)
+    if(is.null(args$Z)){
+      C <- t(X) %*% rep(1, nrow(X))
+      Q <- qr.Q(qr(C), complete=TRUE) # orthonormal matrix of QR decompositon
+      Z <- Q[  , 2:ncol(Q)] # only keep last columns    
+    }else Z <- args$Z
+    
+    ### Transform design and penalty matrix
+    X <- X %*% Z
+    #K <- t(Z) %*% K %*% Z
+    
+    attr(X, "Z") <- Z # remember Z
+    ### myZ <<- Z
+    #---------------------------------- 
+  }else{
+    Z <- NULL
+  }
+  
+  #print(Z)
+  
+  ### Weighting with matrix of functional covariable
   L <- integrationWeights(X1=X1, xind=xind)
   # Design matrix is product of weighted X1 and basis expansion over xind 
   X <- (L*X1) %*% X
+  attr(X, "Z") <- Z # remember Z
   
   ### Penalty matrix: product differences matrix
-  differenceMatrix <- diff(diag(ncol(X)), differences = args$differences)
-  K <- crossprod(differenceMatrix)
+  if (args$differences > 0){
+    if (!args$cyclic) {
+      K <- diff(diag(ncol(X)), differences = args$differences)
+    } else {
+      ## cyclic P-splines
+      differences <- args$differences
+      K <- diff(diag(ncol(X) + differences),
+                differences = differences)
+      tmp <- K[,(1:differences)]   # save first "differences" columns
+      K <- K[,-(1:differences)]    # drop first "differences" columns
+      indx <- (ncol(X) - differences + 1):(ncol(X))
+      K[,indx] <- K[,indx] + tmp   # add first "differences" columns
+    }
+  } else {
+    if (args$differences != 0)
+      stop(sQuote("differences"), " must be an non-negative integer")
+    K <- diag(ncol(X))
+  }
   
+  ### penalty matrix is squared difference matrix
+  K <- crossprod(K)
+ 
   ## compare specified degrees of freedom to dimension of null space
   if (!is.null(args$df)){
     rns <- ncol(K) - qr(as.matrix(K))$rank # compute rank of null space
@@ -178,7 +233,7 @@ X_bsignal <- function(mf, vary, args) {
            "(unpenalized part of P-spline). Use larger value for ",
            sQuote("df"), " or set ", sQuote("center = TRUE"), ".")
   }
-  return(list(X = X, K = K))
+  return(list(X = X, K = K, Z = Z))
 }
 
 ###############################################################################
@@ -205,7 +260,12 @@ X_bsignal <- function(mf, vary, args) {
 #' base-learner complexity. Low values of \code{df} correspond to a 
 #' large amount of smoothing and thus to "weaker" base-learners.
 #' @param lambda smoothing penalty
-#' @param cyclic not yet implemented
+#' @param cyclic if cyclic = TRUE the fitted coefficient function coincides at the boundaries 
+#' (useful for cyclic covariates such as day time etc.).
+#' @param Z a transformation matrix for the design-matrix over the index of the covariate.
+#' Z can be calculated as the transformation matrix for a sum-to-zero constraint in the case
+#' that all trajectories have the same mean 
+#' (then a shift in the coefficient function is not identifiable). 
 #' 
 #' @aliases bconcurrent 
 #' 
@@ -251,7 +311,7 @@ X_bsignal <- function(mf, vary, args) {
 bsignal <- function(..., #by = NULL, index = NULL, 
                     knots = 10, boundary.knots = NULL, degree = 3, differences = 2, df = 4, 
                     lambda = NULL, #center = FALSE, 
-                    cyclic = FALSE
+                    cyclic = FALSE, Z=NULL
 ){
   
   if (!is.null(lambda)) df <- NULL
@@ -329,12 +389,27 @@ bsignal <- function(..., #by = NULL, index = NULL,
               })
   class(ret) <- "blg"
   
+  #browser()
+  print("bsignal")
+  #print(Z)
+  
   ret$dpp <- mboost:::bl_lin(ret, Xfun = X_bsignal,
                     args = list(mf, vary, knots = knots, boundary.knots =
                       boundary.knots, degree = degree, differences = differences,
-                                df = df, lambda = lambda, center = FALSE, cyclic = cyclic))
+                                df = df, lambda = lambda, center = FALSE, cyclic = cyclic,
+                                Z=Z))
+  
   return(ret)
 }
+
+# ### hyper parameters for bsignal baselearner
+# # add the parameter Z
+# hyper_bsignal <- function(df = NULL, lambda = 0, intercept = TRUE,
+#                        contrasts.arg = "contr.treatment", Z=NULL)
+#   list(df = df, lambda = lambda,
+#        intercept = intercept,
+#        contrasts.arg = contrasts.arg,
+#        Z=NULL)
 
 # testX <- I(matrix(rnorm(40), ncol=5))
 # s <- seq(0,1,l=5)
@@ -841,7 +916,7 @@ X_bbsc <- function(mf, vary, args) {
       }
     } else {
       if (args$differences != 0)
-        stop(sQuote("differences"), " must be an non-neative integer")
+        stop(sQuote("differences"), " must be an non-negative integer")
       Kx <- diag(ncol(mm[[1]]))
       Ky <- diag(ncol(mm[[2]]))
     }
