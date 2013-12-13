@@ -114,7 +114,7 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
     n <- NROW(newdata[[1]])
     newdata[["ONEx"]] <- rep(1.0, n)
     
-    # save time-variable (index over reponse)
+    # save time-variable (index over response)
     nameyind <- attr(object$yind, "nameyind")
     lengthYind <- length(newdata[[nameyind]])
     if(lengthYind==0) stop("Index of response, ", nameyind, ", 
@@ -141,7 +141,7 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
         form <- substr(form, 2, nchar(form))
         formula_help <- formula(paste("resHelp ~", form))
         xname <- all.vars(formula_help)[2]
-        indname <- if(length(all.vars(formula_help))==3) all.vars(formula_help)[3] else "xindDefault" 
+        indname <- if(length(all.vars(formula_help))>=3) all.vars(formula_help)[3] else "xindDefault" 
         
         if(length(newdata[[indname]])!=ncol(newdata[[xname]])){
           stop(paste("Dimensions of index", indname, "and signal", xname, "do not match."))
