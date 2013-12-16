@@ -13,7 +13,9 @@
   \item{timeformula}{formula for the expansion over the
   index of the response. For a functional response
   \eqn{Y_i(t)} typically ~bbs(t) to obtain a smooth
-  expansion of the effects along t.}
+  expansion of the effects along t. In the limiting case
+  that \eqn{Y_i} is a scalar response use \code{~bols(1)},
+  which sets up a base-learner for the scalar 1.}
 
   \item{numInt}{integration scheme for the integration of
   the loss function. One of \code{c("equal", "Riemann")}

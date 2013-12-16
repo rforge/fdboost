@@ -169,7 +169,7 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
     #call$control <- boost_control(risk="oobag")
     
     mod <- withCallingHandlers(suppressMessages(eval(call)), warning = h) # suppress the warning of missing responses    
-    #test <- FDboost(object$formulaFDboost, timeformula=object$timeformula, data=dathelp)
+    #test <- FDboost(formula(object$formulaFDboost), timeformula=formula(object$timeformula), data=dathelp)
     
     mod[max(grid)]
     
@@ -726,7 +726,7 @@ plotPredCoef <- function(x, commonRange=TRUE, showNumbers=FALSE, ask=TRUE,
       if(FALSE) ylim <- range(temp$value)
       
       # plot the estimated offset
-      if(l==1){
+      if(l==1 && sum(is.na(temp$offset))<5){
         #temp <- x$coefCV[[1]]
         myMat <- temp$offset
         

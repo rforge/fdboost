@@ -139,18 +139,23 @@ plotPredicted <- function(x, subset=1:x$ydim[1], posLegend="topleft", lwdObs=1, 
   
   stopifnot("FDboost" %in% class(x))
   
-  response <- matrix(x$response, nrow=x$ydim[1], ncol=x$ydim[2])[subset, ] 
-  pred <- fitted(x)[subset, ]
+  response <- matrix(x$response, nrow=x$ydim[1], ncol=x$ydim[2])[subset, , drop=FALSE] 
+  pred <- fitted(x)[subset, , drop=FALSE]
   pred[is.na(response)] <- NA
   
   ylim <- range(response, pred, na.rm = TRUE)
   
-  # Observed values
-  funplot(x$yind, response, pch=1, ylim=ylim, lty=3, 
-          ylab=x$yname, xlab=attr(x$yind, "nameyind"), lwd=lwdObs, ...)
-  funplot(x$yind, pred, pch=2, lwd=lwdPred, add=TRUE, ...)
-  # predicted values
-  legend(posLegend, legend=c("observed","predicted"), col=1, pch=1:2)  
+  if(length(x$yind)>1){
+    # Observed values
+    funplot(x$yind, response, pch=1, ylim=ylim, lty=3, 
+            ylab=x$yname, xlab=attr(x$yind, "nameyind"), lwd=lwdObs, ...)
+    funplot(x$yind, pred, pch=2, lwd=lwdPred, add=TRUE, ...)
+    # predicted values
+    legend(posLegend, legend=c("observed","predicted"), col=1, pch=1:2)  
+  }else{
+    plot(response, pred, ylab="predicted", xlab="observed", ...)
+    abline(0,1)
+  }  
 }
 
 
@@ -164,12 +169,18 @@ plotResiduals <- function(x, subset=1:x$ydim[1], posLegend="topleft", ...){
   
   stopifnot("FDboost" %in% class(x))
   
-  response <- matrix(x$response, nrow=x$ydim[1], ncol=x$ydim[2])[subset, ] 
-  pred <- fitted(x)[subset, ]
+  response <- matrix(x$response, nrow=x$ydim[1], ncol=x$ydim[2])[subset, , drop=FALSE] 
+  pred <- fitted(x)[subset, , drop=FALSE]
   pred[is.na(response)] <- NA
   
   # Observed - predicted values
-  funplot(x$yind, response-pred, ylab=x$yname, xlab=attr(x$yind, "nameyind"), ...) 
+  if(length(x$yind)>1){
+    funplot(x$yind, response-pred, ylab=x$yname, xlab=attr(x$yind, "nameyind"), ...) 
+  }else{
+    plot(response, response-pred, ylab="residuals", xlab="observed", ...)
+    abline(h=0)
+  }
+
 }
 
 

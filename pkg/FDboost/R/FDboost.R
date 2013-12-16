@@ -19,7 +19,8 @@
 #' @param formula a symbolic description of the model to be fit.
 #' @param timeformula formula for the expansion over the index of the response. 
 #' For a functional response \eqn{Y_i(t)} typically ~bbs(t) to obtain a smooth 
-#' expansion of the effects along t.
+#' expansion of the effects along t. In the limiting case that \eqn{Y_i} is a scalar response
+#' use \code{~bols(1)}, which sets up a base-learner for the scalar 1.
 #' @param numInt integration scheme for the integration of the loss function.
 #' One of \code{c("equal", "Riemann")} meaning equal weights of 1 or 
 #' trapezoidal Riemann weights.
@@ -77,11 +78,23 @@ FDboost <- function(formula,          ### response ~ xvars
   
   stopifnot(class(formula)=="formula")
   stopifnot(class(timeformula)=="formula")
-   
+  
   ### extract response; a numeric matrix (for the moment)
   yname <- all.vars(formula)[1]
   response <- data[[yname]]
   data[[yname]] <- NULL
+  
+  ### for scalar response bols(1)
+  if(timeformula == ~bols(1)){
+    
+    if(grepl("df", formula[3])){
+      timeformula <- ~bols(ONEtime, intercept=FALSE, df=1)
+    }else{
+      timeformula <- ~bols(ONEtime, intercept=FALSE)
+    }
+    data$ONEtime <- 1
+    response <- matrix(response, ncol=1)
+  }
   
   ### extract time;
   # <FixMe> Only keep first variable, 
@@ -116,8 +129,8 @@ FDboost <- function(formula,          ### response ~ xvars
       sub("\\)$", "", sub("^c\\(", "", x)) #c(BLA) --> BLA
     })
     blconstant <- "bols(ONEtime, intercept = FALSE)"
-    assign("ONEtime", rep(1.0, length(time)))
   }
+  assign("ONEtime", rep(1.0, length(time)))
     
   ### check dimensions
   ### response has trajectories as rows
@@ -132,7 +145,7 @@ FDboost <- function(formula,          ### response ~ xvars
   ### save original dimensions of response
   ydim <- dim(response)
   
-  ### intercept
+  ### variable to fit smooth intercept
   assign("ONEx", rep(1.0, nr))
   
 #   ### FIXME: plausibility check: 
@@ -206,11 +219,10 @@ FDboost <- function(formula,          ### response ~ xvars
     #warning(paste("The response contains", sum(is.na(dresponse)) ,"missing values. The corresponding weights are set to 0."))
     w[which(is.na(dresponse))] <- 0
   }
-  
     
   ## per default add smooth time-specific offset 
   ## idea: allow to use an offset linear in time?
-  if(is.null(offset)){
+  if(is.null(offset) & dim(response)[2]>1){
     message("Use a smooth offset.") 
     ### <FixMe> is the use of family@offset correct?
     #meanY <- colMeans(response, na.rm=TRUE)
@@ -272,24 +284,33 @@ FDboost <- function(formula,          ### response ~ xvars
       ret      
     } 
     offset <- as.vector(matrix(offsetVec, ncol=ncol(response), nrow = nrow(response), byrow=TRUE))    
-  }else{
-    if(length(offset)==1 && offset==0){
-      offsetVec <- NULL
-      offset <- NULL # use one constant offset in mboost()
-      predictOffset <- function(time) 0      
-    }else{ # expand the offset to the long vector like dresponse
-      if(length(offset)!=nc) stop("Dimensions of offset and response do not match.")
+  }else{    
+    if(dim(response)[2]==1){ ### scalar response
       offsetVec <- offset
-      offset <- as.vector(matrix(offset, ncol=ncol(response), nrow = nrow(response), byrow=TRUE))
-      ### <FixMe> use a more sophisticated model to estimate the time-specific offset? 
-      modOffset <- lm(offsetVec ~ bs(time, df=length(offsetVec)-2))
-      predictOffset <- function(time){
-        ret <- predict(modOffset, newdata=data.frame(time=time))
-        names(ret) <- NULL
-        ret      
-      }      
-    }   
+      offset <- offset # use one constant offset in mboost()
+      predictOffset <- function(time) if(is.null(offset)) 0 else offset
+      
+    }else{ # functional response, but not a smooth offset 
+      if(length(offset)==1 && offset==0){
+        offsetVec <- NULL
+        offset <- NULL # use one constant offset in mboost()
+        predictOffset <- function(time) 0      
+      }else{ # expand the offset to the long vector like dresponse
+        if(length(offset)!=nc) stop("Dimensions of offset and response do not match.")
+        offsetVec <- offset
+        offset <- as.vector(matrix(offset, ncol=ncol(response), nrow = nrow(response), byrow=TRUE))
+        ### <FixMe> use a more sophisticated model to estimate the time-specific offset? 
+        modOffset <- lm(offsetVec ~ bs(time, df=length(offsetVec)-2))
+        predictOffset <- function(time){
+          ret <- predict(modOffset, newdata=data.frame(time=time))
+          names(ret) <- NULL
+          ret      
+        }      
+      } 
+    }
   }
+  
+  
       
   if (length(data) > 0) {
     ### mboost isn't happy with nrow(data) == 0

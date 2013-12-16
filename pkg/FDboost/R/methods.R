@@ -805,13 +805,13 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
                                    ylab="coef", type="l"))          
         }
         
-        if(rug & !is.factor(x=trm$x)){
-          if(grepl("bconcurrent", trm$main)){
-            rug(attr(bl_data[[i]][[1]], "signalIndex"), ticksize = 0.02)
-          }else ifelse(length(unique(bl_data[[i]][[1]]))!=1,
-                 rug(bl_data[[i]][[1]], ticksize = 0.02),
-                 rug(bl_data[[i]][[2]], ticksize = 0.02))
-        }
+          if(rug & !is.factor(x=trm$x)){
+            if(grepl("bconcurrent", trm$main) | grepl("bsignal", trm$main)){
+              rug(attr(bl_data[[i]][[1]], "signalIndex"), ticksize = 0.02)
+            }else ifelse(length(unique(bl_data[[i]][[1]]))!=1,
+                         rug(bl_data[[i]][[1]], ticksize = 0.02),
+                         rug(bl_data[[i]][[2]], ticksize = 0.02))
+          } 
       } 
       
       # plot with factor variable
@@ -938,11 +938,17 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
     for(i in 1:length(terms)){
       # set values of predicted effect to missing if response is missing
       terms[[i]][is.na(x$response)] <- NA
-      plotWithArgs(funplot, args=argsFunplot, 
-                   myargs=list(x=time, y=terms[[i]], type="l", ylab="effect", lty=1, rug=FALSE,
-                               xlab=attr(time, "nameyind"), ylim=range, main=shrtlbls[i]))
+      if(length(time)>1){
+        plotWithArgs(funplot, args=argsFunplot, 
+                     myargs=list(x=time, y=terms[[i]], type="l", ylab="effect", lty=1, rug=FALSE,
+                                 xlab=attr(time, "nameyind"), ylim=range, main=shrtlbls[i]))
         if(rug) rug(time)
+      }else{
+        plotWithArgs(plot, args=argsPlot, 
+                     myargs=list(x=response-x$offset, y=terms[[i]], type="p", ylab="effect", 
+                                 xlab="response-offset", ylim=range, main=shrtlbls[i])) 
       }
+    }
     if(length(which)>1 & ask) par(ask=FALSE) 
     }       
 }
