@@ -945,7 +945,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
         if(rug) rug(time)
       }else{
         plotWithArgs(plot, args=argsPlot, 
-                     myargs=list(x=response-x$offset, y=terms[[i]], type="p", ylab="effect", 
+                     myargs=list(x=x$response-x$offset, y=terms[[i]], type="p", ylab="effect", 
                                  xlab="response-offset", ylim=range, main=shrtlbls[i])) 
       }
     }
