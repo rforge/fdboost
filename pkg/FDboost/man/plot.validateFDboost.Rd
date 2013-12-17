@@ -10,9 +10,10 @@
     risk = c("median", "mean"), modObject = NULL,
     predictNA = FALSE, names.arg = NULL, ask = TRUE, ...)
 
-  plotPredCoef(x, commonRange = TRUE, showNumbers = FALSE,
-    ask = TRUE, terms = TRUE, probs = c(0.25, 0.5, 0.75),
-    ylim = NULL, ...)
+  plotPredCoef(x, which = NULL, commonRange = TRUE,
+    showNumbers = FALSE, showQuantiles = TRUE, ask = TRUE,
+    terms = TRUE, probs = c(0.25, 0.5, 0.75), ylim = NULL,
+    ...)
 }
 \arguments{
   \item{x}{object of class validateFDboost}
@@ -34,8 +35,14 @@
 
   \item{ask}{par(ask=ask)}
 
+  \item{which}{a subset of base-learners to take into
+  account for plotting}
+
   \item{commonRange,}{plot predicted coefficients on a
   common range, defaults to TRUE}
+
+  \item{showQuantiles}{plot the 0.05 and the 0.95 Quantile
+  of coefficients in 1-dim effects}
 
   \item{showNumbers}{show number of curve in plot of
   predicted coefficients, defaults to FALSE}

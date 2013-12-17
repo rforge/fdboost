@@ -729,6 +729,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
   ### get the effects to be plotted
   whichSpecified <- which
   if(is.null(which)) which <- 1:length(x$baselearner) 
+  
   if(onlySelected){
 #     sel <- selected(x)
 #     if( !1 %in% sel  && length(x$offsetVec) > 1 && grepl("ONEx", names(x$baselearner)[[1]])){
@@ -739,7 +740,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
   
   # In the case that intercept and offset shuold be plotted and the intercept was never selected
   # plot the offset
-  if( (1 %in% whichSpecified | is.null(whichSpecified))  & !1 %in% which) which <- c(0, which)
+  if( (1 %in% whichSpecified | is.null(whichSpecified))  & !1 %in% which & length(x$yind)>1) which <- c(0, which)
   
   if(length(which)==0){
     warning("Nothing selected for plotting.")
@@ -795,6 +796,8 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
       
       # plot for 1-dim effects
       if(trm$dim==1){
+        if(length(trm$value)==1) trm$value <- rep(trm$value, l=length(trm$x)) 
+        
         if(!"add" %in% names(dots)){
           plotWithArgs(plot, args=argsPlot, 
                        myargs=list(x=trm$x, y=trm$value, xlab=trm$xlab, main=trm$main, 

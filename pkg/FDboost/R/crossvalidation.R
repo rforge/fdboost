@@ -180,7 +180,7 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
     # get risk function of the family
     riskfct <- get("family", environment(mod$update))@risk
     
-    # oobweights über riskfct() wie aus mboost
+    # oobweights using riskfct() like in mboost
     risk <- sapply(grid, function(g){riskfct( mod$response, mod[g]$fitted(), w=oobweights)})
     
     #     # do not include oobweights in ()^2! gives same results as calculation im mboost, for family=Gaussian
@@ -190,6 +190,11 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
     # mod[grid[which.min(risk)]]
     
     # matrix(oobweights, nObs, Gy)
+    
+    relMSE <- simplify2array(mclapply(grid, function(g){
+      sum(((mod$response - mod[g]$fitted())[oobweights==1])^2) /
+        sum( ( (mod$response - mean(mod$response[oobweights]))[oobweights==1] )^2 )
+    }, mc.cores=1) )
     
     # prediction for all observations, not only oob! 
     # -> oob-predictions have to be merged out of predGrid
@@ -209,7 +214,7 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
       respOOB <- NULL
     }
     
-    return(list(risk=risk, predGrid=predGrid, predOOB=predOOB, respOOB=respOOB, mod=mod))  
+    return(list(risk=risk, predGrid=predGrid, predOOB=predOOB, respOOB=respOOB, relMSE=relMSE, mod=mod))  
   }
   
   #   ###### Function to fit the model
@@ -320,7 +325,7 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
     message(paste("In fold ", which(riskOptimal>bound), ": " ,
                   round(riskOptimal[which(riskOptimal>bound)], 2), collapse=",  ", sep="" )  )  
   }
-
+  
   ## only makes sense for type="curves" with leaving-out one curve per fold!!
   if(grepl( "curves", type)){
   ## predict response for all mstops in grid out of bag
@@ -345,7 +350,7 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
     oobpreds <- NULL
   }
     
-  # alternative OOB-prediction: works for general folds not oly oob
+  # alternative OOB-prediction: works for general folds not only oob
   predOOB <- lapply(modRisk, function(x) x$predOOB)
   predOOB <- do.call('rbind', predOOB)
   colnames(predOOB) <- grid
@@ -380,6 +385,11 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
   
   rmse <- sqrt(mse)
   rmseCurves <- sqrt(mseCurves)
+  
+  ## get the relMSE
+  relMSE <- t(sapply(modRisk, function(x) x$relMSE)) # no division with b_i as 1/b_i reduces in relMSE
+  colnames(relMSE) <- grid
+  rownames(relMSE) <- which(modFitted)
   
   ### mean relative deviation
   # do not use values that are 0
@@ -492,7 +502,7 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
               oobrisk=oobrisk, 
               oobriskMean=colMeans(oobrisk),
               mseCurves=mseCurves, rmseCurves=rmseCurves, mrdCurves=mrdCurves, 
-              mse=mse, rmse=rmse, mrd=mrd)
+              mse=mse, rmse=rmse, mrd=mrd, relMSE=relMSE)
   
   class(ret) <- "validateFDboost"
   
@@ -543,7 +553,9 @@ mstop.validateFDboost <- function(object, ...){
 #' @param predictNA should missing values in the response be predicted? Defaults to FALSE.
 #' @param names.arg names of the observed curves
 #' @param ask par(ask=ask)
+#' @param which a subset of base-learners to take into account for plotting
 #' @param commonRange, plot predicted coefficients on a common range, defaults to TRUE
+#' @param showQuantiles plot the 0.05 and the 0.95 Quantile of coefficients in 1-dim effects
 #' @param showNumbers show number of curve in plot of predicted coefficients, defaults to FALSE
 #' @param terms, logical, defaults to TRUE plot the added terms (default) or the coefficients?
 #' @param probs vector of qunatiles to be used in the plotting of 2-dimensional coefficients surfaces,
@@ -677,14 +689,18 @@ plot.validateFDboost <- function(x, risk=c("median","mean"),
 #' @rdname plot.validateFDboost
 #' @export
 #' 
-plotPredCoef <- function(x, commonRange=TRUE, showNumbers=FALSE, ask=TRUE, 
+plotPredCoef <- function(x, which=NULL, 
+                         commonRange=TRUE, showNumbers=FALSE, showQuantiles=TRUE,
+                         ask=TRUE, 
                          terms=TRUE,         
                          probs=c(0.25, 0.5, 0.75), # quantiles of variables to use for plotting
                          ylim=NULL, ...){
   
   stopifnot(any(class(x)=="validateFDboost"))
   
-  par(ask=ask)
+  if(is.null(which)) which <- 1:length(x$coefCV)
+  
+  if(length(which)>1) par(ask=ask)
   
   if(terms){
     
@@ -693,13 +709,17 @@ plotPredCoef <- function(x, commonRange=TRUE, showNumbers=FALSE, ask=TRUE,
       return(NULL)
     }
     
-    if(commonRange){
-      ylim <- range(x$predCV[-1]) # exclude offset in calculation of common range
+    if(commonRange & is.null(ylim)){ 
+      if(length(x$yind)>1){
+        ylim <- range(x$predCV[-1]) # exclude offset in calculation of common range
+      }else{
+        ylim <- range(x$predCV[which])
+      } 
     }
     
-    for(l in 1:length(x$predCV)){
+    for(l in which){
       
-      if(l==1){ # do not use common range for offset
+      if(l==1 && length(x$yind)>1){ # do not use common range for offset for functional response
         matplot(x$yind, t(x$predCV[[l]]), type="l", 
                 main=names(x$predCV)[l], xlab=attr(x$yind, "nameyind"), ylab="coef", ylim=NULL, ...)
       }else{
@@ -708,16 +728,20 @@ plotPredCoef <- function(x, commonRange=TRUE, showNumbers=FALSE, ask=TRUE,
       }
       
       if(showNumbers){
-        matplot(x$yind, t(x$predCV[[l]]), add=TRUE )
+        matplot(x$yind, t(x$predCV[[l]]), add=TRUE, ...)
       }
     }
   }else{ # plot coefficients
     
-    if(commonRange){
-      ylim <- range(lapply(x$coefCV[-1], function(x) range(x$value))) # exclude offset in calculation of common range
+    if(commonRange & is.null(ylim)){
+      if(length(x$yind)>1){
+        ylim <- range(lapply(x$coefCV[-1], function(x) x$value)) # exclude offset in calculation of common range
+      }else{
+        ylim <- range(lapply(x$coefCV[which], function(x) x$value))
+      } 
     }
     
-    for(l in 1:length(x$coefCV)){ # loop over effects
+    for(l in which){ # loop over effects
       
       # coef() of a certain term
       temp <- x$coefCV[l][[1]]
@@ -726,16 +750,16 @@ plotPredCoef <- function(x, commonRange=TRUE, showNumbers=FALSE, ask=TRUE,
       if(FALSE) ylim <- range(temp$value)
       
       # plot the estimated offset
-      if(l==1 && sum(is.na(temp$offset))<5){
+      if(l==1 && length(x$yind)>1){
         #temp <- x$coefCV[[1]]
         myMat <- temp$offset
         
         matplot(seq(min(x$yind), max(x$yind), length=ncol(myMat)), t(myMat), type="l", 
                 xlab=attr(x$yind,"nameyind"),
-                main="offset", ylab="coef")
+                main="offset", ylab="coef", ...)
         
         if(showNumbers){
-          matplot(seq(min(x$yind), max(x$yind), length=ncol(myMat)), t(myMat), add=TRUE )
+          matplot(seq(min(x$yind), max(x$yind), length=ncol(myMat)), t(myMat), add=TRUE, ...)
         }
         
       }
@@ -746,10 +770,16 @@ plotPredCoef <- function(x, commonRange=TRUE, showNumbers=FALSE, ask=TRUE,
         myMat <- sapply(temp$value, function(x) x) # as one matrix
         
         matplot(temp$x, myMat, type="l", xlab=temp$xlab,
-                main=temp$main, ylab="coef")
+                main=temp$main, ylab="coef", ylim=ylim, ...)
         
         if(showNumbers){
-          matplot(temp$x, myMat, add=TRUE )
+          matplot(temp$x, myMat, add=TRUE, ...)
+        }
+        
+        if(showQuantiles){
+          lines(temp$x, rowMeans(myMat), col=1, lwd=2)
+          lines(temp$x, apply(myMat, 1, quantile, 0.95), col=2, lwd=2, lty=2)
+          lines(temp$x, apply(myMat, 1, quantile, 0.05), col=2, lwd=2, lty=2)
         }
       }
       
@@ -777,20 +807,20 @@ plotPredCoef <- function(x, commonRange=TRUE, showNumbers=FALSE, ask=TRUE,
             
             myCol <- sapply(temp$value, function(x) x[, quanty[j]==temp$y]) # first column
             matplot(temp$x, myCol, type="l", xlab=temp$xlab, ylim=ylim,
-                    main=paste(temp$main, " at ", probs[j]*100, "% of ", temp$ylab, sep=""), ylab="coef")
+                    main=paste(temp$main, " at ", probs[j]*100, "% of ", temp$ylab, sep=""), ylab="coef", ...)
             
             if(showNumbers){
-              matplot(temp$x, myCol, add=TRUE )
+              matplot(temp$x, myCol, add=TRUE, ...)
             }
           }
           
           for(j in 1:length(quantx)){  
             myRow <- sapply(temp$value, function(x) x[quantx[j]==temp$x, ]) # first column
             matplot(temp$x, myRow, type="l", xlab=temp$ylab, ylim=ylim,
-                    main=paste(temp$main, " at ", probs[j]*100, "% of ", temp$xlab, sep=""), ylab="coef")
+                    main=paste(temp$main, " at ", probs[j]*100, "% of ", temp$xlab, sep=""), ylab="coef", ...)
             
             if(showNumbers){
-              matplot(temp$x, myRow, add=TRUE )
+              matplot(temp$x, myRow, add=TRUE, ...)
             }
           }
         }else{ # temp$x is factor
@@ -802,13 +832,13 @@ plotPredCoef <- function(x, commonRange=TRUE, showNumbers=FALSE, ask=TRUE,
             if(is.null(temp$z)){
               myRow <- sapply(temp$value, function(x) x[quantx[j]==temp$x, ]) # first column
               matplot(temp$y, myRow, type="l", xlab=temp$ylab, ylim=ylim,
-                      main=paste(temp$main, " at ", temp$xlab,"=" ,quantx[j], sep=""), ylab="coef")
+                      main=paste(temp$main, " at ", temp$xlab,"=" ,quantx[j], sep=""), ylab="coef", ...)
             }else{
               quantz <- temp$z
               myRow <- sapply(temp$value, function(x) x[quantx[j]==temp$x & quantz[j]==temp$z, ]) # first column
               matplot(temp$y, myRow, type="l", xlab=temp$ylab, ylim=ylim,
                       main=paste(temp$main, " at ", temp$xlab,"=" , quantx[j], ", " , 
-                                 temp$zlab,"=" ,quantz[j], sep=""), ylab="coef")
+                                 temp$zlab,"=" ,quantz[j], sep=""), ylab="coef", ...)
             }
             if(showNumbers){
               matplot(temp$y, myRow, add=TRUE )
