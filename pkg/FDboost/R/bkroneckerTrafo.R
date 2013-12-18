@@ -254,10 +254,10 @@ bl_lin_matrix <- function(blg, Xfun, args) {
       #browser()
       
       # <SB> set the Z argument in the environments of the functions
-      # in model fit: Z=NULL
+      # in model fit: Z=NULL or Z="given Z" in bsignal(..., Z=Z), then the Z should not be overwritten
       # in predict(): Z of the original model fit is used
-      environment(bl1$dpp)$args$Z <- args$Z[[1]]
-      environment(bl2$dpp)$args$Z <- args$Z[[2]]
+      if( is.null(environment(bl1$dpp)$args$Z) ) environment(bl1$dpp)$args$Z <- args$Z[[1]]
+      if( is.null(environment(bl2$dpp)$args$Z) ) environment(bl2$dpp)$args$Z <- args$Z[[2]]
       #environment(bl1$dpp)$args$Z      
       #ls(sys.frame(which = 1))
       

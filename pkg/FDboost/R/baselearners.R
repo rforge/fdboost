@@ -155,17 +155,19 @@ X_bsignal <- function(mf, vary, args) {
     
   colnames(X) <- paste(xname, 1:ncol(X), sep="")
       
-  ### center the design matrix if necessary  
-  centerX <- FALSE
-  ### Check whether integral over trajectories is different
-  if(all(rowMeans(X1)-mean(rowMeans(X1)) < .Machine$double.eps *10^10)){
+  ### use the transformation matrix Z if necessary
+  useZ <- FALSE
+  ### Check whether integral over trajectories is different then centering is advisable
+  if(is.null(args$Z) && all(rowMeans(X1)-mean(rowMeans(X1)) < .Machine$double.eps *10^10)){
     message(paste("All trajectories in ", xname, " have the same mean. Coefficient function is centered.", sep=""))
-    centerX <- TRUE
+    useZ <- TRUE
   }
   
+  ### in case that a Z-matrix is given in bsignal()
+  if(!is.null(args$Z)) useZ <- TRUE  
   #browser()
   
-  if(centerX  | !is.null(args$Z)){
+  if(useZ  | !is.null(args$Z)){
     
     #----------------------------------
     ### <SB> Calculate constraints
@@ -188,7 +190,8 @@ X_bsignal <- function(mf, vary, args) {
     Z <- NULL
   }
   
-  #print(Z)
+  #print("X_bsignal")
+  #print(Z[1:3,1:3])
   
   ### Weighting with matrix of functional covariable
   L <- integrationWeights(X1=X1, xind=xind)
@@ -390,7 +393,7 @@ bsignal <- function(..., #by = NULL, index = NULL,
   class(ret) <- "blg"
   
   #browser()
-  #print("bsignal")
+  print("bsignal")
   #print(Z)
   
   ret$dpp <- mboost:::bl_lin(ret, Xfun = X_bsignal,
