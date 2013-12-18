@@ -393,7 +393,7 @@ bsignal <- function(..., #by = NULL, index = NULL,
   class(ret) <- "blg"
   
   #browser()
-  print("bsignal")
+  #print("bsignal")
   #print(Z)
   
   ret$dpp <- mboost:::bl_lin(ret, Xfun = X_bsignal,

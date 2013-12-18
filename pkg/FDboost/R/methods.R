@@ -138,7 +138,8 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
       #if(!is.list(newdata)) newdata <- list(newdata)
       for(i in c(posBsignal, posBconc, posBhist)){
         form <- strsplit(object$baselearner[[i]]$get_call(), "%O%")[[1]][1]
-        form <- substr(form, 2, nchar(form))
+        form <- gsub("\"", "", form, fixed=TRUE) # delete all quatation marks
+        form <- gsub("\\", "", form, fixed=TRUE) # delete all backslashes
         formula_help <- formula(paste("resHelp ~", form))
         xname <- all.vars(formula_help)[2]
         indname <- if(length(all.vars(formula_help))>=3) all.vars(formula_help)[3] else "xindDefault" 
@@ -483,6 +484,11 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
             if(grepl("by", trm$get_call()) && grepl("bols", trm$get_call()) && is.factor(z)){
               d <- list(rep(xg, length(zg)), yg, rep(zg, each=length(zg)))
             }
+            #<FIXME> what to do if %X% was used???
+            if(grepl("%X%", trm$get_call())){
+              #d <- list( rep(xg), rep(yg, each=length(xg)), zg)
+              d <- list(xg, yg=1, zg)
+            } 
             attr(d, "xm") <- d[[1]]
             attr(d, "ym") <- d[[2]]
             attr(d, "zm") <- d[[3]]
@@ -490,9 +496,11 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
           names(d) <- varnms[c(1, yListPlace, zListPlace)] # colnames(d) <- varnms
           attr(d, "varnms") <- varnms[c(1, yListPlace, zListPlace)] 
         }
+        
+        
         ## add dummy signal to data
         if(grepl("bsignal", trm$get_call()) ){
-          d[[attr(trm$model.frame()[[1]], "xname")]] <- I(diag(ng)/integrationWeights(diag(ng), d[[varnms[1]]]))
+          d[[attr(trm$model.frame()[[1]], "xname")]] <- I(diag(ng)/integrationWeights(diag(ng), d[[varnms[1]]] ))
         }
         ### <FIXME> is dummy-signal for bhist() correct?
         if(grepl("bhist", trm$get_call()) ){
@@ -507,6 +515,15 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
           d$by <- 1
           colnames(d) <- c(head(colnames(d),-1), trm$get_vary())
         } 
+        
+        # set time-variable to 1, if response is a scalar
+        if(length(object$yind)==1){
+          if( all(attr(d, "zm") == d[[attr(object$yind, "nameyind")]]) ){
+            attr(d, "zm") <- 1
+          }
+          d[[attr(object$yind, "nameyind")]] <- 1 
+        }
+        
         return(d)
       }
       
@@ -555,7 +572,7 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
       trm$dim <- length(trm$get_names())
       if(any(grepl("ONEx", trm$get_names()), 
              grepl("ONEtime", trm$get_names()))) trm$dim <- trm$dim - 1 
-      
+            
       if( grepl("bhist", trm$get_call()) ){
         trm$dim <- 2
       }
@@ -572,7 +589,9 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
         return(NULL)
       }
       
-      d <- makeDataGrid(trm)
+      d <- makeDataGrid(trm) 
+      ### <FIXME> better solution for %X% in base-learner!!!
+      if(any(grepl("%X%", trm$get_call()))) trm$dim <- trm$dim - 1
       P <- getP(trm, d)
       
       # get proper labeling
