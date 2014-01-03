@@ -9,7 +9,7 @@
     df = 4, lambda = NULL, center = FALSE, cyclic = FALSE)
 
   bolsc(..., by = NULL, index = NULL, intercept = TRUE,
-    df = NULL, lambda = 0,
+    df = NULL, lambda = 0, K = NULL,
     contrasts.arg = "contr.treatment")
 
   brandomc(..., contrasts.arg = "contr.dummy", df = 4)
@@ -47,6 +47,9 @@
 
   \item{lambda}{smoothing penalty, computed from \code{df}
   when \code{df} is specified.}
+
+  \item{K}{in \code{bolsc} it is possible to specify the
+  penalty matrix K}
 
   \item{center}{not implemented yet}
 
@@ -93,8 +96,7 @@
   \eqn{\sum_i \hat f(z_i, x_i, t) = 0} for all \eqn{t} are
   used, so that effects varying over \eqn{t} can be
   interpreted as deviations from the global functional
-  intercept. It is recommended to use centered scalar
-  covariates for terms like \eqn{z \beta(t)} (\code{~z}).
+  intercept.
 
   Cannot deal with any missing values in the covariates.
 }

@@ -980,7 +980,7 @@ X_bbsc <- function(mf, vary, args) {
            "(unpenalized part of P-spline). Use larger value for ",
            sQuote("df"), " or set ", sQuote("center = TRUE"), ".")
   }
-  return(list(X = X, K = K, Z=Z))
+  return(list(X = X, K = K, Z = Z))
 }
 
 
@@ -1010,6 +1010,7 @@ X_bbsc <- function(mf, vary, args) {
 #' large amount of smoothing and thus to "weaker" base-learners.
 #' @param lambda smoothing penalty, computed from \code{df} when 
 #' \code{df} is specified.
+#' @param K in \code{bolsc} it is possible to specify the penalty matrix K
 #' @param center not implemented yet 
 #' @param cyclic  if \code{cyclic = TRUE} the fitted values coincide at 
 #' the boundaries (useful for cyclic covariates such as day time etc.).
@@ -1032,8 +1033,7 @@ X_bbsc <- function(mf, vary, args) {
 #' response \eqn{t} constraints that enforce 
 #' \eqn{\sum_i \hat f(z_i, x_i, t) = 0} for all \eqn{t} are used, so that 
 #' effects varying over \eqn{t} can be interpreted as deviations 
-#' from the global functional intercept. It is recommended to use 
-#' centered scalar covariates for terms like \eqn{z \beta(t)} (\code{~z}).
+#' from the global functional intercept. 
 #' 
 #' Cannot deal with any missing values in the covariates.
 #' 
@@ -1140,7 +1140,7 @@ bbsc <- function(..., by = NULL, index = NULL, knots = 10, boundary.knots = NULL
 # str(blz$dpp(weights=rep(1,17)))
 
 #################
-### model.matrix for constrained ols baselearner
+### model.matrix for constrained ols baselearner with penalty matrix K
 X_olsc <- function(mf, vary, args) {
   
   if (mboost:::isMATRIX(mf)) {
@@ -1207,21 +1207,28 @@ X_olsc <- function(mf, vary, args) {
       }
     }
   }
-  ### <FIXME> penalize intercepts???
-  ### set up penalty matrix
-  ANOVA <- (!is.null(contr) && (length(contr) == 1)) && (ncol(mf) == 1)
-  K <- diag(ncol(X))
-  ### for ordered factors use difference penalty
-  if (ANOVA && any(sapply(mf[, names(contr), drop = FALSE], is.ordered))) {
-    K <- diff(diag(ncol(X) + 1), differences = 1)[, -1, drop = FALSE]
-    if (vary != "" && ncol(by) > 1){       # build block diagonal penalty
-      suppressMessages(K <- kronecker(diag(ncol(by)), K))
+  
+  #----------------------------------
+  ## <SB> use given penalty-matrix K
+  if(is.null(args$K)){
+    ### <FIXME> penalize intercepts???
+    ### set up penalty matrix
+    ANOVA <- (!is.null(contr) && (length(contr) == 1)) && (ncol(mf) == 1)
+    K <- diag(ncol(X))
+    ### for ordered factors use difference penalty
+    if (ANOVA && any(sapply(mf[, names(contr), drop = FALSE], is.ordered))) {
+      K <- diff(diag(ncol(X) + 1), differences = 1)[, -1, drop = FALSE]
+      if (vary != "" && ncol(by) > 1){       # build block diagonal penalty
+        suppressMessages(K <- kronecker(diag(ncol(by)), K))
+      }
+      K <- crossprod(K)
     }
-    K <- crossprod(K)
+  }else{
+    ## <SB> check dimensions of given K
+    stopifnot(dim(args$K)==rep(ncol(X), 2))
+    K <- args$K
   }
-  ### </FIXME>
-  if (is(X, "Matrix") && !is(K, "Matrix"))
-    K <- Matrix(K)
+  #----------------------------------
   
   #----------------------------------
   ### <SB> Calculate constraints
@@ -1240,6 +1247,10 @@ X_olsc <- function(mf, vary, args) {
   attr(X, "Z") <- Z # Z wird momentan nicht benutzt!!
   #----------------------------------
   
+  ### </FIXME>
+  if (is(X, "Matrix") && !is(K, "Matrix"))
+    K <- Matrix(K)
+  
   ### <SB> return the transformation matrix Z as well
   list(X = X, K = K, Z = Z)
 }
@@ -1248,9 +1259,10 @@ X_olsc <- function(mf, vary, args) {
 #' @rdname bbsc
 #' @export
 ### Linear baselearner, potentially Ridge-penalized (but not by default)
+### one can specify the penalty matrix K
 ### with sum-to-zero constraint over index of response
 bolsc <- function(..., by = NULL, index = NULL, intercept = TRUE, df = NULL,
-                 lambda = 0, contrasts.arg = "contr.treatment") {
+                 lambda = 0, K=NULL, contrasts.arg = "contr.treatment") {
   
   if (!is.null(df)) lambda <- NULL
   
@@ -1329,17 +1341,17 @@ bolsc <- function(..., by = NULL, index = NULL, intercept = TRUE, df = NULL,
   class(ret) <- "blg"
   
   ret$dpp <- mboost:::bl_lin(ret, Xfun = X_olsc, args = hyper_olsc(
-    df = df, lambda = lambda,
+    df = df, lambda = lambda, K = K, # use penalty matrix as argument
     intercept = intercept, contrasts.arg = contrasts.arg,
     Z=NULL)) # Z in args wird momentan nicht benutzt!!
   return(ret)
 }
 
 ### hyper parameters for olsc baselearner
-# add the parameter Z
-hyper_olsc <- function(df = NULL, lambda = 0, intercept = TRUE,
+# add the parameters Z and K
+hyper_olsc <- function(df = NULL, lambda = 0, K=NULL, intercept = TRUE,
                       contrasts.arg = "contr.treatment", Z=NULL)
-  list(df = df, lambda = lambda,
+  list(df = df, lambda = lambda, K=K,
        intercept = intercept,
        contrasts.arg = contrasts.arg,
        Z=NULL)
