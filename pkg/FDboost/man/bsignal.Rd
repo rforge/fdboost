@@ -12,7 +12,7 @@
     degree = 3, differences = 2, df = 4)
 
   bhist(..., knots = 10, boundary.knots = NULL, degree = 3,
-    differences = 2, df = 8)
+    differences = 2, df = 8, limits = "s<=t")
 }
 \arguments{
   \item{...}{matrix of functional data and the vector of
@@ -54,6 +54,16 @@
   the transformation matrix for a sum-to-zero constraint in
   the case that all trajectories have the same mean (then a
   shift in the coefficient function is not identifiable).}
+
+  \item{limits}{defaults to "s<=t" for an historical effect
+  with s<=t, otherwise specifies the integration limits
+  s_{hi, i}, s_{lo, i}: either one of "s<t" or "s<=t" for
+  (s_{hi, i}, s_{lo, i}) = (0, t) or a function that takes
+  s as the first and t as the second argument and returns
+  TRUE for combinations of values (s,t) if s falls into the
+  integration range for the given t. This is an
+  experimental feature and not well tested yet; use at your
+  own risk.}
 }
 \value{
   Equally to the base-learners of the package mboost:

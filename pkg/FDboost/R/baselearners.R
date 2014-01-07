@@ -268,7 +268,13 @@ X_bsignal <- function(mf, vary, args) {
 #' @param Z a transformation matrix for the design-matrix over the index of the covariate.
 #' Z can be calculated as the transformation matrix for a sum-to-zero constraint in the case
 #' that all trajectories have the same mean 
-#' (then a shift in the coefficient function is not identifiable). 
+#' (then a shift in the coefficient function is not identifiable).
+#' @param limits defaults to "s<=t" for an historical effect with s<=t, 
+#' otherwise specifies the integration limits s_{hi, i}, s_{lo, i}: 
+#' either one of "s<t" or "s<=t" for (s_{hi, i}, s_{lo, i}) = (0, t) or a 
+#' function that takes s as the first and t as the second argument and returns 
+#' TRUE for combinations of values (s,t) if s falls into the integration range for the given t. 
+#' This is an experimental feature and not well tested yet; use at your own risk. 
 #' 
 #' @aliases bconcurrent 
 #' 
@@ -642,12 +648,46 @@ X_hist <- function(mf, vary, args) {
   L <- integrationWeightsLeft(X1=X1, xind=xind)
   X1L <- L*X1
   
-  # set up design matrix for historical model
+  # set up design matrix for historical model and s<=t
   # expand matrix of original observations to lower triangular matrix 
-  X1des <- matrix(0, ncol=ncol(X1), nrow=ncol(X1)*nrow(X1))
-  for(i in 1:ncol(X1des)){
+  X1des0 <- matrix(0, ncol=ncol(X1), nrow=ncol(X1)*nrow(X1))
+  for(i in 1:ncol(X1des0)){
     #print(nrow(X1)*(i-1)+1)
-    X1des[(nrow(X1)*(i-1)+1):nrow(X1des) ,i] <- X1L[,i] # use fun. variable * integration weights
+    X1des0[(nrow(X1)*(i-1)+1):nrow(X1des0) ,i] <- X1L[,i] # use fun. variable * integration weights
+  }
+  
+  ## set up design matrix for historical model according to limit()
+  # use the argument limits (Code taken of function ff(), package refund)
+  limits <- args$limits
+  if (!is.null(limits)) {
+    if (!is.function(limits)) {
+      if (!(limits %in% c("s<t", "s<=t"))) {
+        stop("supplied <limits> argument unknown")
+      }
+      if (limits == "s<t") {
+        limits <- function(s, t) {
+          s < t
+        }
+      }
+      else {
+        if (limits == "s<=t") {
+          limits <- function(s, t) {
+            (s < t) | (s == t)
+          }
+        }
+      }
+    }
+  }
+  
+  ### expand the design matrix for all observations (yind is equal for all observations!)
+  X1des <- X1L[rep(1:nrow(X1L), times=ncol(X1L)), ]
+  ### use function limits to set up design matrix according to function limits 
+  ### by setting 0 at the time-points that should not be used
+  if (!is.null(limits)) {
+    ## at the moment: xind and yind are the same for all observations
+    ## expand yind by replication to the yind of all observations together
+    ind0 <- !t(outer( xind, rep(xind, each=nrow(X1L)), limits) )  # !t(outer( xind, yind, limits) )
+    X1des[ind0] <- 0
   }
   
   # Design matrix is product of expanded X1 and basis expansion over xind 
@@ -658,7 +698,7 @@ X_hist <- function(mf, vary, args) {
   B.t <- B.s
   # stack design-matrix of response n-times
   B.t <- B.t[rep(1:nrow(B.t), each=nrow(X1)), ]
-  
+    
   # calculate row-tensor
   # X <- (X1 %x% t(rep(1, ncol(X2))) ) * ( t(rep(1, ncol(X1))) %x% X2  )
   X <- X1des[,rep(1:ncol(X1des), each=ncol(B.t))] * B.t[,rep(1:ncol(B.t), times=ncol(X1des))] 
@@ -691,12 +731,13 @@ X_hist <- function(mf, vary, args) {
 
 
 ### P-spline base learner for signal matrix with index vector
-### for historical model s<=t
+### for historical model according to function limit, defaults to s<=t
 #' @rdname bsignal
 #' @export
 bhist <- function(..., #by = NULL, index = NULL, 
-                  knots = 10, boundary.knots = NULL, degree = 3, differences = 2, df = 8 
+                  knots = 10, boundary.knots = NULL, degree = 3, differences = 2, df = 8,
                   #lambda = NULL, center = FALSE, cyclic = FALSE
+                  limits="s<=t"
 ){
   
   #  if (!is.null(lambda)) df <- NULL
@@ -777,7 +818,8 @@ bhist <- function(..., #by = NULL, index = NULL,
   ret$dpp <- mboost:::bl_lin(ret, Xfun = X_hist,
                              args = list(mf, vary, knots = knots, boundary.knots = boundary.knots, 
                                          degree = degree, differences = differences,
-                                         df = df, lambda = NULL, center = FALSE, cyclic = FALSE))
+                                         df = df, lambda = NULL, center = FALSE, cyclic = FALSE,
+                                         limits = limits)) # extra feature limit!
   return(ret)
 }
 
