@@ -616,6 +616,7 @@ X_hist <- function(mf, vary, args) {
   X1 <- as.matrix(mf[[1]])
   class(X1) <- "matrix"
   xind <- attr(mf[[1]], "signalIndex")
+  yind <- attr(mf[[1]], "indexY")
   
   #   stopifnot(is.list(mf))
   #   xname <- names(mf)[1]
@@ -629,18 +630,9 @@ X_hist <- function(mf, vary, args) {
   knots <- seq(from = args$boundary.knots[1], to = args$boundary.knots[2], length = args$knots + 2)
   knots <- knots[2:(length(knots) - 1)]
   
-  # B-spline basis of specified degree  
-  #X <- bs(xind, knots=knots, degree=args$degree, intercept=TRUE) # old version   
+  # B-spline basis of specified degree     
   B.s <- mboost:::bsplines(xind, knots=knots, boundary.knots=args$boundary.knots, 
                            degree=args$degree) 
-  
-  #   # to do: extra feature: cyclic splines
-  #   if (args$cyclic) {
-  #     B.s <- mboost:::cbs(xind,
-  #              knots = knots,
-  #              boundary.knots = args$boundary.knots,
-  #              degree = args$degree)
-  #   }
   
   colnames(B.s) <- paste(xname, 1:ncol(B.s), sep="")
   
@@ -648,13 +640,13 @@ X_hist <- function(mf, vary, args) {
   L <- integrationWeightsLeft(X1=X1, xind=xind)
   X1L <- L*X1
   
-  # set up design matrix for historical model and s<=t
-  # expand matrix of original observations to lower triangular matrix 
-  X1des0 <- matrix(0, ncol=ncol(X1), nrow=ncol(X1)*nrow(X1))
-  for(i in 1:ncol(X1des0)){
-    #print(nrow(X1)*(i-1)+1)
-    X1des0[(nrow(X1)*(i-1)+1):nrow(X1des0) ,i] <- X1L[,i] # use fun. variable * integration weights
-  }
+#   # set up design matrix for historical model and s<=t with s and t equal to xind
+#   # expand matrix of original observations to lower triangular matrix 
+#   X1des0 <- matrix(0, ncol=ncol(X1), nrow=ncol(X1)*nrow(X1))
+#   for(i in 1:ncol(X1des0)){
+#     #print(nrow(X1)*(i-1)+1)
+#     X1des0[(nrow(X1)*(i-1)+1):nrow(X1des0) ,i] <- X1L[,i] # use fun. variable * integration weights
+#   }
   
   ## set up design matrix for historical model according to limit()
   # use the argument limits (Code taken of function ff(), package refund)
@@ -680,24 +672,30 @@ X_hist <- function(mf, vary, args) {
   }
   
   ### expand the design matrix for all observations (yind is equal for all observations!)
-  X1des <- X1L[rep(1:nrow(X1L), times=ncol(X1L)), ]
+  X1des <- X1L[rep(1:nrow(X1L), times=length(yind)), ]
   ### use function limits to set up design matrix according to function limits 
   ### by setting 0 at the time-points that should not be used
   if (!is.null(limits)) {
     ## at the moment: xind and yind are the same for all observations
     ## expand yind by replication to the yind of all observations together
-    ind0 <- !t(outer( xind, rep(xind, each=nrow(X1L)), limits) )  # !t(outer( xind, yind, limits) )
+    ind0 <- !t(outer( xind, rep(yind, each=nrow(X1L)), limits) )  # !t(outer( xind, yind, limits) )
     X1des[ind0] <- 0
   }
   
   # Design matrix is product of expanded X1 and basis expansion over xind 
   X1des <- X1des %*% B.s
   
-  # design matrix over index of response for one response
-  # <FIXME> works only for s==t!! 
-  B.t <- B.s
-  # stack design-matrix of response n-times
-  B.t <- B.t[rep(1:nrow(B.t), each=nrow(X1)), ]
+  # if xind and yind are equal B.t and B.s are equal as well
+  if(length(xind)==length(yind) && all(xind==yind) ){
+    # design matrix over index of response for one response
+    B.t <- B.s
+  } else{
+    # design matrix over index of response for one response
+    B.t <- mboost:::bsplines(yind, knots=knots, boundary.knots=args$boundary.knots, 
+                          degree=args$degree) 
+  }
+  # stack design-matrix of response n times
+  B.t <- B.t[rep(1:nrow(B.t), each=nrow(X1L)), ]
     
   # calculate row-tensor
   # X <- (X1 %x% t(rep(1, ncol(X2))) ) * ( t(rep(1, ncol(X1))) %x% X2  )
@@ -741,29 +739,45 @@ bhist <- function(..., #by = NULL, index = NULL,
 ){
   
   #  if (!is.null(lambda)) df <- NULL
-  
+    
   cll <- match.call()
   cll[[1]] <- as.name("bhist")
   #print(cll)
   
   mfL <- list(...)
-  if(length(mfL)>2) stop("bhist has too many arguments")
+  if(length(mfL)>3) stop("bhist has too many arguments")
+  if(length(mfL)<3) stop("bhist has too few arguments")
   if(!is.matrix(mfL[[1]])) stop("signal has to be a matrix")
   
   varnames <- all.vars(cll)
-  if(length(mfL)==1){ 
-    mfL[[2]] <- 1:ncol(mfL[[1]]); cll[[3]] <- "xind" 
-    varnames <- c(all.vars(cll), "xindDefault")
-  }
+
+  ### not necessary as user has to specify three arguments
+#   # if no index is specified use an equidistant index in 0,1
+#   if(length(mfL)==1){ 
+#     mfL[[2]] <- 1:ncol(mfL[[1]]); cll[[3]] <- "xind" 
+#     varnames <- c(all.vars(cll), "xindDefault")
+#   }
+#   # if no index for the response variable is specified use the index of the signal
+#   if(length(mfL)==2){ 
+#     mfL[[3]] <- mfL[[2]]; cll[[4]] <- cll[[3]]
+#     varnames <- c(all.vars(cll), cll[[3]])
+#   }
   
-  # Reshape mfL so that it is the dataframe of the signal with the index as attribute
+  if(!is.vector(mfL[[2]])) stop("index of signal has to be a vector")
+  if(!is.vector(mfL[[3]])) stop("index of response has to be a vector")
+  
+  # Reshape mfL so that it is the dataframe of the signal with 
+  # the index of the signal and the index of the response as attributes
   mf <- mfL[[1]]
   colnames(mf) <- paste(cll[[2]], 1:ncol(mf), sep="_")
-  attr(mf, "signalIndex") <- mfL[[2]]
   xname <- varnames[1]
   indname <- varnames[2]
+  indnameY <- varnames[3]
   attr(mf, "xname") <- xname
-  attr(mf, "indname") <- indname
+  attr(mf, "indname") <- indname 
+  attr(mf, "signalIndex") <- mfL[[2]]
+  attr(mf, "indnameY") <- indnameY
+  attr(mf, "indexY") <- mfL[[3]]
   
   mf <- data.frame("z"=I(mf))
   names(mf) <- as.character(cll[[2]]) 
@@ -801,6 +815,7 @@ bhist <- function(..., #by = NULL, index = NULL,
               get_vary = function() vary,
               get_names = function(){
                 attr(xname, "indname") <- indname 
+                attr(xname, "indnameY") <- indnameY
                 xname 
               }, #colnames(mf),
               set_names = function(value) {

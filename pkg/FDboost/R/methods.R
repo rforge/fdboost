@@ -143,6 +143,11 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
         formula_help <- formula(paste("resHelp ~", form))
         xname <- all.vars(formula_help)[2]
         indname <- if(length(all.vars(formula_help))>=3) all.vars(formula_help)[3] else "xindDefault" 
+        if(i %in% posBhist){
+          indnameY <- if(length(all.vars(formula_help))>=4) all.vars(formula_help)[4] else indname
+        } else{
+          indnameY <- NULL
+        }
         
         if(length(newdata[[indname]])!=ncol(newdata[[xname]])){
           stop(paste("Dimensions of index", indname, "and signal", xname, "do not match."))
@@ -151,6 +156,13 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
         attr(newdata[[xname]], "indname") <- indname
         attr(newdata[[xname]], "xname") <- xname
         attr(newdata[[xname]], "signalIndex") <-  if(indname!="xindDefault") newdata[[indname]] else seq(0,1,l=ncol(newdata[[xname]]))
+        
+        if(i %in% posBhist){
+          attr(newdata[[indnameY]], "indnameY") <-  indnameY
+          attr(newdata[[xname]], "indexY") <-  if(indnameY!="xindDefault") newdata[[indnameY]] else seq(0,1,l=ncol(newdata[[xname]]))
+        } 
+        
+        
         
         # save data of concurrent effects
         if(i %in% posBconc) newdataConc[[xname]] <- newdata[[xname]]
@@ -458,7 +470,8 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
             y <- trm$model.frame()[[yListPlace]] # index of response or second scalar covariate
           }else{
             y <- object$yind
-            varnms <- paste(varnms, c("_cov", ""), sep="")
+            varnms[2] <- attr(object$yind, "nameyind")
+            if(varnms[1]==varnms[2]) varnms[1] <- paste(varnms[2], "_cov", sep="")
           }
           yg <- if(is.factor(y)) {
             unique(y)
