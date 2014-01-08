@@ -617,6 +617,9 @@ X_hist <- function(mf, vary, args) {
   class(X1) <- "matrix"
   xind <- attr(mf[[1]], "signalIndex")
   yind <- attr(mf[[1]], "indexY")
+  nobs <- nrow(X1)
+  
+  browser()
   
   #   stopifnot(is.list(mf))
   #   xname <- names(mf)[1]
@@ -672,13 +675,14 @@ X_hist <- function(mf, vary, args) {
   }
   
   ### expand the design matrix for all observations (yind is equal for all observations!)
-  X1des <- X1L[rep(1:nrow(X1L), times=length(yind)), ]
+  ### the response is a vector (y1(t1), y2(t1), ... , yn(t1), yn(tG))
+  X1des <- X1L[rep(1:nobs, times=length(yind)), ]
   ### use function limits to set up design matrix according to function limits 
   ### by setting 0 at the time-points that should not be used
   if (!is.null(limits)) {
     ## at the moment: xind and yind are the same for all observations
     ## expand yind by replication to the yind of all observations together
-    ind0 <- !t(outer( xind, rep(yind, each=nrow(X1L)), limits) )  # !t(outer( xind, yind, limits) )
+    ind0 <- !t(outer( xind, rep(yind, each=nobs), limits) )  # !t(outer( xind, yind, limits) )
     X1des[ind0] <- 0
   }
   
@@ -695,16 +699,16 @@ X_hist <- function(mf, vary, args) {
                           degree=args$degree) 
   }
   # stack design-matrix of response n times
-  B.t <- B.t[rep(1:nrow(B.t), each=nrow(X1L)), ]
+  B.t <- B.t[rep(1:length(yind), each=nobs), ]
     
   # calculate row-tensor
   # X <- (X1 %x% t(rep(1, ncol(X2))) ) * ( t(rep(1, ncol(X1))) %x% X2  )
   X <- X1des[,rep(1:ncol(X1des), each=ncol(B.t))] * B.t[,rep(1:ncol(B.t), times=ncol(X1des))] 
   
   ### Penalty matrix: product differences matrix
-  K1 <- diff(diag(ncol(X1des)), differences = 2)
+  K1 <- diff(diag(ncol(X1des)), differences = args$differences)
   K1 <- crossprod(K1)
-  K2 <- diff(diag(ncol(B.t)), differences = 2)
+  K2 <- diff(diag(ncol(B.t)), differences = args$differences)
   K2 <- crossprod(K2)  
   K <- kronecker(K2, diag(ncol(X1des))) +
     kronecker(diag(ncol(B.t)), K1)
