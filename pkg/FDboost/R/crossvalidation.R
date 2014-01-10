@@ -769,17 +769,28 @@ plotPredCoef <- function(x, which=NULL,
         temp$value[sapply(temp$value, function(x) length(x)==1)] <- list(rep(0, 50))
         myMat <- sapply(temp$value, function(x) x) # as one matrix
         
-        matplot(temp$x, myMat, type="l", xlab=temp$xlab,
-                main=temp$main, ylab="coef", ylim=ylim, ...)
-        
-        if(showNumbers){
-          matplot(temp$x, myMat, add=TRUE, ...)
-        }
-        
         if(showQuantiles){
+          
+          matplot(temp$x, myMat, type="l", xlab=temp$xlab,
+                  main=temp$main, ylab="coef", ylim=ylim, 
+                  col=rgb(0.6,0.6,0.6, alpha=0.5), ...)
+          
+          if(showNumbers){
+            matplot(temp$x, myMat, add=TRUE, col=rgb(0.6,0.6,0.6, alpha=0.5), ...)
+          }
+          
           lines(temp$x, rowMeans(myMat), col=1, lwd=2)
           lines(temp$x, apply(myMat, 1, quantile, 0.95), col=2, lwd=2, lty=2)
           lines(temp$x, apply(myMat, 1, quantile, 0.05), col=2, lwd=2, lty=2)
+        }else{
+          
+          matplot(temp$x, myMat, type="l", xlab=temp$xlab,
+                  main=temp$main, ylab="coef", ylim=ylim, ...)
+          
+          if(showNumbers){
+            matplot(temp$x, myMat, add=TRUE, ...)
+          }
+          
         }
       }
       
