@@ -249,7 +249,10 @@ X_bsignal <- function(mf, vary, args) {
 #' The functional covariates have to be supplied as n by <no. of evaluations> 
 #' matrices, i.e. each row is one functional observation.
 #' If no vector of observation points is supplied an equidistant grid over  
-#' \eqn{ [0,1]} is assumed.
+#' \eqn{[0,1]} is assumed.
+#' @param index a vector of integers for expanding the signal variable in \code{....} 
+#' For example, bsignal(X, s, index = index) is equal to bsignal(X[index,], s), 
+#' where index is an integer of length greater or equal to length(x).
 #' @param knots either the number of knots or a vector of the positions 
 #' of the interior knots (for more details see \code{\link[mboost]{bbs})}.
 #' @param boundary.knots boundary points at which to anchor the B-spline basis 
@@ -317,7 +320,7 @@ X_bsignal <- function(mf, vary, args) {
 #' ###############################################################################
 #' @export
 ### P-spline base learner for signal matrix with index vector
-bsignal <- function(..., #by = NULL, index = NULL, 
+bsignal <- function(...,  index = NULL, #by = NULL,
                     knots = 10, boundary.knots = NULL, degree = 3, differences = 2, df = 4, 
                     lambda = NULL, #center = FALSE, 
                     cyclic = FALSE, Z=NULL
@@ -369,10 +372,18 @@ bsignal <- function(..., #by = NULL, index = NULL,
             "i.e., base-learners may depend on different",
             " numbers of observations.")
   
-  index <- NULL  
+  #index <- NULL
   
   ret <- list(model.frame = function() 
-    if (is.null(index)) return(mf) else return(mf[index,,drop = FALSE]),
+    if (is.null(index)) return(mf) else{
+      mftemp <- mf
+      mf <- mftemp[index,,drop = FALSE] # this is necessary to pass the attributes
+      attributes(mftemp$X1)
+      attr(mf$X1, "signalIndex") <- attr(mftemp$X1, "signalIndex")
+      attr(mf$X1, "xname") <- attr(mftemp$X1, "xname")
+      attr(mf$X1, "indname") <- attr(mftemp$X1, "indname")
+      return(mf)
+    } ,
               get_call = function(){
                 cll <- deparse(cll, width.cutoff=500L)
                 if (length(cll) > 1)
@@ -619,8 +630,6 @@ X_hist <- function(mf, vary, args) {
   yind <- attr(mf[[1]], "indexY")
   nobs <- nrow(X1)
   
-  browser()
-  
   #   stopifnot(is.list(mf))
   #   xname <- names(mf)[1]
   #   X1 <- mf[[1]]
@@ -737,7 +746,7 @@ X_hist <- function(mf, vary, args) {
 #' @rdname bsignal
 #' @export
 bhist <- function(..., #by = NULL, index = NULL, 
-                  knots = 10, boundary.knots = NULL, degree = 3, differences = 2, df = 8,
+                  knots = 10, boundary.knots = NULL, degree = 3, differences = 2, df = 4,
                   #lambda = NULL, center = FALSE, cyclic = FALSE
                   limits="s<=t"
 ){

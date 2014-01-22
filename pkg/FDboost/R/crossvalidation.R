@@ -71,7 +71,7 @@ cvMa <- function(ydim, weights=NULL,
 #' @param strata a factor of the same length as \code{weights} for stratification.
 #' @param id id-variable to sample upon ids instead of sampling single observations. 
 #' (Only interesting in the case that several observations per individual were made.)
-#' @param ... further arguments passed to mclapply if parallel=TRUE, otherwise ignored
+#' @param ... further arguments passed to mclapply
 #' 
 #' @details The funciton \code{validateFDboost} calculates honest estimates 
 #' of prediction errors as the curve/observations
@@ -87,7 +87,7 @@ cvMa <- function(ydim, weights=NULL,
 #'   thus sampling individuals. 
 #' 
 #' @note Use argument \code{mc.cores = 1L} to set the numbers of cores that is used in 
-#' parallel computation.
+#' parallel computation. On Windows only 1 core is possible, \code{mc.cores = 1}, which is the default.
 #' 
 #' @seealso \code{\link{cvrisk}} to perform cross-validation.
 #' @return \code{cvMa} retruns a matrix of weights to be used in \code{cvrisk} or \code{validateFDboost}.

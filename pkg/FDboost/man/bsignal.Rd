@@ -4,9 +4,9 @@
 \alias{bsignal}
 \title{Base-learners for Functional Covarites}
 \usage{
-  bsignal(..., knots = 10, boundary.knots = NULL,
-    degree = 3, differences = 2, df = 4, lambda = NULL,
-    cyclic = FALSE, Z = NULL)
+  bsignal(..., index = NULL, knots = 10,
+    boundary.knots = NULL, degree = 3, differences = 2,
+    df = 4, lambda = NULL, cyclic = FALSE, Z = NULL)
 
   bconcurrent(..., knots = 10, boundary.knots = NULL,
     degree = 3, differences = 2, df = 4)
