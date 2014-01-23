@@ -12,7 +12,7 @@
     degree = 3, differences = 2, df = 4)
 
   bhist(..., knots = 10, boundary.knots = NULL, degree = 3,
-    differences = 2, df = 8, limits = "s<=t")
+    differences = 2, df = 4, limits = "s<=t")
 }
 \arguments{
   \item{...}{matrix of functional data and the vector of
@@ -20,7 +20,13 @@
   supplied as n by <no. of evaluations> matrices, i.e. each
   row is one functional observation. If no vector of
   observation points is supplied an equidistant grid over
-  \eqn{ [0,1]} is assumed.}
+  \eqn{[0,1]} is assumed.}
+
+  \item{index}{a vector of integers for expanding the
+  signal variable in \code{....} For example, bsignal(X, s,
+  index = index) is equal to bsignal(X[index,], s), where
+  index is an integer of length greater or equal to
+  length(x).}
 
   \item{knots}{either the number of knots or a vector of
   the positions of the interior knots (for more details see

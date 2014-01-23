@@ -65,8 +65,7 @@
   case that several observations per individual were
   made.)}
 
-  \item{...}{further arguments passed to mclapply if
-  parallel=TRUE, otherwise ignored}
+  \item{...}{further arguments passed to mclapply}
 }
 \value{
   \code{cvMa} retruns a matrix of weights to be used in
@@ -92,7 +91,9 @@
 }
 \note{
   Use argument \code{mc.cores = 1L} to set the numbers of
-  cores that is used in parallel computation.
+  cores that is used in parallel computation. On Windows
+  only 1 core is possible, \code{mc.cores = 1}, which is
+  the default.
 }
 \examples{
 Ytest <- matrix(rnorm(15), ncol=3) # 5 trajectories, each with 3 observations
