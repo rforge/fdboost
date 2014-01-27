@@ -3,6 +3,7 @@
 #' Computes trapezoidal integration weights for a functional variable X1 on grid xind.
 #' @param X1 matrix of functional variable
 #' @param xind index of functional variable
+#' @param id defaults to NULL if X1 is a matrix. identity variable if X1 is in long format.
 #' 
 #' @aliases integrationWeightsLeft
 #' 
@@ -16,8 +17,18 @@
 ################################# 
 # Trapezoidal integration weights for a functional covariable X1 on grid xind
 # corresponds to mean of left and right Riemann integration sum
-integrationWeights <- function(X1, xind){
-  if( ncol(X1)!=length(xind) ) stop("Dimension of xind and X1 do not match")
+integrationWeights <- function(X1, xind, id=NULL){
+  
+  if(is.null(id)) if(ncol(X1)!=length(xind) ) stop("Dimension of xind and X1 do not match")
+  
+  # compute integraion weights for irregular data in long format
+  if(!is.null(id)){
+    Lneu <- tapply(xind, id, FUN = function(x) colMeans(rbind(c(0,diff(x)), c(diff(x), 0))) )
+    Lneu <- unlist(Lneu)
+    names(Lneu) <- NULL    
+    return(Lneu) 
+  }  
+  
   #Li <- c(diff(xind)[1]/2, diff(xind)[2:(length(xind)-1)], diff(xind)[length(xind)-1]/2)
   
   # Riemann integration weights: mean weights between left and right sum
@@ -378,10 +389,10 @@ bsignal <- function(...,  index = NULL, #by = NULL,
     if (is.null(index)) return(mf) else{
       mftemp <- mf
       mf <- mftemp[index,,drop = FALSE] # this is necessary to pass the attributes
-      attributes(mftemp$X1)
-      attr(mf$X1, "signalIndex") <- attr(mftemp$X1, "signalIndex")
-      attr(mf$X1, "xname") <- attr(mftemp$X1, "xname")
-      attr(mf$X1, "indname") <- attr(mftemp$X1, "indname")
+      attributes(mftemp[,xname])
+      attr(mf[,xname], "signalIndex") <- attr(mftemp[,xname], "signalIndex")
+      attr(mf[,xname], "xname") <- attr(mftemp[,xname], "xname")
+      attr(mf[,xname], "indname") <- attr(mftemp[,xname], "indname")
       return(mf)
     } ,
               get_call = function(){
@@ -617,7 +628,7 @@ bconcurrent <- function(..., #by = NULL, index = NULL,
 
 #################################
 #### Base-learner for historic effect of functional covariable
-### with integral over s<t
+### with integral over s<=t
 
 ### model.matrix for P-splines baselearner of signal matrix mf
 X_hist <- function(mf, vary, args) {
@@ -629,6 +640,9 @@ X_hist <- function(mf, vary, args) {
   xind <- attr(mf[[1]], "signalIndex")
   yind <- attr(mf[[1]], "indexY")
   nobs <- nrow(X1)
+  
+  # get id-variable
+  id <- attr(mf[,xname], "id") # for data in long format
   
   #   stopifnot(is.list(mf))
   #   xname <- names(mf)[1]
@@ -685,13 +699,21 @@ X_hist <- function(mf, vary, args) {
   
   ### expand the design matrix for all observations (yind is equal for all observations!)
   ### the response is a vector (y1(t1), y2(t1), ... , yn(t1), yn(tG))
-  X1des <- X1L[rep(1:nobs, times=length(yind)), ]
+  if(is.null(id)){
+    X1des <- X1L[rep(1:nobs, times=length(yind)), ]
+  } else{ # yind is over all observations in long format
+    X1des <- X1L[id, ] 
+  }
   ### use function limits to set up design matrix according to function limits 
   ### by setting 0 at the time-points that should not be used
   if (!is.null(limits)) {
     ## at the moment: xind and yind are the same for all observations
     ## expand yind by replication to the yind of all observations together
-    ind0 <- !t(outer( xind, rep(yind, each=nobs), limits) )  # !t(outer( xind, yind, limits) )
+    if(is.null(id)){
+      ind0 <- !t(outer( xind, rep(yind, each=nobs), limits) )
+    } else{ # yind is over all observations in long format
+      ind0 <- !t(outer( xind, yind, limits) )
+    } 
     X1des[ind0] <- 0
   }
   
@@ -708,7 +730,10 @@ X_hist <- function(mf, vary, args) {
                           degree=args$degree) 
   }
   # stack design-matrix of response n times
-  B.t <- B.t[rep(1:length(yind), each=nobs), ]
+  if(is.null(id)){
+    B.t <- B.t[rep(1:length(yind), each=nobs), ]
+  }  
+  # in long format B.t is already over all time-points in the response
     
   # calculate row-tensor
   # X <- (X1 %x% t(rep(1, ncol(X2))) ) * ( t(rep(1, ncol(X1))) %x% X2  )
@@ -721,6 +746,158 @@ X_hist <- function(mf, vary, args) {
   K2 <- crossprod(K2)  
   K <- kronecker(K2, diag(ncol(X1des))) +
     kronecker(diag(ncol(B.t)), K1)
+  
+  ### <FIXME> necessary if K1 and K2 are not the same anyway?
+  if(!is.null(id)){
+    K <- kronecker(K1, diag(ncol(B.t))) +
+      kronecker(diag(ncol(X1des)), K2)
+  }
+    
+  
+  ## compare specified degrees of freedom to dimension of null space
+  if (!is.null(args$df)){
+    rns <- ncol(K) - qr(as.matrix(K))$rank # compute rank of null space
+    if (rns == args$df)
+      warning( sQuote("df"), " equal to rank of null space ",
+               "(unpenalized part of P-spline);\n  ",
+               "Consider larger value for ", sQuote("df"),
+               " or set ", sQuote("center = TRUE"), ".", immediate.=TRUE)
+    if (rns > args$df)
+      stop("not possible to specify ", sQuote("df"),
+           " smaller than the rank of the null space\n  ",
+           "(unpenalized part of P-spline). Use larger value for ",
+           sQuote("df"), " or set ", sQuote("center = TRUE"), ".")
+  }
+  return(list(X = X, K = K))
+}
+
+### 
+### model.matrix for P-splines baselearner of signal matrix mf
+X_hist2 <- function(mf, vary, args) {
+  
+  stopifnot(is.data.frame(mf))
+  xname <- attr(mf[[1]], "xname")
+  X1 <- as.matrix(mf[[1]])
+  class(X1) <- "matrix"
+  xind <- attr(mf[[1]], "signalIndex")
+  yind <- attr(mf[[1]], "indexY")
+  nobs <- nrow(X1)
+  
+  # get id-variable
+  id <- attr(mf[,xname], "id") # for data in long format
+  
+  ###### EXTRA LINE in comparison to X_hist
+  ## important for prediction, otherwise id=NULL and yind is multiplied accordingly
+  if(is.null(id)) id <- 1:nrow(X1)
+  
+  #   stopifnot(is.list(mf))
+  #   xname <- names(mf)[1]
+  #   X1 <- mf[[1]]
+  #   xind <- mf[[2]]
+  
+  if(ncol(X1)!=length(xind)) stop("Dimension of signal matrix and its index do not match.")
+  
+  ### Construct spline basis over index xind of X1 
+  if(is.null(args$boundary.knots))  args$boundary.knots <- range(xind, na.rm = TRUE)
+  knots <- seq(from = args$boundary.knots[1], to = args$boundary.knots[2], length = args$knots + 2)
+  knots <- knots[2:(length(knots) - 1)]
+  
+  # B-spline basis of specified degree     
+  B.s <- mboost:::bsplines(xind, knots=knots, boundary.knots=args$boundary.knots, 
+                           degree=args$degree) 
+  
+  colnames(B.s) <- paste(xname, 1:ncol(B.s), sep="")
+  
+  # Weighting with matrix of functional covariable
+  L <- integrationWeightsLeft(X1=X1, xind=xind)
+  X1L <- L*X1
+  
+  #   # set up design matrix for historical model and s<=t with s and t equal to xind
+  #   # expand matrix of original observations to lower triangular matrix 
+  #   X1des0 <- matrix(0, ncol=ncol(X1), nrow=ncol(X1)*nrow(X1))
+  #   for(i in 1:ncol(X1des0)){
+  #     #print(nrow(X1)*(i-1)+1)
+  #     X1des0[(nrow(X1)*(i-1)+1):nrow(X1des0) ,i] <- X1L[,i] # use fun. variable * integration weights
+  #   }
+  
+  ## set up design matrix for historical model according to limit()
+  # use the argument limits (Code taken of function ff(), package refund)
+  limits <- args$limits
+  if (!is.null(limits)) {
+    if (!is.function(limits)) {
+      if (!(limits %in% c("s<t", "s<=t"))) {
+        stop("supplied <limits> argument unknown")
+      }
+      if (limits == "s<t") {
+        limits <- function(s, t) {
+          s < t
+        }
+      }
+      else {
+        if (limits == "s<=t") {
+          limits <- function(s, t) {
+            (s < t) | (s == t)
+          }
+        }
+      }
+    }
+  }
+  
+  ### expand the design matrix for all observations (yind is equal for all observations!)
+  ### the response is a vector (y1(t1), y2(t1), ... , yn(t1), yn(tG))
+  if(is.null(id)){
+    X1des <- X1L[rep(1:nobs, times=length(yind)), ]
+  } else{ # yind is over all observations in long format
+    X1des <- X1L[id, ] 
+  }
+  ### use function limits to set up design matrix according to function limits 
+  ### by setting 0 at the time-points that should not be used
+  if (!is.null(limits)) {
+    ## at the moment: xind and yind are the same for all observations
+    ## expand yind by replication to the yind of all observations together
+    if(is.null(id)){
+      ind0 <- !t(outer( xind, rep(yind, each=nobs), limits) )
+    } else{ # yind is over all observations in long format
+      ind0 <- !t(outer( xind, yind, limits) )
+    } 
+    X1des[ind0] <- 0
+  }
+  
+  # Design matrix is product of expanded X1 and basis expansion over xind 
+  X1des <- X1des %*% B.s
+  
+  # if xind and yind are equal B.t and B.s are equal as well
+  if(length(xind)==length(yind) && all(xind==yind) ){
+    # design matrix over index of response for one response
+    B.t <- B.s
+  } else{
+    # design matrix over index of response for one response
+    B.t <- mboost:::bsplines(yind, knots=knots, boundary.knots=args$boundary.knots, 
+                             degree=args$degree) 
+  }
+  # stack design-matrix of response n times
+  if(is.null(id)){
+    B.t <- B.t[rep(1:length(yind), each=nobs), ]
+  }  
+  # in long format B.t is already over all time-points in the response
+  
+  # calculate row-tensor
+  # X <- (X1 %x% t(rep(1, ncol(X2))) ) * ( t(rep(1, ncol(X1))) %x% X2  )
+  X <- X1des[,rep(1:ncol(X1des), each=ncol(B.t))] * B.t[,rep(1:ncol(B.t), times=ncol(X1des))] 
+  
+  ### Penalty matrix: product differences matrix
+  K1 <- diff(diag(ncol(X1des)), differences = args$differences)
+  K1 <- crossprod(K1)
+  K2 <- diff(diag(ncol(B.t)), differences = args$differences)
+  K2 <- crossprod(K2)  
+  K <- kronecker(K2, diag(ncol(X1des))) +
+    kronecker(diag(ncol(B.t)), K1)
+  
+  ### <FIXME> necessary if K1 and K2 are not the same anyway?
+  if(!is.null(id)){
+    K <- kronecker(K1, diag(ncol(B.t))) +
+      kronecker(diag(ncol(X1des)), K2)
+  }
   
   
   ## compare specified degrees of freedom to dimension of null space
@@ -745,7 +922,7 @@ X_hist <- function(mf, vary, args) {
 ### for historical model according to function limit, defaults to s<=t
 #' @rdname bsignal
 #' @export
-bhist <- function(..., #by = NULL, index = NULL, 
+bhist <- function(..., index = NULL, #by = NULL, 
                   knots = 10, boundary.knots = NULL, degree = 3, differences = 2, df = 4,
                   #lambda = NULL, center = FALSE, cyclic = FALSE
                   limits="s<=t"
@@ -776,8 +953,8 @@ bhist <- function(..., #by = NULL, index = NULL,
 #     varnames <- c(all.vars(cll), cll[[3]])
 #   }
   
-  if(!is.vector(mfL[[2]])) stop("index of signal has to be a vector")
-  if(!is.vector(mfL[[3]])) stop("index of response has to be a vector")
+  if(!is.atomic(mfL[[2]])) stop("index of signal has to be a vector")
+  if(!is.atomic(mfL[[3]])) stop("index of response has to be a vector")
   
   # Reshape mfL so that it is the dataframe of the signal with 
   # the index of the signal and the index of the response as attributes
@@ -791,10 +968,11 @@ bhist <- function(..., #by = NULL, index = NULL,
   attr(mf, "signalIndex") <- mfL[[2]]
   attr(mf, "indnameY") <- indnameY
   attr(mf, "indexY") <- mfL[[3]]
+  attr(mf, "id") <- index
   
   mf <- data.frame("z"=I(mf))
   names(mf) <- as.character(cll[[2]]) 
-  
+    
   #   if(all(round(colSums(mf, na.rm = TRUE), 4)!=0)){
   #     warning(xname, " is not centered. 
   #     Functional covariates should be mean-centered in each measurement point.")
@@ -813,10 +991,20 @@ bhist <- function(..., #by = NULL, index = NULL,
             "i.e., base-learners may depend on different",
             " numbers of observations.")
   
-  index <- NULL  
-  
+  #index <- NULL 
+  #browser()
+    
   ret <- list(model.frame = function() 
-    if (is.null(index)) return(mf) else return(mf[index,,drop = FALSE]),
+    if (is.null(index)) return(mf) else{
+      mftemp <- mf
+      mf <- mftemp[index,,drop = FALSE] # this is necessary to pass the attributes
+      attributes(mftemp[,xname])
+      attr(mf[,xname], "signalIndex") <- attr(mftemp[,xname], "signalIndex")
+      attr(mf[,xname], "xname") <- attr(mftemp[,xname], "xname")
+      attr(mf[,xname], "indname") <- attr(mftemp[,xname], "indname")
+      attr(mf[,xname], "id") <- attr(mftemp[,xname], "id")
+      return(mf)
+    } ,
               get_call = function(){
                 cll <- deparse(cll, width.cutoff=500L)
                 if (length(cll) > 1)
@@ -824,7 +1012,9 @@ bhist <- function(..., #by = NULL, index = NULL,
                 cll
               },
               get_data = function() mf,
-              get_index = function() index,
+              ## set index to NULL, as the index is treated within X_hist()
+              ##get_index = function() index, 
+              get_index = function() NULL,
               get_vary = function() vary,
               get_names = function(){
                 attr(xname, "indname") <- indname 
@@ -843,11 +1033,22 @@ bhist <- function(..., #by = NULL, index = NULL,
               })
   class(ret) <- "blg"
   
-  ret$dpp <- mboost:::bl_lin(ret, Xfun = X_hist,
-                             args = list(mf, vary, knots = knots, boundary.knots = boundary.knots, 
-                                         degree = degree, differences = differences,
-                                         df = df, lambda = NULL, center = FALSE, cyclic = FALSE,
-                                         limits = limits)) # extra feature limit!
+  if(is.null(index)){
+    ### X-hist is for data in wide format with regular response
+    ret$dpp <- mboost:::bl_lin(ret, Xfun = X_hist,
+                               args = list(mf, vary, knots = knots, boundary.knots = boundary.knots, 
+                                           degree = degree, differences = differences,
+                                           df = df, lambda = NULL, center = FALSE, cyclic = FALSE,
+                                           limits = limits)) # extra feature limit!
+  }else{
+    ### X_hist2 is for data in long format: sets id 1:n
+    ret$dpp <- mboost:::bl_lin(ret, Xfun = X_hist2,
+                               args = list(mf, vary, knots = knots, boundary.knots = boundary.knots, 
+                                           degree = degree, differences = differences,
+                                           df = df, lambda = NULL, center = FALSE, cyclic = FALSE,
+                                           limits = limits)) # extra feature limit! 
+  }
+  #browser()
   return(ret)
 }
 

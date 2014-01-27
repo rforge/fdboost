@@ -201,7 +201,7 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
     predMboostHist <- 0
     if(length(posBhist) > 0){ 
       if(length(unique(sapply(newdataHist, NROW))) != 1) stop(paste("Dimensions of newdata do not match:", 
-                                                                    paste(names(newdataConc), sapply(newdataConc, NROW), sep=": ", collapse=", ")))
+                                                                    paste(names(newdataHist), sapply(newdataHist, NROW), sep=": ", collapse=", ")))
       predMboostHist <- rowSums(predict(object=object, newdata=as.data.frame(newdataHist), 
                                         which=posBhist, ...))
       whichHelp <- whichHelp[-which(whichHelp %in% posBhist)]
@@ -215,10 +215,15 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
       names(predOffset) <- NULL
     }
             
-    # Prediction using the function predict.mboost() without concurrent effects
+    # Prediction using the function predict.mboost() without concurrent and historic effects
     predMboost0 <- 0
+    
     if(length(whichHelp) > 0){
-      predMboost0 <- rowSums(predict(object=object, newdata=newdata, which=whichHelp, ...))
+      if(!is.null(object$ydim)){ # regualr grid
+        predMboost0 <- rowSums(predict(object=object, newdata=newdata, which=whichHelp, ...))
+      }else{ # long format
+        predMboost0 <- rowSums(predict(object=object, newdata=data.frame(newdata), which=whichHelp, ...))
+      }
     }
     
     if(length(predMboostConc)!=1 & length(predMboost0)!=1) stopifnot(dim(predMboostConc)==dim(predMboost0))
@@ -263,6 +268,9 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
   
   # save the offset as matrix if it is a vector
   offsetTemp <- attr(predMboost, "offset")
+  
+  # model-estimation in long format, by specifying id
+  if(is.null(object$ydim)) return(predMboost)
     
   ### Reshape prediction of mboost for FDboost
   if(!is.list(predMboost)){
@@ -382,7 +390,7 @@ residuals.FDboost <- function(object, ...){
 #' @export
 ### similar to coef.pffr() by Fabian Scheipl in package refund 
 coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE, 
-                         n1=100, n2=40, n3=20, n4=10,...){
+                         n1=40, n2=40, n3=20, n4=10,...){
   
   if(raw){
     return(object$coefficients)  
@@ -575,7 +583,12 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
             }
           }
         }
-        P$value <- X
+        if(!is.null(object$ydim)){
+          P$value <- X
+        }else{
+          #### <FIXME> is dimension, byrow correct??
+          P$value <- matrix(X, ncol=length(attr(d, "xm")) )
+        }
         #P$coef <- cbind(d, "value"=P$value)    
         P$dim <- trm$dim
         return(P)
@@ -604,9 +617,29 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
       
       d <- makeDataGrid(trm) 
       ### <FIXME> better solution for %X% in base-learner!!!
-      if(any(grepl("%X%", trm$get_call()))) trm$dim <- trm$dim - 1
-      P <- getP(trm, d)
+      if(!is.null(object$ydim) & any(grepl("%X%", trm$get_call()) ) ) trm$dim <- trm$dim - 1
       
+      ## it is necessary to expand the dataframe!
+      if(is.null(object$ydim)){
+        #browser()
+        #print(attr(d, "varnms"))
+        # expand yind 
+        if(trm$dim>1) d[[attr(object$yind ,"nameyind")]] <- rep(d[[attr(object$yind ,"nameyind")]], 
+                                                  each=length(d[[attr(object$yind ,"nameyind")]]))
+        
+        # expand signal variable
+        if( grepl("bhist", trm$get_call()) | grepl("bsignal", trm$get_call()) ){
+          vari <- names(d)[!names(d) %in% attr(d, "varnms")]
+          d[[vari]] <- d[[vari]][ rep(1:NROW(d[[vari]]), times=NROW(d[[vari]])), ]
+          
+        }else{ # expand scalar variable
+          vari <- names(d)[1]
+          if(vari!=attr(object$yind ,"nameyind")) d[[vari]] <- d[[vari]][ rep(1:NROW(d[[vari]]), times=NROW(d[[vari]])) ]
+        } 
+      }
+
+      P <- getP(trm, d)  
+
       # get proper labeling
       P$main <- shrtlbls[i]
       
@@ -615,8 +648,12 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
       
     ## Function to obtain nice short names for labeling of plots
     shortnames <- function(x){
-      if(substr(x,1,1)=="\"") x <- substr(x, 2, nchar(x)-1)     
-      xpart <- unlist(strsplit(x, "%O%")) 
+      if(substr(x,1,1)=="\"") x <- substr(x, 2, nchar(x)-1)
+      
+      sign <- "%O%"
+      if( !grepl(sign, x) ) sign <- "%X%"
+      
+      xpart <- unlist(strsplit(x, sign)) 
       for(i in 1:length(xpart)){
         xpart[i] <- gsub("\\\"", "'", xpart[i], fixed=TRUE)
         nvar <- length(all.vars(formula(paste("Y~", xpart[i])))[-1])
@@ -629,7 +666,7 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
         }
       }
       ret <- xpart
-      if(length(xpart)>1) ret <- paste(xpart, collapse=" %O%")
+      if(length(xpart)>1) ret <- paste(xpart, collapse=paste("", sign))
       ret
     }
     
@@ -723,7 +760,7 @@ getColPersp <- function(z, col1="tomato", col2="lightblue"){
 ### function to plot raw values or coefficient-functions/surfaces of a model 
 plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL, 
                          includeOffset=TRUE, ask=TRUE,
-                         n1=100, n2=40, n3=20, n4=11,
+                         n1=40, n2=40, n3=20, n4=11,
                          onlySelected=TRUE, perspPlot=FALSE, commonRange=FALSE, ...){
   
   ### Get further arguments passed to the different plot-functions
@@ -946,6 +983,18 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
     ################################          
     # predict the effects using the original data
     terms <- predict(x, which=which)
+    
+    # convert matrix into a list, each list entry for one effect
+    if(is.null(x$ydim) & !is.null(dim(terms))){
+      temp <- list()
+      for(i in 1:ncol(terms)){
+        temp[[i]] <- terms[,i]
+      }
+      names(temp) <- colnames(terms)
+      terms <- temp
+      rm(temp)
+    }
+    
     if(length(which)==1 && which==0) terms <- attr(terms, "offset")
     
     if(length(which)==1) terms <- list(terms)
@@ -963,8 +1012,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
     if( includeOffset && 1 %in% which && grepl("ONEx", shrtlbls[1]) ){
       terms[[1]] <- terms[[1]] + x$offset
       shrtlbls[1] <- paste("offset", "+", shrtlbls[1])
-    }
-        
+    }   
     if(length(which)>1 & ask) par(ask=TRUE)
     if(commonRange){
       range <- range(terms)
@@ -973,9 +1021,11 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
     for(i in 1:length(terms)){
       # set values of predicted effect to missing if response is missing
       terms[[i]][is.na(x$response)] <- NA
+      range <- range(terms[[i]])
       if(length(time)>1){
+        
         plotWithArgs(funplot, args=argsFunplot, 
-                     myargs=list(x=time, y=terms[[i]], type="l", ylab="effect", lty=1, rug=FALSE,
+                     myargs=list(x=time, y=terms[[i]], id=x$id, type="l", ylab="effect", lty=1, rug=FALSE,
                                  xlab=attr(time, "nameyind"), ylim=range, main=shrtlbls[i]))
         if(rug) rug(time)
       }else{

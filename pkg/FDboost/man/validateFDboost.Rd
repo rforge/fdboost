@@ -1,4 +1,5 @@
 \name{cvMa}
+\alias{cvLong}
 \alias{cvMa}
 \alias{validateFDboost}
 \title{Cross-Validation over Curves}
@@ -7,6 +8,11 @@
     type = c("bootstrap", "kfold", "subsampling", "curves"),
     B = ifelse(type == "kfold", 10, 25), prob = 0.5,
     strata = NULL, id = NULL)
+
+  cvLong(weights, id,
+    type = c("bootstrap", "kfold", "subsampling", "curves"),
+    B = ifelse(type == "kfold", 10, 25), prob = 0.5,
+    strata = NULL)
 
   validateFDboost(object, response = NULL,
     weights = model.weights(object),

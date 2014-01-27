@@ -6,7 +6,7 @@
 \usage{
   \method{plot}{FDboost} (x, raw = FALSE, rug = TRUE,
     which = NULL, includeOffset = TRUE, ask = TRUE,
-    n1 = 100, n2 = 40, n3 = 20, n4 = 11,
+    n1 = 40, n2 = 40, n3 = 20, n4 = 11,
     onlySelected = TRUE, perspPlot = FALSE,
     commonRange = FALSE, ...)
 

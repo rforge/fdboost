@@ -11,8 +11,9 @@
   bconcurrent(..., knots = 10, boundary.knots = NULL,
     degree = 3, differences = 2, df = 4)
 
-  bhist(..., knots = 10, boundary.knots = NULL, degree = 3,
-    differences = 2, df = 4, limits = "s<=t")
+  bhist(..., index = NULL, knots = 10,
+    boundary.knots = NULL, degree = 3, differences = 2,
+    df = 4, limits = "s<=t")
 }
 \arguments{
   \item{...}{matrix of functional data and the vector of

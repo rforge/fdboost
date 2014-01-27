@@ -15,12 +15,17 @@
 #' supplied as n by <no. of evaluations> matrices, i.e. each row is one
 #' functional observation. For the model fit the matrix of the functional
 #' response evaluations \eqn{Y_i(t)} are stacked into one long vector.
+#' If the functional response is supplied as a vector in long format,  
+#' the argument \code{id} has to be specified.
 #' 
 #' @param formula a symbolic description of the model to be fit.
 #' @param timeformula formula for the expansion over the index of the response. 
 #' For a functional response \eqn{Y_i(t)} typically ~bbs(t) to obtain a smooth 
 #' expansion of the effects along t. In the limiting case that \eqn{Y_i} is a scalar response
 #' use \code{~bols(1)}, which sets up a base-learner for the scalar 1.
+#' @param id defaults to NULL which means that the response is a matrix with a regular time. 
+#' If the response is given in long format for irregular observations, \code{id} 
+#' contains the information which observations belong together. id should contain numbers 1, 2, 3, ...
 #' @param numInt integration scheme for the integration of the loss function.
 #' One of \code{c("equal", "Riemann")} meaning equal weights of 1 or 
 #' trapezoidal Riemann weights.
@@ -63,6 +68,7 @@
 #' @importFrom nnls nnls
 FDboost <- function(formula,          ### response ~ xvars
                     timeformula,      ### time
+                    id=NULL,          ### id variable if response in long format
                     numInt="equal",   ### option for approximation of integral over loss
                     data,             ### list of response, time, xvars
                     weights = NULL,   ### optional
@@ -79,7 +85,7 @@ FDboost <- function(formula,          ### response ~ xvars
   stopifnot(class(formula)=="formula")
   stopifnot(class(timeformula)=="formula")
   
-  ### extract response; a numeric matrix (for the moment)
+  ### extract response; a numeric matrix or a vector
   yname <- all.vars(formula)[1]
   response <- data[[yname]]
   data[[yname]] <- NULL
@@ -132,21 +138,33 @@ FDboost <- function(formula,          ### response ~ xvars
   }
   assign("ONEtime", rep(1.0, length(time)))
     
-  ### check dimensions
-  ### response has trajectories as rows
-  stopifnot(is.matrix(response))
-  # <SB> dataframe is list and can contain time-points of functional covariables of arbitrary length
-  # if (nrow(data) > 0) stopifnot(nrow(response) == nrow(data))
-  nr <- nrow(response)
-  stopifnot(ncol(response) == length(time))
-  nc <- ncol(response)
-  dresponse <- as.vector(response) # column-wise stacking of response
+  if(is.null(id)){
+    ### check dimensions
+    ### response has trajectories as rows
+    stopifnot(is.matrix(response))
+    # <SB> dataframe is list and can contain time-points of functional covariables of arbitrary length
+    # if (nrow(data) > 0) stopifnot(nrow(response) == nrow(data))
+    nr <- nrow(response)
+    stopifnot(ncol(response) == length(time))
+    nc <- ncol(response)
+    dresponse <- as.vector(response) # column-wise stacking of response 
+    nobs <- nr # number of observed trajectories
+  }else{
+    stopifnot(is.vector(response))
+    # check length of response and its time and index
+    stopifnot(length(response)==length(time) & length(response)==length(id))
+    
+    nr <- length(response) # total number of observations
+    nc <- length(unique(id)) # number of trajectories
+    dresponse <- as.vector(response) # column-wise stacking of response  
+    nobs <- length(unique(id)) # number of observed trajectories
+  }
   
   ### save original dimensions of response
   ydim <- dim(response)
   
   ### variable to fit smooth intercept
-  assign("ONEx", rep(1.0, nr))
+  assign("ONEx", rep(1.0, nobs))
   
 #   ### FIXME: plausibility check: 
 #   # for constrained effects in the formula the model should include an intercept
@@ -186,8 +204,16 @@ FDboost <- function(formula,          ### response ~ xvars
       cfm <- paste("bols(ONEtime, intercept = FALSE, df = ", c_df ,")")
     }
   }
+  
+  # expand formula as Kronecker or tensor product 
+  if(is.null(id)){
+    tmp <- outer(xfm, tfm, function(x, y) paste(x, y, sep = "%O%"))
+  }else{
+    # expand the bl accoridng to id
+    xfm <- paste(substr(xfm, 1 , nchar(xfm)-1), ", index=id)", sep="")
+    tmp <- outer(xfm, tfm, function(x, y) paste(x, y, sep = "%X%"))
+  }
 
-  tmp <- outer(xfm, tfm, function(x, y) paste(x, y, sep = "%O%"))
   # do not expand an effect bconcurrent() by a Kronecker product
   if( length(c(grep("bconcurrent", tmp), grep("bhis", tmp)) ) > 0 ) 
     tmp[c(grep("bconcurrent", tmp), grep("bhis", tmp))] <- xfm[c(grep("bconcurrent", tmp), grep("bhis", tmp))]   
@@ -199,9 +225,11 @@ FDboost <- function(formula,          ### response ~ xvars
   ### expand weights for observations
   if (is.null(weights)) weights <- rep(1, nr)
   w <- weights
-  if (length(w) == nr) w <- rep(w, nc) # expand weights if they are only on the columns
-  if(length(w)!=nc*nr) stop("Dimensions of weights do not match the dimensions of the response.") # check dimensions of w 
-  
+  if(is.null(id)){
+    if (length(w) == nr) w <- rep(w, nc) # expand weights if they are only on the columns
+    if(length(w)!=nc*nr) stop("Dimensions of weights do not match the dimensions of the response.") # check dimensions of w  
+  }
+   
   ### multiply integration weights numInt to weights and w
   if(is.numeric(numInt)){
     if(length(numInt)!=length(time)) stop("Length of integration weights and time vector are not equal.")
@@ -210,7 +238,7 @@ FDboost <- function(formula,          ### response ~ xvars
   }else{
     if(!numInt %in% c("equal", "Riemann")) warning("argument numInt is ignored as it is neither numeric nor one of (\"equal\", \"Riemann\")")
     if(numInt=="Riemann"){ 
-      w <- w*as.vector(integrationWeights(X1=response, time))
+      w <- w*as.vector(integrationWeights(X1=response, time, id=id))
     }
   }
   
@@ -220,98 +248,108 @@ FDboost <- function(formula,          ### response ~ xvars
     w[which(is.na(dresponse))] <- 0
   }
     
-  ## per default add smooth time-specific offset 
-  ## idea: allow to use an offset linear in time?
-  if(is.null(offset) & dim(response)[2]>1){
-    message("Use a smooth offset.") 
-    ### <FixMe> is the use of family@offset correct?
-    #meanY <- colMeans(response, na.rm=TRUE)
-    if(! "family" %in% names(dots) ){
-      offsetFun <- Gaussian()@offset
-    } else offsetFun <- dots$family@offset
-    meanY <- c()
-    # do a linear interpolation of the response to prevent bias because of missing values
-    # only use responses with less than 90% missings for the calculation of the offset
-    # only use response curves whose weights are not completely 0 (important for resampling methods)
-    meanNA <- apply(response, 1, function(x) mean(is.na(x)))
-    responseInter <- t(apply(response[meanNA < 0.9 & rowSums(matrix(w, ncol=nc))!=0 , ], 1, function(x) 
-      approx(time, x, rule=offset_control$rule, xout=time)$y))
-    # check wether first ore last columns of the response contain soley NA
-    # then use the values of the next column
-    if(any(apply(responseInter, 2, function(x) all(is.na(x)) ) )){
-      warning("Column of interpolated response contains nothing but NA.")
-      allNA <- apply(responseInter, 2, function(x) all(is.na(x)) ) 
-      allNAlower <- allNAupper <- allNA
-      allNAupper[1:round(ncol(responseInter)/2)] <- FALSE # missing columns with low index 
-      allNAlower[round(ncol(responseInter)/2):ncol(responseInter)] <- FALSE # missing columns with high index 
-      responseInter[, allNAlower] <- responseInter[, max(which(allNAlower))+1]
-      responseInter[, allNAupper] <- responseInter[, min(which(allNAlower))-1]
-    }
-  
-    for(i in 1:nc){
-      try(meanY[i] <- offsetFun(responseInter[,i], 1*!is.na(responseInter[,i]) ), silent=TRUE)
-    }
-    if( is.null(meanY) ||  any(is.na(meanY)) ){
-      warning("Mean offset cannot be computed by family@offset(). Use a weighted mean instead.")
+  ## <FIXME> no offset for irregular data!!
+  if(is.null(id)){
+    
+    ## per default add smooth time-specific offset 
+    ## idea: allow to use an offset linear in time?
+    if(is.null(offset) & dim(response)[2]>1){
+      message("Use a smooth offset.") 
+      ### <FixMe> is the use of family@offset correct?
+      #meanY <- colMeans(response, na.rm=TRUE)
+      if(! "family" %in% names(dots) ){
+        offsetFun <- Gaussian()@offset
+      } else offsetFun <- dots$family@offset
       meanY <- c()
-      for(i in 1:nc){
-        meanY[i] <- Gaussian()@offset(responseInter[,i], 1*!is.na(responseInter[,i]) )
+      # do a linear interpolation of the response to prevent bias because of missing values
+      # only use responses with less than 90% missings for the calculation of the offset
+      # only use response curves whose weights are not completely 0 (important for resampling methods)
+      meanNA <- apply(response, 1, function(x) mean(is.na(x)))
+      responseInter <- t(apply(response[meanNA < 0.9 & rowSums(matrix(w, ncol=nc))!=0 , ], 1, function(x) 
+        approx(time, x, rule=offset_control$rule, xout=time)$y))
+      # check wether first ore last columns of the response contain soley NA
+      # then use the values of the next column
+      if(any(apply(responseInter, 2, function(x) all(is.na(x)) ) )){
+        warning("Column of interpolated response contains nothing but NA.")
+        allNA <- apply(responseInter, 2, function(x) all(is.na(x)) ) 
+        allNAlower <- allNAupper <- allNA
+        allNAupper[1:round(ncol(responseInter)/2)] <- FALSE # missing columns with low index 
+        allNAlower[round(ncol(responseInter)/2):ncol(responseInter)] <- FALSE # missing columns with high index 
+        responseInter[, allNAlower] <- responseInter[, max(which(allNAlower))+1]
+        responseInter[, allNAupper] <- responseInter[, min(which(allNAlower))-1]
       }
-    }   
-    ### <FixMe> is the computation of k ok? 
-    if(!offset_control$cyclic){
-      modOffset <- try( gam(meanY ~ s(time, bs="ad", 
-                                      k = min(offset_control$k_min, round(length(time)/2))  ),
-                            knots=offset_control$knots), 
-                        silent=offset_control$silent )
-    }else{ # use cyclic splines
-      modOffset <- try( gam(meanY ~ s(time, bs="cc", 
-                                      k = min(offset_control$k_min, round(length(time)/2))  ),
-                            knots=offset_control$knots), 
-                        silent=offset_control$silent )
-    }
-
-    if(any(class(modOffset)=="try-error")){
-      warning(paste("Could not fit the smooth offset by adaptive splines (default), use a simple spline expansion with 5 df instead.",
-              if(offset_control$cyclic) "This offset is not cyclic!"))
-      if(round(length(time)/2) < 8) warning("Most likely because of too few time-points.")
-      modOffset <- lm(meanY ~ bs(time, df=5))
-    } 
-    offsetVec <- modOffset$fitted.values 
-    predictOffset <- function(time){
-      ret <- predict(modOffset, newdata=data.frame(time=time))
-      names(ret) <- NULL
-      ret      
-    } 
-    offset <- as.vector(matrix(offsetVec, ncol=ncol(response), nrow = nrow(response), byrow=TRUE))    
-  }else{    
-    if(dim(response)[2]==1){ ### scalar response
-      offsetVec <- offset
-      offset <- offset # use one constant offset in mboost()
-      predictOffset <- function(time) if(is.null(offset)) 0 else offset
       
-    }else{ # functional response, but not a smooth offset 
-      if(length(offset)==1 && offset==0){
-        offsetVec <- NULL
-        offset <- NULL # use one constant offset in mboost()
-        predictOffset <- function(time) 0      
-      }else{ # expand the offset to the long vector like dresponse
-        if(length(offset)!=nc) stop("Dimensions of offset and response do not match.")
-        offsetVec <- offset
-        offset <- as.vector(matrix(offset, ncol=ncol(response), nrow = nrow(response), byrow=TRUE))
-        ### <FixMe> use a more sophisticated model to estimate the time-specific offset? 
-        modOffset <- lm(offsetVec ~ bs(time, df=length(offsetVec)-2))
-        predictOffset <- function(time){
-          ret <- predict(modOffset, newdata=data.frame(time=time))
-          names(ret) <- NULL
-          ret      
-        }      
+      for(i in 1:nc){
+        try(meanY[i] <- offsetFun(responseInter[,i], 1*!is.na(responseInter[,i]) ), silent=TRUE)
+      }
+      if( is.null(meanY) ||  any(is.na(meanY)) ){
+        warning("Mean offset cannot be computed by family@offset(). Use a weighted mean instead.")
+        meanY <- c()
+        for(i in 1:nc){
+          meanY[i] <- Gaussian()@offset(responseInter[,i], 1*!is.na(responseInter[,i]) )
+        }
+      }   
+      ### <FixMe> is the computation of k ok? 
+      if(!offset_control$cyclic){
+        modOffset <- try( gam(meanY ~ s(time, bs="ad", 
+                                        k = min(offset_control$k_min, round(length(time)/2))  ),
+                              knots=offset_control$knots), 
+                          silent=offset_control$silent )
+      }else{ # use cyclic splines
+        modOffset <- try( gam(meanY ~ s(time, bs="cc", 
+                                        k = min(offset_control$k_min, round(length(time)/2))  ),
+                              knots=offset_control$knots), 
+                          silent=offset_control$silent )
+      }
+      
+      if(any(class(modOffset)=="try-error")){
+        warning(paste("Could not fit the smooth offset by adaptive splines (default), use a simple spline expansion with 5 df instead.",
+                      if(offset_control$cyclic) "This offset is not cyclic!"))
+        if(round(length(time)/2) < 8) warning("Most likely because of too few time-points.")
+        modOffset <- lm(meanY ~ bs(time, df=5))
       } 
+      offsetVec <- modOffset$fitted.values 
+      predictOffset <- function(time){
+        ret <- predict(modOffset, newdata=data.frame(time=time))
+        names(ret) <- NULL
+        ret      
+      } 
+      offset <- as.vector(matrix(offsetVec, ncol=ncol(response), nrow = nrow(response), byrow=TRUE))    
+    }else{    
+      if(dim(response)[2]==1){ ### scalar response
+        offsetVec <- offset
+        offset <- offset # use one constant offset in mboost()
+        predictOffset <- function(time) if(is.null(offset)) 0 else offset
+        
+      }else{ # functional response, but not a smooth offset 
+        if(length(offset)==1 && offset==0){
+          offsetVec <- NULL
+          offset <- NULL # use one constant offset in mboost()
+          predictOffset <- function(time) 0      
+        }else{ # expand the offset to the long vector like dresponse
+          if(length(offset)!=nc) stop("Dimensions of offset and response do not match.")
+          offsetVec <- offset
+          offset <- as.vector(matrix(offset, ncol=ncol(response), nrow = nrow(response), byrow=TRUE))
+          ### <FixMe> use a more sophisticated model to estimate the time-specific offset? 
+          modOffset <- lm(offsetVec ~ bs(time, df=length(offsetVec)-2))
+          predictOffset <- function(time){
+            ret <- predict(modOffset, newdata=data.frame(time=time))
+            names(ret) <- NULL
+            ret      
+          }      
+        } 
+      }
     }
+    
+    # for irregular data set offset=NULL
+  }else{
+    offsetVec <- NULL
+    offset <- NULL # use one constant offset in mboost()
+    predictOffset <- function(time) 0 
   }
   
+  #browser()
   
-      
   if (length(data) > 0) {
     ### mboost isn't happy with nrow(data) == 0
     ret <- mboost(fm, data = data, weights = w, offset=offset, ...) 
@@ -321,6 +359,7 @@ FDboost <- function(formula,          ### response ~ xvars
   
   ### assign new class (e.g. for specialized predictions)
   class(ret) <- c("FDboost", class(ret))
+  if(!is.null(id)) class(ret) <- c("FDboostLong", class(ret))
   
   ### reset weights for cvrisk etc., expanding works OK in bl_lin_matrix!
   # ret$"(weights)" <- weights
@@ -330,6 +369,7 @@ FDboost <- function(formula,          ### response ~ xvars
   ret$ydim <- ydim  
   ret$yind <- time
   ret$data <- data
+  ret$id <- id
     
   # if the offset is just an integer the prediction gives back this integer
   ret$predictOffset <- predictOffset

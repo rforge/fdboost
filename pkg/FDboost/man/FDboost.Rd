@@ -2,8 +2,8 @@
 \alias{FDboost}
 \title{Model-based Gradient Boosting for Functional Response}
 \usage{
-  FDboost(formula, timeformula, numInt = "equal", data,
-    weights = NULL, offset = NULL,
+  FDboost(formula, timeformula, id = NULL,
+    numInt = "equal", data, weights = NULL, offset = NULL,
     offset_control = o_control(), ...)
 }
 \arguments{
@@ -16,6 +16,12 @@
   expansion of the effects along t. In the limiting case
   that \eqn{Y_i} is a scalar response use \code{~bols(1)},
   which sets up a base-learner for the scalar 1.}
+
+  \item{id}{defaults to NULL which means that the response
+  is a matrix with a regular time. If the response is given
+  in long format for irregular observations, \code{id}
+  contains the information which observations belong
+  together. id should contain numbers 1, 2, 3, ...}
 
   \item{numInt}{integration scheme for the integration of
   the loss function. One of \code{c("equal", "Riemann")}
@@ -75,7 +81,9 @@
   be supplied as n by <no. of evaluations> matrices, i.e.
   each row is one functional observation. For the model fit
   the matrix of the functional response evaluations
-  \eqn{Y_i(t)} are stacked into one long vector.
+  \eqn{Y_i(t)} are stacked into one long vector. If the
+  functional response is supplied as a vector in long
+  format, the argument \code{id} has to be specified.
 }
 \examples{
 ###############################################################################

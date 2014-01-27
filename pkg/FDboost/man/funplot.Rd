@@ -2,13 +2,16 @@
 \alias{funplot}
 \title{Plot functional data with linear interpolation of missing values}
 \usage{
-  funplot(x, y, rug = TRUE, ...)
+  funplot(x, y, id = NULL, rug = TRUE, ...)
 }
 \arguments{
   \item{x}{optional, time-vector for plotting}
 
   \item{y}{matrix of functional data with functions in rows
   and measured times in columns}
+
+  \item{id}{defaults fo NULL for y matrix, is id-variables
+  for y in long format}
 
   \item{rug}{logical. Should rugs be plotted? Defaults to
   TRUE.}

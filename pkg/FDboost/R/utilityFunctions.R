@@ -57,6 +57,7 @@ truncateTime <- function(funVar, time, newtime, data){
 #' 
 #' @param x optional, time-vector for plotting 
 #' @param y matrix of functional data with functions in rows and measured times in columns
+#' @param id defaults fo NULL for y matrix, is id-variables for y in long format
 #' @param rug logical. Should rugs be plotted? Defaults to TRUE.
 #' @param ... further arguments passed to \code{\link[graphics]{matplot}}.
 #' 
@@ -65,7 +66,7 @@ truncateTime <- function(funVar, time, newtime, data){
 #' interpolated are plotted by dotted lines, parts with nonmissing values as solid lines.
 #' @export
 # with(fda::growth, funplot(age, t(hgtm)))
-funplot <- function(x, y, rug=TRUE, ...){
+funplot <- function(x, y, id=NULL, rug=TRUE, ...){
   
   ### Get further arguments passed to the matplot-functions
   dots <- list(...)
@@ -82,45 +83,77 @@ funplot <- function(x, y, rug=TRUE, ...){
   }
   
   argsMatplot  <- getArguments(x=c(formals(graphics::matplot), par(), main="", sub=""), dots=dots)
-      
-  # Deal with missing values: interpolate data
-  if (missing(x)) {
-    if (missing(y)) 
-      stop("must specify at least one of 'x' and 'y'")
-    else{
-      x <- seq_len(NCOL(y))
-      xlabel <- "index"
-    } 
-  } else xlabel <- deparse(substitute(x))
+  argsPlot <- getArguments(x=c(formals(graphics::plot.default), par()), dots=dots)
   
-  ylabel <- if (!missing(y)) 
-    deparse(substitute(y))
   
-  time <- x
+  if(is.null(id)){
+    
+    # Deal with missing values: interpolate data
+    if (missing(x)) {
+      if (missing(y)) 
+        stop("must specify at least one of 'x' and 'y'")
+      else{
+        x <- seq_len(NCOL(y))
+        xlabel <- "index"
+      } 
+    } else xlabel <- deparse(substitute(x))
+    
+    ylabel <- if (!missing(y)) 
+      deparse(substitute(y))
+    
+    time <- x
+    
+    stopifnot(length(x) == ncol(y))
+    
+    # Checke weather there are at least two values per row for the interpolation
+    atLeast2values <- apply(y, 1, function(x) sum(is.na(x)) < length(x)-1 )
+    if(any(!atLeast2values)) warning(sum(!atLeast2values), " rows contain less than 2 non-missing values.")  
+    
+    # Linear interpolation per row
+    yint <- matrix(NA, ncol=ncol(y), nrow=nrow(y))
+    yint[atLeast2values, ] <- t(apply(y[atLeast2values, ], 1, function(x) approx(time, x, xout=time)$y))
+    
+    # Plot the observed points
+    plotWithArgs(matplot, args=argsMatplot, 
+                 myargs=list(x=time, y=t(y), xlab=xlabel, ylab=ylabel, type="p", pch=3) )
+    
+    # Plot solid lines for parts of the function without missing values
+    plotWithArgs(matplot, args=argsMatplot, 
+                 myargs=list(x=time, y=t(y), type="l", lty=1, add=TRUE) )
+    
+    # Plot dotted lines for parts of the function without missing values
+    plotWithArgs(matplot, args=argsMatplot, 
+                 myargs=list(x=time, y=t(yint), type="l", lty=3, add=TRUE) )
+    
+    if(rug) rug(time, 0.01)
   
-  stopifnot(length(x) == ncol(y))
+  }else{
+    
+    stopifnot(length(x)==length(y) & length(y)==length(id))
+    
+    xlabel <- deparse(substitute(x))
+    ylabel <- deparse(substitute(y))
+    
+    # Plot the observed points
+    if(!"add" %in% names(dots)){
+      plotWithArgs(plot, args=argsPlot, 
+                   myargs=list(x=x[id==1], y=y[id==1], xlab=xlabel, ylab=ylabel, type="p", pch=3,
+                               ylim=range(y), xlim=range(x)) )
+    }
 
-  # Checke weather there are at least two values per row for the interpolation
-  atLeast2values <- apply(y, 1, function(x) sum(is.na(x)) < length(x)-1 )
-  if(any(!atLeast2values)) warning(sum(!atLeast2values), " rows contain less than 2 non-missing values.")  
-  
-  # Linear interpolation per row
-  yint <- matrix(NA, ncol=ncol(y), nrow=nrow(y))
-  yint[atLeast2values, ] <- t(apply(y[atLeast2values, ], 1, function(x) approx(time, x, xout=time)$y))
-   
-  # Plot the observed points
-  plotWithArgs(matplot, args=argsMatplot, 
-               myargs=list(x=time, y=t(y), xlab=xlabel, ylab=ylabel, type="p", pch=3) )
-  
-  # Plot solid lines for parts of the function without missing values
-  plotWithArgs(matplot, args=argsMatplot, 
-               myargs=list(x=time, y=t(y), type="l", lty=1, add=TRUE) )
- 
-  # Plot dotted lines for parts of the function without missing values
-  plotWithArgs(matplot, args=argsMatplot, 
-               myargs=list(x=time, y=t(yint), type="l", lty=3, add=TRUE) )
-  
-  if(rug) rug(time, 0.01)
+    
+    for(i in unique(id)){
+      plotWithArgs(points, args=argsPlot, 
+                   myargs=list(x=x[id==i], y=y[id==i], xlab=xlabel, ylab=ylabel, type="p", pch=3,
+                               col=i) )
+      plotWithArgs(lines, args=argsPlot, 
+                   myargs=list(x=x[id==i], y=y[id==i], xlab=xlabel, ylab=ylabel, col=i) )
+    }
+    
+    if(rug) rug(x, 0.01)
+    
+    
+  }
   
 #   matplot(time, t(y), xlab=xlabel, ylab="", type="p", pch=3)
 #   matplot(time, t(y), type="l", pch=1, lty=1, add=TRUE)

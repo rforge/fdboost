@@ -1,7 +1,7 @@
 Package: FDboost
 Type: Package
 Title: Boosting functional regression models
-Version: 0.0-2
+Version: 0.0-3
 Date: 2013-04-29
 Author: Sarah Brockhaus
 Maintainer: Sarah Brockhaus <Sarah.Brockhaus@stat.uni-muenchen.de>

@@ -41,6 +41,31 @@ cvMa <- function(ydim, weights=NULL,
   return(foldsMa)
 }
 
+#' @rdname validateFDboost
+#' @export
+# wrapper for function cv() of mboost, additional type "curves"
+# create folds for data in long format
+cvLong <- function(weights, id, 
+                 type = c("bootstrap", "kfold", "subsampling", "curves"), 
+                 B = ifelse(type == "kfold", 10, 25), prob = 0.5, strata = NULL){
+  type <- match.arg(type)
+  n <- length(weights)
+  
+  if(type=="curves"){
+    # set up folds so that always one curve is left out for the estimation
+    folds <- -diag(length(unique(id)))+1
+    foldsLong <- folds[id,]*weights    
+    B <- length(unique(id))
+  }else{
+    # expand folds over the functional measures of the response
+    folds <- cv(weights=rep(1, length(unique(id))), type = type, B = B, prob = prob, strata = strata)
+    foldsLong <- folds[id,]*weights
+  }
+  attr(foldsLong, "type") <- paste(B, "-fold ", type, sep = "")  
+  return(foldsLong)
+}
+
+
 
 #' Cross-Validation over Curves
 #' 
@@ -108,23 +133,34 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
   }
   
   type <- attr(folds, "type")
+  if(is.null(type)) type <- "unknown"
   call <- match.call()
   
-  nObs <- object$ydim[1] # number of curves
-  Gy <- object$ydim[2] # number of time-points per curve
-  
-  # if weights=NULL set all weights to 1 
-  if(is.null(weights)){
-    weights <- rep(1.0, nObs*Gy)
+  if(is.null(object$id)){
+    nObs <- object$ydim[1] # number of curves
+    Gy <- object$ydim[2] # number of time-points per curve
+  }else{
+    nObs <- length(unique(object$id)) # number of curves
+    Gy <- NULL # number of time-points per curve
   }
-  # matrix(weights, nrow=nObs, ncol=Gy)
   
   if(is.null(response)) response <- object$response # response as vector!
   #plot(response)
   #points(response, col=3)
   
+  # if weights=NULL set all weights to 1 
+  if(is.null(weights)){
+    weights <- rep(1.0, length(response))
+  }
+  # matrix(weights, nrow=nObs, ncol=Gy)
+  
+  
   # index of observations that belong to the same trajectory
-  index <- rep(1:object$ydim[1], times=object$ydim[2])
+  if(is.null(object$id)){
+    index <- rep(1:object$ydim[1], times=object$ydim[2])
+  }else{
+    index <- object$id
+  }
   
   # out-of-bag-weights: i.e. the left out curve/ the left out observations
   OOBweights <- matrix(rep(weights, ncol(folds)), ncol = ncol(folds))
@@ -154,7 +190,12 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
     # create data frame for model fit and use the weights vector for the CV
     dathelp <- object$data
     dathelp[[attr(object$yind, "nameyind")]] <- object$yind
-    dathelp[[object$yname]] <- matrix(object$response, ncol=object$ydim[2])
+    
+    if(is.null(object$id)){
+      dathelp[[object$yname]] <- matrix(object$response, ncol=object$ydim[2])
+    }else{
+      dathelp[[object$yname]] <- object$response
+    }
     
     call <- object$callEval
     call$data <- dathelp
@@ -192,26 +233,47 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
     # matrix(oobweights, nObs, Gy)
     
     relMSE <- simplify2array(mclapply(grid, function(g){
-      sum(((mod$response - mod[g]$fitted())[oobweights==1])^2) /
-        sum( ( (mod$response - mean(mod$response[oobweights]))[oobweights==1] )^2 )
+      sum(((mod$response - mod[g]$fitted())[oobweights!=0])^2) /
+        sum( ( (mod$response - mean(mod$response[oobweights]))[oobweights!=0] )^2)
     }, mc.cores=1) )
     
     # prediction for all observations, not only oob! 
     # -> oob-predictions have to be merged out of predGrid
     predGrid <- predict(mod, aggregate="cumsum", unlist=FALSE)
-    predGrid <- sapply(predGrid, function(x) as.vector(x) )[,grid] # save vectors of predictions in matrix
     
-    # predict oob and save responses that were predicted
-    predOOB <- predict(mod, aggregate="cumsum", unlist=FALSE)
-    keepOOB <- matrix(oobweights, nObs, Gy)
-    keepRow <- apply(keepOOB, 1, function(x) any(x!=0))
-    if(any(keepRow)){
-      predOOB <- sapply(predOOB, function(x) as.vector(x[keepRow,]) )[,grid]
-      respOOB <- as.vector(matrix(mod$response, nObs, Gy)[keepRow,] )
-      attr(respOOB, "curves") <- which(keepRow)
+    if(is.null(object$id)){
+      predGrid <- sapply(predGrid, function(x) as.vector(x) )[,grid] # save vectors of predictions in matrix
     }else{
-      predOOB <- NULL
-      respOOB <- NULL
+      predGrid <- predGrid[,grid] # save vectors of predictions for grid in matrix
+    }
+    
+    ## <FIXME> are those calculations necessary?
+    if(is.null(object$id)){
+      # predict oob and save responses that were predicted
+      predOOB <- predict(mod, aggregate="cumsum", unlist=FALSE)
+      keepOOB <- matrix(oobweights, nObs, Gy)
+      keepRow <- apply(keepOOB, 1, function(x) any(x!=0))
+      if(any(keepRow)){
+        predOOB <- sapply(predOOB, function(x) as.vector(x[keepRow,]) )[,grid]
+        respOOB <- as.vector(matrix(mod$response, nObs, Gy)[keepRow,] )
+        attr(respOOB, "curves") <- which(keepRow)
+      }else{
+        predOOB <- NULL
+        respOOB <- NULL
+      }
+      ### <FIXME> compute those variables for response in long-format?
+    }else{
+      # predict oob and save responses that were predicted
+      predOOB <- predict(mod, aggregate="cumsum", unlist=FALSE)[,grid]
+      keepidOOB <- (tapply(oobweights, mod$id, sum)==0)[mod$id]
+      if(any(keepidOOB)){
+        predOOB <- predOOB[keepidOOB,]
+        respOOB <- mod$response[keepidOOB]
+        attr(respOOB, "curves") <- keepidOOB
+      }else{
+        predOOB <- NULL
+        respOOB <- NULL
+      } 
     }
     
     return(list(risk=risk, predGrid=predGrid, predOOB=predOOB, respOOB=respOOB, relMSE=relMSE, mod=mod))  
@@ -349,6 +411,8 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
   }else{
     oobpreds <- NULL
   }
+  
+  browser()
     
   # alternative OOB-prediction: works for general folds not only oob
   predOOB <- lapply(modRisk, function(x) x$predOOB)
@@ -357,8 +421,12 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
   respOOB <- lapply(modRisk, function(x) x$respOOB)
   respOOB <- do.call('c', respOOB)
   indexOOB <- lapply(modRisk, function(x) attr(x$respOOB, "curves"))
-  indexOOB <- lapply(indexOOB, function(x) rep(x, times=Gy) )
-  indexOOB <- unlist(indexOOB)
+  if(is.null(object$id)){
+    indexOOB <- lapply(indexOOB, function(x) rep(x, times=Gy) )
+    indexOOB <- unlist(indexOOB)
+  }else{
+    indexOOB <- names(unlist(indexOOB))[unlist(indexOOB)]
+  }
   attr(respOOB, "index") <- indexOOB
   
   ############################
@@ -469,16 +537,21 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
           if(l==1){ # save offset of model
             ret <- attr(predict(modRisk[[g]]$mod[optimalMstop], which=l), "offset")          
             if( !is.null(dim(ret)) ){
-              ret <- ret[1,]
+              if(is.null(object$id)) ret <- ret[1,]
             }else{
-              ret <- rep(ret, modRisk[[1]]$mod$ydim[2])
+              if(is.null(object$id)) ret <- rep(ret, modRisk[[1]]$mod$ydim[2]) else ret <- rep(ret, length(object$id))
             }
           }else{ # other effects
             ret <- predict(modRisk[[g]]$mod[optimalMstop], which=l-1) # model g
             if( !is.null(dim(ret)) ){
-              ret <- ret[g,] # save g-th row
+              if(is.null(object$id)){
+                ret <- ret[g,] # save g-th row = preds for g-th observations
+              }else{
+                ret <- ret[object$id==g,] # save preds of g-th observations
+              } 
             }else{
-              ret <- rep(0, modRisk[[1]]$mod$ydim[2])
+              if(is.null(object$id)) ret <- rep(0, modRisk[[1]]$mod$ydim[2]) else ret <- rep(0, length(object$id))
+              #ret <- rep(0, modRisk[[1]]$mod$ydim[2])
             }
           }
           return(ret)
@@ -493,7 +566,7 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
   
   rm(modRisk)
   
-  ret <- list(response=response, yind=object$yind,
+  ret <- list(response=response, yind=object$yind, id=object$id,
               folds=folds, grid=grid,
               coefCV=coefCV,
               predCV=predCV,
@@ -627,16 +700,20 @@ plot.validateFDboost <- function(x, risk=c("median","mean"),
     if(!predictNA){
       pred[is.na(response)] <- NA
     }
-    predMat <- matrix(pred, ncol=length(x$yind))
-    responseMat <- matrix(response, ncol=length(x$yind))
+    
+    predMat <- pred
+    responseMat <- response
+    
+    if(is.null(x$id)) predMat <- matrix(pred, ncol=length(x$yind))
+    if(is.null(x$id)) responseMat <- matrix(response, ncol=length(x$yind))
     
     ylim <- range(response, pred, na.rm = TRUE)
-    funplot(x$yind, responseMat, lwd = 1, pch = 1, ylim = ylim,  
+    funplot(x$yind, responseMat, id=x$id, lwd = 1, pch = 1, ylim = ylim,  
             ylab = "", xlab = attr(x$yind, "nameyind"), main="Measured and Predicted Values", ...)
-    funplot(x$yind, predMat, lwd = 1.5, pch = 2, add = TRUE, ...)
+    funplot(x$yind, predMat, id=x$id, lwd = 1.5, pch = 2, add = TRUE, ...)
     
     # Plot residuals for the optimal mstop
-    funplot(x$yind, responseMat-predMat, ylab = "", xlab = attr(x$yind, "nameyind"), 
+    funplot(x$yind, responseMat-predMat, id=x$id, ylab = "", xlab = attr(x$yind, "nameyind"), 
             main="Residuals", ...)
     abline(h=0, lty=2, col="grey")
   }
@@ -704,6 +781,12 @@ plotPredCoef <- function(x, which=NULL,
   
   if(terms){
     
+    if(all(which==1:length(x$coefCV))){
+      which <- 1:(length(x$coefCV)+1)
+    }else{
+      which <- which+1 
+    }
+    
     if( length(x$predCV)==0 ){
       warning("terms=TRUE, but predCV is empty.")
       return(NULL)
@@ -717,18 +800,30 @@ plotPredCoef <- function(x, which=NULL,
       } 
     }
     
+    ### loop over base-learners
     for(l in which){
       
       if(l==1 && length(x$yind)>1){ # do not use common range for offset for functional response
         matplot(x$yind, t(x$predCV[[l]]), type="l", 
                 main=names(x$predCV)[l], xlab=attr(x$yind, "nameyind"), ylab="coef", ylim=NULL, ...)
+        
       }else{
-        matplot(x$yind, t(x$predCV[[l]]), type="l", 
-                main=names(x$predCV)[l], xlab=attr(x$yind, "nameyind"), ylab="coef", ylim=ylim, ...)
-      }
-      
-      if(showNumbers){
-        matplot(x$yind, t(x$predCV[[l]]), add=TRUE, ...)
+        
+        if( is.null(x$id) ){
+          matplot(x$yind, t(x$predCV[[l]]), type="l", 
+                  main=names(x$predCV)[l], xlab=attr(x$yind, "nameyind"), ylab="coef", ylim=ylim, ...)
+          if(showNumbers){
+            matplot(x$yind, t(x$predCV[[l]]), add=TRUE, ...)
+          }
+          
+        }else{
+          funplot(x$yind, unlist(x$predCV[[l]]), 
+                  id=rep(1:length(x$predCV[[l]]), times=sapply(x$predCV[[l]], length)), type="l", 
+                  main=names(x$predCV)[l], xlab=attr(x$yind, "nameyind"), ylab="coef", ylim=ylim, ...)
+          if(showNumbers){
+            points(x$yind, unlist(x$predCV[[l]]), type="p", pch=paste(x$id))
+          }
+        }
       }
     }
   }else{ # plot coefficients
@@ -782,6 +877,7 @@ plotPredCoef <- function(x, which=NULL,
           lines(temp$x, rowMeans(myMat), col=1, lwd=2)
           lines(temp$x, apply(myMat, 1, quantile, 0.95), col=2, lwd=2, lty=2)
           lines(temp$x, apply(myMat, 1, quantile, 0.05), col=2, lwd=2, lty=2)
+          
         }else{
           
           matplot(temp$x, myMat, type="l", xlab=temp$xlab,
@@ -817,21 +913,53 @@ plotPredCoef <- function(x, which=NULL,
             }
             
             myCol <- sapply(temp$value, function(x) x[, quanty[j]==temp$y]) # first column
-            matplot(temp$x, myCol, type="l", xlab=temp$xlab, ylim=ylim,
-                    main=paste(temp$main, " at ", probs[j]*100, "% of ", temp$ylab, sep=""), ylab="coef", ...)
             
-            if(showNumbers){
-              matplot(temp$x, myCol, add=TRUE, ...)
+            if(showQuantiles){ 
+              #browser()
+              matplot(temp$x, myCol, type="l", xlab=temp$xlab,
+                      main=paste(temp$main, " at ", probs[j]*100, "% of ", temp$ylab, sep=""), 
+                      ylab="coef", ylim=ylim, 
+                      col=rgb(0.6,0.6,0.6, alpha=0.5), ...) 
+              if(showNumbers){
+                matplot(temp$x, myCol, add=TRUE, col=rgb(0.6,0.6,0.6, alpha=0.5), ...)
+              }
+              lines(temp$x, rowMeans(myCol), col=1, lwd=2)
+              lines(temp$x, apply(myCol, 1, quantile, 0.95, na.rm = TRUE), col=2, lwd=2, lty=2)
+              lines(temp$x, apply(myCol, 1, quantile, 0.05, na.rm = TRUE), col=2, lwd=2, lty=2)
+              
+            }else{
+              matplot(temp$x, myCol, type="l", xlab=temp$xlab, ylim=ylim,
+                      main=paste(temp$main, " at ", probs[j]*100, "% of ", temp$ylab, sep=""), 
+                      ylab="coef", ...)
+              if(showNumbers){
+                matplot(temp$x, myCol, add=TRUE, ...)
+              }
             }
           }
           
           for(j in 1:length(quantx)){  
             myRow <- sapply(temp$value, function(x) x[quantx[j]==temp$x, ]) # first column
-            matplot(temp$x, myRow, type="l", xlab=temp$ylab, ylim=ylim,
-                    main=paste(temp$main, " at ", probs[j]*100, "% of ", temp$xlab, sep=""), ylab="coef", ...)
             
-            if(showNumbers){
-              matplot(temp$x, myRow, add=TRUE, ...)
+            if(showQuantiles){
+              
+              matplot(temp$x, myRow, type="l", xlab=temp$xlab,
+                      main=paste(temp$main, " at ", probs[j]*100, "% of ", temp$ylab, sep=""), 
+                      ylab="coef", ylim=ylim, 
+                      col=rgb(0.6,0.6,0.6, alpha=0.5), ...) 
+              if(showNumbers){
+                matplot(temp$x, myRow, add=TRUE, col=rgb(0.6,0.6,0.6, alpha=0.5), ...)
+              }
+              lines(temp$x, rowMeans(myRow), col=1, lwd=2)
+              lines(temp$x, apply(myRow, 1, quantile, 0.95, na.rm = TRUE), col=2, lwd=2, lty=2)
+              lines(temp$x, apply(myRow, 1, quantile, 0.05, na.rm = TRUE), col=2, lwd=2, lty=2)
+              
+            }else{
+              matplot(temp$x, myRow, type="l", xlab=temp$ylab, ylim=ylim,
+                      main=paste(temp$main, " at ", probs[j]*100, "% of ", temp$xlab, sep=""), ylab="coef", ...)
+              
+              if(showNumbers){
+                matplot(temp$x, myRow, add=TRUE, ...)
+              }
             }
           }
         }else{ # temp$x is factor
@@ -841,15 +969,51 @@ plotPredCoef <- function(x, which=NULL,
             temp$value[sapply(temp$value, function(x) is.null(dim(x)))] <- list(matrix(0, ncol=20, nrow=length(quantx)))
             
             if(is.null(temp$z)){
+              
               myRow <- sapply(temp$value, function(x) x[quantx[j]==temp$x, ]) # first column
-              matplot(temp$y, myRow, type="l", xlab=temp$ylab, ylim=ylim,
-                      main=paste(temp$main, " at ", temp$xlab,"=" ,quantx[j], sep=""), ylab="coef", ...)
+              
+              if(showQuantiles){
+                
+                matplot(temp$y, myRow, type="l", xlab=temp$xlab,
+                        main=paste(temp$main, " at ", temp$xlab,"=" ,quantx[j], sep=""), 
+                        ylab="coef", ylim=ylim, 
+                        col=rgb(0.6,0.6,0.6, alpha=0.5), ...) 
+                if(showNumbers){
+                  matplot(temp$y, myRow, add=TRUE, col=rgb(0.6,0.6,0.6, alpha=0.5), ...)
+                }
+                lines(temp$y, rowMeans(myRow), col=1, lwd=2)
+                lines(temp$y, apply(myRow, 1, quantile, 0.95, na.rm = TRUE), col=2, lwd=2, lty=2)
+                lines(temp$y, apply(myRow, 1, quantile, 0.05, na.rm = TRUE), col=2, lwd=2, lty=2)
+                
+              }else{
+                matplot(temp$y, myRow, type="l", xlab=temp$ylab, ylim=ylim,
+                        main=paste(temp$main, " at ", temp$xlab,"=" ,quantx[j], sep=""), ylab="coef", ...)
+              } 
+              
             }else{
               quantz <- temp$z
               myRow <- sapply(temp$value, function(x) x[quantx[j]==temp$x & quantz[j]==temp$z, ]) # first column
-              matplot(temp$y, myRow, type="l", xlab=temp$ylab, ylim=ylim,
-                      main=paste(temp$main, " at ", temp$xlab,"=" , quantx[j], ", " , 
-                                 temp$zlab,"=" ,quantz[j], sep=""), ylab="coef", ...)
+              
+              if(showQuantiles){
+                
+                matplot(temp$y, myRow, type="l", xlab=temp$xlab,
+                        main=paste(temp$main, " at ", temp$xlab,"=" , quantx[j], ", " , 
+                                   temp$zlab,"=" ,quantz[j], sep=""), 
+                        ylab="coef", ylim=ylim, 
+                        col=rgb(0.6,0.6,0.6, alpha=0.5), ...) 
+                if(showNumbers){
+                  matplot(temp$y, myRow, add=TRUE, col=rgb(0.6,0.6,0.6, alpha=0.5), ...)
+                }
+                lines(temp$y, rowMeans(myRow), col=1, lwd=2)
+                lines(temp$y, apply(myRow, 1, quantile, 0.95, na.rm = TRUE), col=2, lwd=2, lty=2)
+                lines(temp$y, apply(myRow, 1, quantile, 0.05, na.rm = TRUE), col=2, lwd=2, lty=2)
+                
+              }else{
+                matplot(temp$y, myRow, type="l", xlab=temp$ylab, ylim=ylim,
+                        main=paste(temp$main, " at ", temp$xlab,"=" , quantx[j], ", " , 
+                                   temp$zlab,"=" ,quantz[j], sep=""), ylab="coef", ...)
+              }
+              
             }
             if(showNumbers){
               matplot(temp$y, myRow, add=TRUE )
