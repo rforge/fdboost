@@ -129,6 +129,11 @@ funplot <- function(x, y, id=NULL, rug=TRUE, ...){
   
   }else{
     
+    idOrig <- id
+    for(i in 1:length(unique(idOrig))){
+      id[idOrig==unique(idOrig)[i]] <- i
+    }
+    
     stopifnot(length(x)==length(y) & length(y)==length(id))
     
     xlabel <- deparse(substitute(x))
@@ -141,13 +146,23 @@ funplot <- function(x, y, id=NULL, rug=TRUE, ...){
                                ylim=range(y), xlim=range(x)) )
     }
 
+    if("col" %in% names(dots)){
+      col <- dots$col
+      argsPlot$col <- NULL
+    }else{
+      col <- 1:6
+    }
+    
+    if(length(col)<length(unique(id))){
+      col <- rep(col, l=length(unique(id)))
+    }
     
     for(i in unique(id)){
       plotWithArgs(points, args=argsPlot, 
                    myargs=list(x=x[id==i], y=y[id==i], xlab=xlabel, ylab=ylabel, type="p", pch=3,
-                               col=i) )
+                               col=col[i]) )
       plotWithArgs(lines, args=argsPlot, 
-                   myargs=list(x=x[id==i], y=y[id==i], xlab=xlabel, ylab=ylabel, col=i) )
+                   myargs=list(x=x[id==i], y=y[id==i], xlab=xlabel, ylab=ylabel, col=col[i]) )
     }
     
     if(rug) rug(x, 0.01)
@@ -168,21 +183,29 @@ funplot <- function(x, y, id=NULL, rug=TRUE, ...){
 #' @export
 #' 
 ### function to plot the observed response and the predicted values of a model
-plotPredicted <- function(x, subset=1:x$ydim[1], posLegend="topleft", lwdObs=1, lwdPred=1, ...){
+plotPredicted <- function(x, subset=NULL, posLegend="topleft", lwdObs=1, lwdPred=1, ...){
   
   stopifnot("FDboost" %in% class(x))
   
-  response <- matrix(x$response, nrow=x$ydim[1], ncol=x$ydim[2])[subset, , drop=FALSE] 
-  pred <- fitted(x)[subset, , drop=FALSE]
-  pred[is.na(response)] <- NA
-  
+  if(is.null(x$id)){
+    if(is.null(subset)) subset <- 1:x$ydim[1]
+    response <- matrix(x$response, nrow=x$ydim[1], ncol=x$ydim[2])[subset, , drop=FALSE] 
+    pred <- fitted(x)[subset, , drop=FALSE]
+    pred[is.na(response)] <- NA
+  }else{
+    if(is.null(subset)) subset <- unique(x$id)
+    response <- x$response[x$id %in% subset] 
+    pred <- fitted(x)[x$id %in% subset]
+    pred[is.na(response)] <- NA
+  }
+
   ylim <- range(response, pred, na.rm = TRUE)
   
   if(length(x$yind)>1){
     # Observed values
-    funplot(x$yind, response, pch=1, ylim=ylim, lty=3, 
+    funplot(x$yind, response, id=x$id, pch=1, ylim=ylim, lty=3, 
             ylab=x$yname, xlab=attr(x$yind, "nameyind"), lwd=lwdObs, ...)
-    funplot(x$yind, pred, pch=2, lwd=lwdPred, add=TRUE, ...)
+    funplot(x$yind, pred, id=x$id, pch=2, lwd=lwdPred, add=TRUE, ...)
     # predicted values
     legend(posLegend, legend=c("observed","predicted"), col=1, pch=1:2)  
   }else{
@@ -198,20 +221,28 @@ plotPredicted <- function(x, subset=1:x$ydim[1], posLegend="topleft", lwdObs=1, 
 #' @export
 #' 
 ### function to plot the residuals
-plotResiduals <- function(x, subset=1:x$ydim[1], posLegend="topleft", ...){
+plotResiduals <- function(x, subset=NULL, posLegend="topleft", ...){
   
   stopifnot("FDboost" %in% class(x))
   
-  response <- matrix(x$response, nrow=x$ydim[1], ncol=x$ydim[2])[subset, , drop=FALSE] 
-  pred <- fitted(x)[subset, , drop=FALSE]
-  pred[is.na(response)] <- NA
+  if(is.null(x$id)){
+    if(is.null(subset)) subset <- 1:x$ydim[1]
+    response <- matrix(x$response, nrow=x$ydim[1], ncol=x$ydim[2])[subset, , drop=FALSE] 
+    pred <- fitted(x)[subset, , drop=FALSE]
+    pred[is.na(response)] <- NA
+  }else{
+    if(is.null(subset)) subset <- unique(x$id)
+    response <- x$response[x$id %in% subset] 
+    pred <- fitted(x)[x$id %in% subset]
+    pred[is.na(response)] <- NA
+  }
   
   # Observed - predicted values
   if(length(x$yind)>1){
-    funplot(x$yind, response-pred, ylab=x$yname, xlab=attr(x$yind, "nameyind"), ...) 
+    funplot(x$yind, response-pred, id=x$id, ylab=x$yname, xlab=attr(x$yind, "nameyind"), ...) 
   }else{
     plot(response, response-pred, ylab="residuals", xlab="observed", ...)
-    abline(h=0)
+    #abline(h=0)
   }
 
 }

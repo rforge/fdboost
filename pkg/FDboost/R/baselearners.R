@@ -1222,7 +1222,7 @@ X_bbsc <- function(mf, vary, args) {
     
   #----------------------------------
   ### <SB> Calculate constraints
-  
+
   # If the argument Z is not NULL use the given Z (important for prediction!)
   if(is.null(args$Z)){
     C <- t(X) %*% rep(1, nrow(X))

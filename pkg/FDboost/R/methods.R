@@ -322,7 +322,11 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
 fitted.FDboost <- function(object, ...) {
   args <- list(...)
   if (length(args) == 0) {
-    ret <- matrix(object$fitted(), nrow=object$ydim[1])
+    if(is.null(object$id)){
+      ret <- matrix(object$fitted(), nrow=object$ydim[1])
+    }else{
+      ret <- object$fitted()
+    }
   } else {
     ret <- predict(object, newdata=NULL, ...)
   }
@@ -343,8 +347,14 @@ fitted.FDboost <- function(object, ...) {
 #' @export
 ### residuals (the current negative gradient)
 residuals.FDboost <- function(object, ...){
-  resid <- matrix(object$resid(), nrow=object$ydim[1])
-  resid[is.na(object$response)] <- NA 
+  
+  if(is.null(object$id)){
+    resid <- matrix(object$resid(), nrow=object$ydim[1])
+    resid[is.na(object$response)] <- NA 
+  }else{
+    resid <- object$resid()
+    resid[is.na(object$response)] <- NA 
+  }
   resid
 }
 
@@ -446,7 +456,7 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
           }else{
             x <- trm$model.frame()[[varnms]]
             xg <- if(is.factor(x)) {
-              unique(x)
+              sort(unique(x))
             } else seq(min(x), max(x), length=ng)
           }
           d <- list(xg)  # data.fame
@@ -470,7 +480,7 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
           }else{ # scalar covariate
             x <- trm$model.frame()[[1]]
             xg <- if(is.factor(x)) {
-              unique(x)
+              sort(unique(x))
             } else seq(min(x), max(x),length=ng)            
           }
           yListPlace <- ifelse(grepl("by", trm$get_call()), 3, 2)
@@ -482,7 +492,7 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
             if(varnms[1]==varnms[2]) varnms[1] <- paste(varnms[2], "_cov", sep="")
           }
           yg <- if(is.factor(y)) {
-            unique(y)
+            sort(unique(y))
           } else seq(min(y), max(y),length=ng)
           if(length(varnms)==2){
             d <- list(xg, yg)  # data.frame
@@ -492,7 +502,7 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
             zListPlace <- ifelse(grepl("by", trm$get_call()), 2, 3)
             z <- trm$model.frame()[[zListPlace]]
             zg <- if(is.factor(z)) {
-              unique(z)
+              sort(unique(z))
             }else{
               if(grepl("by", trm$get_call())){ 1 }else{ seq(min(z), max(z), length=n4) }
             } 
@@ -587,7 +597,7 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
           P$value <- X
         }else{
           #### <FIXME> is dimension, byrow correct??
-          P$value <- matrix(X, ncol=length(attr(d, "xm")) )
+          P$value <- matrix(X, nrow=length(attr(d, "xm")) )
         }
         #P$coef <- cbind(d, "value"=P$value)    
         P$dim <- trm$dim
@@ -623,19 +633,25 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
       if(is.null(object$ydim)){
         #browser()
         #print(attr(d, "varnms"))
-        # expand yind 
-        if(trm$dim>1) d[[attr(object$yind ,"nameyind")]] <- rep(d[[attr(object$yind ,"nameyind")]], 
-                                                  each=length(d[[attr(object$yind ,"nameyind")]]))
-        
-        # expand signal variable
-        if( grepl("bhist", trm$get_call()) | grepl("bsignal", trm$get_call()) ){
-          vari <- names(d)[!names(d) %in% attr(d, "varnms")]
-          d[[vari]] <- d[[vari]][ rep(1:NROW(d[[vari]]), times=NROW(d[[vari]])), ]
-          
-        }else{ # expand scalar variable
-          vari <- names(d)[1]
-          if(vari!=attr(object$yind ,"nameyind")) d[[vari]] <- d[[vari]][ rep(1:NROW(d[[vari]]), times=NROW(d[[vari]])) ]
-        } 
+        vari <- names(d)[1]
+        if(is.factor(d[[vari]])){
+          d[[vari]] <- d[[vari]][ rep(1:NROW(d[[vari]]), times=length(d[[attr(object$yind ,"nameyind")]]) ) ]
+          if(trm$dim>1) d[[attr(object$yind ,"nameyind")]] <- rep(d[[attr(object$yind ,"nameyind")]], 
+                                                                  each=length(unique(d[[vari]]))  )
+          }else{
+          # expand signal variable
+          if( grepl("bhist", trm$get_call()) | grepl("bsignal", trm$get_call()) ){
+            vari <- names(d)[!names(d) %in% attr(d, "varnms")]
+            d[[vari]] <- d[[vari]][ rep(1:NROW(d[[vari]]), times=NROW(d[[vari]])), ]
+            
+          }else{ # expand scalar variable
+            vari <- names(d)[1]
+            if(vari!=attr(object$yind ,"nameyind")) d[[vari]] <- d[[vari]][ rep(1:NROW(d[[vari]]), times=NROW(d[[vari]])) ]
+          } 
+          # expand yind 
+          if(trm$dim>1) d[[attr(object$yind ,"nameyind")]] <- rep(d[[attr(object$yind ,"nameyind")]], 
+                                                                  each=length(d[[attr(object$yind ,"nameyind")]])) 
+        }
       }
 
       P <- getP(trm, d)  
@@ -997,7 +1013,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
     
     if(length(which)==1 && which==0) terms <- attr(terms, "offset")
     
-    if(length(which)==1) terms <- list(terms)
+    if(length(which)==1 & is.null(x$id)) terms <- list(terms)
     if(class(terms)!="list") terms <- list(terms) 
     
     shrtlbls <- try(coef(x, which=which, computeCoef=FALSE))# get short names
@@ -1020,7 +1036,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
     }else range <- NULL
     for(i in 1:length(terms)){
       # set values of predicted effect to missing if response is missing
-      terms[[i]][is.na(x$response)] <- NA
+      if(sum(is.na(x$response))>0) terms[[i]][is.na(x$response)] <- NA
       range <- range(terms[[i]])
       if(length(time)>1){
         

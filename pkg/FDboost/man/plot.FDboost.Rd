@@ -10,11 +10,11 @@
     onlySelected = TRUE, perspPlot = FALSE,
     commonRange = FALSE, ...)
 
-  plotPredicted(x, subset = 1:x$ydim[1],
-    posLegend = "topleft", lwdObs = 1, lwdPred = 1, ...)
+  plotPredicted(x, subset = NULL, posLegend = "topleft",
+    lwdObs = 1, lwdPred = 1, ...)
 
-  plotResiduals(x, subset = 1:x$ydim[1],
-    posLegend = "topleft", ...)
+  plotResiduals(x, subset = NULL, posLegend = "topleft",
+    ...)
 }
 \arguments{
   \item{x}{a fitted \code{FDboost}-object}

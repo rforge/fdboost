@@ -411,8 +411,6 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
   }else{
     oobpreds <- NULL
   }
-  
-  browser()
     
   # alternative OOB-prediction: works for general folds not only oob
   predOOB <- lapply(modRisk, function(x) x$predOOB)
