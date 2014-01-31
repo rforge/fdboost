@@ -143,7 +143,7 @@ funplot <- function(x, y, id=NULL, rug=TRUE, ...){
     if(!"add" %in% names(dots)){
       plotWithArgs(plot, args=argsPlot, 
                    myargs=list(x=x[id==1], y=y[id==1], xlab=xlabel, ylab=ylabel, type="p", pch=3,
-                               ylim=range(y), xlim=range(x)) )
+                               ylim=range(y, na.rm=TRUE), xlim=range(x, na.rm=TRUE)) )
     }
 
     if("col" %in% names(dots)){

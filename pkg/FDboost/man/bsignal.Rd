@@ -19,9 +19,10 @@
   \item{...}{matrix of functional data and the vector of
   observation points. The functional covariates have to be
   supplied as n by <no. of evaluations> matrices, i.e. each
-  row is one functional observation. If no vector of
-  observation points is supplied an equidistant grid over
-  \eqn{[0,1]} is assumed.}
+  row is one functional observation. The baselearner
+  \code{bhist} expects three arguments: functional
+  covariate, index of functional covariate, index of
+  functional response \eqn{[0,1]} is assumed.}
 
   \item{index}{a vector of integers for expanding the
   signal variable in \code{....} For example, bsignal(X, s,

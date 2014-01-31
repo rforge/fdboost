@@ -541,16 +541,14 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
             }
           }else{ # other effects
             ret <- predict(modRisk[[g]]$mod[optimalMstop], which=l-1) # model g
-            if( !is.null(dim(ret)) ){
-              if(is.null(object$id)){
-                ret <- ret[g,] # save g-th row = preds for g-th observations
-              }else{
-                ret <- ret[object$id==g,] # save preds of g-th observations
-              } 
-            }else{
-              if(is.null(object$id)) ret <- rep(0, modRisk[[1]]$mod$ydim[2]) else ret <- rep(0, length(object$id))
-              #ret <- rep(0, modRisk[[1]]$mod$ydim[2])
+            if(!(l-1) %in% selected(modRisk[[g]]$mod[optimalMstop]) ){ # effect was never chosen
+              if(is.null(object$id)) ret <- rep(0, modRisk[[1]]$mod$ydim[2]) else ret <- matrix(0, nrow=length(object$id), ncol=1)
             }
+            if(is.null(object$id)){
+              ret <- ret[g,] # save g-th row = preds for g-th observations
+            }else{
+              ret <- ret[object$id==g,] # save preds of g-th observations
+            } 
           }
           return(ret)
         }))
@@ -685,7 +683,9 @@ plot.validateFDboost <- function(x, risk=c("median","mean"),
   # Plot RMSE and MRD for optimal mstop
   if(is.null(names.arg)){
     names.arg = 1:length(x$rmseCurves[,mpos])
-  } 
+  }
+  stopifnot(length(names.arg)==length(x$rmseCurves[,mpos]))
+  
   barplot(x$rmseCurves[,mpos], main="RMSE", names.arg = names.arg, las=2) # 
   abline(h=x$rmse[mpos], lty=2)
   barplot(x$mrdCurves[,mpos], main="MRD", names.arg = names.arg, las=2)
