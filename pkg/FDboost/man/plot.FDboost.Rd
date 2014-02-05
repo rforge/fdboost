@@ -7,8 +7,8 @@
   \method{plot}{FDboost} (x, raw = FALSE, rug = TRUE,
     which = NULL, includeOffset = TRUE, ask = TRUE,
     n1 = 40, n2 = 40, n3 = 20, n4 = 11,
-    onlySelected = TRUE, perspPlot = FALSE,
-    commonRange = FALSE, ...)
+    onlySelected = TRUE, pers = FALSE, commonRange = FALSE,
+    ...)
 
   plotPredicted(x, subset = NULL, posLegend = "topleft",
     lwdObs = 1, lwdPred = 1, ...)
@@ -55,7 +55,7 @@
   effects that were selected in at least one boosting
   iteration}
 
-  \item{perspPlot}{logical, defaults to FALSE, If TRUE,
+  \item{pers}{logical, defaults to FALSE, If TRUE,
   perspective plots (\code{\link[graphics]{persp}}) for 2-
   and 3-dimensional effects are drawn. If FALSE,
   image/contour-plots (\code{\link[graphics]{image}},

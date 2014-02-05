@@ -141,6 +141,7 @@ funplot <- function(x, y, id=NULL, rug=TRUE, ...){
     
     # Plot the observed points
     if(!"add" %in% names(dots)){
+      if(is.null(argsPlot$ylim)) argsPlot$ylim <- range(y, na.rm=TRUE) 
       plotWithArgs(plot, args=argsPlot, 
                    myargs=list(x=x[id==1], y=y[id==1], xlab=xlabel, ylab=ylabel, type="p", pch=3,
                                ylim=range(y, na.rm=TRUE), xlim=range(x, na.rm=TRUE)) )

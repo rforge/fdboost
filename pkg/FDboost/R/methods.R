@@ -94,6 +94,7 @@ print.FDboost <- function(x, ...) {
 ## <TODO> check which
 ## <TODO> check unlist
 predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...) {
+  
   stopifnot(any(class(object)=="FDboost")) 
   # print("Prediction FDboost") 
   
@@ -211,7 +212,11 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
     predOffset <- object$offsetVec # offset is just an integer 
     #if(1 %in% whichHelp && grepl("ONEx", names(object$baselearner)[[1]])){
     if(length(object$offsetVec)>1){ # offset is a smooth function
-      predOffset <- rep(object$predictOffset(newdata[[nameyind]]), each=n) 
+      if(is.null(object$id)){
+        predOffset <- rep(object$predictOffset(newdata[[nameyind]]), each=n)
+      }else{
+        predOffset <- object$predictOffset(newdata[[nameyind]])
+      }  
       names(predOffset) <- NULL
     }
             
@@ -750,7 +755,7 @@ getColPersp <- function(z, col1="tomato", col2="lightblue"){
 #' @param n4 gives the number of points for the third dimension in a 3-dimensional smooth term
 #' @param onlySelected, logical, defaults to TRUE. Only plot effects that were 
 #' selected in at least one boosting iteration
-#' @param perspPlot logical, defaults to FALSE, 
+#' @param pers logical, defaults to FALSE, 
 #' If TRUE, perspective plots (\code{\link[graphics]{persp}}) for 
 #' 2- and 3-dimensional effects are drawn.
 #' If FALSE, image/contour-plots (\code{\link[graphics]{image}}, 
@@ -777,7 +782,7 @@ getColPersp <- function(z, col1="tomato", col2="lightblue"){
 plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL, 
                          includeOffset=TRUE, ask=TRUE,
                          n1=40, n2=40, n3=20, n4=11,
-                         onlySelected=TRUE, perspPlot=FALSE, commonRange=FALSE, ...){
+                         onlySelected=TRUE, pers=FALSE, commonRange=FALSE, ...){
   
   ### Get further arguments passed to the different plot-functions
   dots <- list(...)
@@ -823,7 +828,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
     which <- intersect(which, c(0, selected(x)))
   }
   
-  # In the case that intercept and offset shuold be plotted and the intercept was never selected
+  # In the case that intercept and offset should be plotted and the intercept was never selected
   # plot the offset
   if( (1 %in% whichSpecified | is.null(whichSpecified))  & !1 %in% which & length(x$yind)>1) which <- c(0, which)
   
@@ -850,7 +855,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
     
     # include the offset in the plot of the intercept
     if( includeOffset && 1 %in% which && grepl("ONEx", names(terms)[1]) ){
-      terms[[1]]$value <- terms[[1]]$value + offsetTerms$value
+      terms[[1]]$value <- terms[[1]]$value + matrix(offsetTerms$value, ncol=1, nrow=n1)
       terms[[1]]$main <- paste("offset", "+", terms[[1]]$main)
     }
     
@@ -924,7 +929,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
         
       }else{
         # persp-plot for 2-dim effects
-        if(trm$dim==2 & perspPlot){
+        if(trm$dim==2 & pers){
           if(length(unique(as.vector(trm$value)))==1){
             # persp() gives error if only a flat plane should be drawn
             plot(y=trm$value[1,], x=trm$x, main=trm$main, type="l", xlab=trm$ylab, 
@@ -938,7 +943,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
           } 
         }
         # image for 2-dim effects
-        if(trm$dim==2 & !perspPlot){        
+        if(trm$dim==2 & !pers){        
           plotWithArgs(image, args=argsImage,
                        myargs=list(x=trm$y, y=trm$x, z=t(trm$value), xlab=trm$ylab, ylab=trm$xlab, 
                                    main=trm$main, col = terrain.colors(length(trm$x)^2)))          
@@ -962,7 +967,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
       }
       ### 3 dim plots
       # persp-plot for 3-dim effects
-      if(trm$dim==3 & perspPlot){
+      if(trm$dim==3 & pers){
         for(j in 1:length(trm$z)){
           plotWithArgs(persp, args=argsPersp,
                        myargs=list(x=trm$x, y=trm$y, z=trm$value[[j]], xlab=trm$xlab, ylab=trm$ylab, 
@@ -973,7 +978,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
         }
       }
       # image for 3-dim effects
-      if(trm$dim==3 & !perspPlot){
+      if(trm$dim==3 & !pers){
         for(j in 1:length(trm$z)){
           plotWithArgs(image, args=argsImage,
             myargs=list(x=trm$x, y=trm$y, z=trm$value[[j]], xlab=trm$xlab, ylab=trm$ylab,

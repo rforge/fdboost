@@ -177,6 +177,7 @@ FDboost <- function(formula,          ### response ~ xvars
   xfm <- trmstrings
   ### replace "1" with intercept base learner
   if ( any( gsub(" ", "", strsplit(cfm[2], "\\+")[[1]]) ==  "1")){
+    if( length(time)==1 ) warning("Smooth intercept may not be sensitive for scalar response.")
     if( grepl("lambda", deparse(timeformula)) || 
          ( grepl("bols", deparse(timeformula)) &  !grepl("df", deparse(timeformula))) ){
       xfm <- c("bols(ONEx, intercept = FALSE)", xfm)
@@ -248,11 +249,10 @@ FDboost <- function(formula,          ### response ~ xvars
     w[which(is.na(dresponse))] <- 0
   }
     
-  ## <FIXME> no offset for irregular data!!
+  ## offset for regular and irregular data: handling of missings is different!
   if(is.null(id)){
     
     ## per default add smooth time-specific offset 
-    ## idea: allow to use an offset linear in time?
     if(is.null(offset) & dim(response)[2]>1){
       message("Use a smooth offset.") 
       ### <FixMe> is the use of family@offset correct?
@@ -267,7 +267,7 @@ FDboost <- function(formula,          ### response ~ xvars
       meanNA <- apply(response, 1, function(x) mean(is.na(x)))
       responseInter <- t(apply(response[meanNA < 0.9 & rowSums(matrix(w, ncol=nc))!=0 , ], 1, function(x) 
         approx(time, x, rule=offset_control$rule, xout=time)$y))
-      # check wether first ore last columns of the response contain soley NA
+      # check whether first or last columns of the response contain soley NA
       # then use the values of the next column
       if(any(apply(responseInter, 2, function(x) all(is.na(x)) ) )){
         warning("Column of interpolated response contains nothing but NA.")
@@ -310,7 +310,7 @@ FDboost <- function(formula,          ### response ~ xvars
       } 
       offsetVec <- modOffset$fitted.values 
       predictOffset <- function(time){
-        ret <- predict(modOffset, newdata=data.frame(time=time))
+        ret <- as.numeric(predict(modOffset, newdata=data.frame(time=time)))
         names(ret) <- NULL
         ret      
       } 
@@ -333,7 +333,7 @@ FDboost <- function(formula,          ### response ~ xvars
           ### <FixMe> use a more sophisticated model to estimate the time-specific offset? 
           modOffset <- lm(offsetVec ~ bs(time, df=length(offsetVec)-2))
           predictOffset <- function(time){
-            ret <- predict(modOffset, newdata=data.frame(time=time))
+            ret <- as.numeric(predict(modOffset, newdata=data.frame(time=time)))
             names(ret) <- NULL
             ret      
           }      
@@ -341,11 +341,53 @@ FDboost <- function(formula,          ### response ~ xvars
       }
     }
     
-    # for irregular data set offset=NULL
+  # for irregular data the model for the smooth offset is computed on the available data
   }else{
-    offsetVec <- NULL
-    offset <- NULL # use one constant offset in mboost()
-    predictOffset <- function(time) 0 
+    
+    ## compute a time-specific smooth offset for irregular data 
+    if(is.null(offset)){
+      # only use response curves whose weights are not completely 0 (important for resampling methods)
+      # do this by setting responses to NA whose weight is zero
+      responseW <- response
+      responseW[w==0] <- NA
+      message("Use a smooth offset for irregular data.") 
+      ### <FixMe> is the computation of k ok? 
+      if(!offset_control$cyclic){
+        modOffset <- try( gam(responseW ~ s(time, bs="ad", 
+                                        k = min(offset_control$k_min, round(length(time)/10))  ),
+                              knots=offset_control$knots), 
+                          silent=offset_control$silent )
+      }else{ # use cyclic splines
+        modOffset <- try( gam(responseW ~ s(time, bs="cc", 
+                                        k = min(offset_control$k_min, round(length(time)/10))  ),
+                              knots=offset_control$knots), 
+                          silent=offset_control$silent )
+      }
+    
+      if(any(class(modOffset)=="try-error")){
+        warning(paste("Could not fit the smooth offset by adaptive splines (default), use a simple spline expansion with 5 df instead.",
+                      if(offset_control$cyclic) "This offset is not cyclic!"))
+        if(round(length(time)/2) < 8) warning("Most likely because of too few time-points.")
+        modOffset <- lm(response ~ bs(time, df=5))
+      } 
+      
+      offsetVec <- as.numeric(predict(modOffset, newdata=data.frame(time=time)))
+      predictOffset <- function(time){
+        ret <- as.numeric(predict(modOffset, newdata=data.frame(time=time)))
+        names(ret) <- NULL
+        ret      
+      } 
+      offset <- offsetVec
+      
+    # no time-specific offset -> constant offset is estimated within mboost()
+    }else{
+      message("Use a constant offset for irregular data.")
+      offsetVec <- NULL
+      offset <- NULL # use one constant offset in mboost()
+      predictOffset <- function(time) 0 
+    }
+    
+
   }
   
   #browser()

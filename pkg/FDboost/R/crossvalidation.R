@@ -254,7 +254,11 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
       keepOOB <- matrix(oobweights, nObs, Gy)
       keepRow <- apply(keepOOB, 1, function(x) any(x!=0))
       if(any(keepRow)){
-        predOOB <- sapply(predOOB, function(x) as.vector(x[keepRow,]) )[,grid]
+        if( length(object$yind) > 1){ # functional response
+          predOOB <- sapply(predOOB, function(x) as.vector(x[keepRow, ]) )[,grid]
+        }else{ # scalar response
+          predOOB <- sapply(predOOB, function(x) as.vector(x[keepRow, ]) )[grid]
+        }
         respOOB <- as.vector(matrix(mod$response, nObs, Gy)[keepRow,] )
         attr(respOOB, "curves") <- which(keepRow)
       }else{
@@ -329,7 +333,7 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
   #     
   #     return(list(risk=risk, predGrid=predGrid, coefCV=coefCV)) #mod=mod
   #   }
-  #       
+  #  
   
   ### computation of models on partitions of data
   if(Sys.info()["sysname"]=="Linux"){
@@ -495,6 +499,7 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
   # calculate coefficients for the median mstop
   coefCV <- list()
   predCV <- list()
+
   
   if(getCoefCV){
     
@@ -502,28 +507,38 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
     optimalMstop <- grid[which.min(apply(oobrisk, 2, median))]
 
     ### estimates of coefficients
-    timeHelp <- seq(min(modRisk[[1]]$mod$yind), max(modRisk[[1]]$mod$yind), l=50)
+    timeHelp <- seq(min(modRisk[[1]]$mod$yind), max(modRisk[[1]]$mod$yind), l=40)
     for(l in 1:length(modRisk[[1]]$mod$baselearner)){
       # estimate the coefficients for the model of the first fold
       coefCV[[l]] <- coef(modRisk[[1]]$mod[optimalMstop], 
-                          which=l, n1 = 50, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]
-      if(l==1){
-        coefCV[[l]]$offset <- matrix(ncol=50, nrow=length(modRisk))
-        coefCV[[l]]$offset[1,] <- modRisk[[1]]$mod$predictOffset(time=timeHelp)
-      }
+                          which=l, n1 = 40, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]
+#       if(l==1){
+#         coefCV[[l]]$offset <- matrix(ncol=40, nrow=length(modRisk))
+#         coefCV[[l]]$offset[1,] <- modRisk[[1]]$mod$predictOffset(time=timeHelp)
+#       }
       attr(coefCV[[l]]$value, "offset") <- NULL # as offset is the same within one model
 
       # add estimates for the models of the other folds
       coefCV[[l]]$value <- lapply(1:length(modRisk), function(g){
         ret <- coef(modRisk[[g]]$mod[optimalMstop], 
-                    which=l, n1 = 50, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]$value
-        if(l==1){
-          coefCV[[l]]$offset[g,] <- modRisk[[g]]$mod$predictOffset(time=timeHelp)
-        }
+                    which=l, n1 = 40, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]$value
+#         if(l==1){
+#           coefCV[[l]]$offset[g,] <- modRisk[[g]]$mod$predictOffset(time=timeHelp)
+#         }
         attr(ret, "offset") <- NULL # as offset is the same within one model
         return(ret)
       })
     }
+    
+    ## predict offset
+    offset <- sapply(1:length(modRisk), function(g){
+      # offset is vector of length yind or numeric of length 1 for constant offset
+      ret <- modRisk[[g]]$mod$predictOffset(time=timeHelp)
+      if( length(ret)==1 & length(object$yind) > 1 ) ret <- rep(ret, length(timeHelp))
+      return(ret)
+    })
+    
+    attr(coefCV, "offset") <- offset
     
     niceNames <- c("offset", lapply(coefCV, function(x) x$main))
     
@@ -533,16 +548,23 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
       for(l in 1:(length(modRisk[[1]]$mod$baselearner)+1)){
         predCV[[l]] <- t(sapply(1:length(modRisk), function(g){
           if(l==1){ # save offset of model
-            ret <- attr(predict(modRisk[[g]]$mod[optimalMstop], which=l), "offset")          
-            if( !is.null(dim(ret)) ){
-              if(is.null(object$id)) ret <- ret[1,]
+            # offset is vector of length yind or numeric of length 1 for constant offset
+            ret <- modRisk[[g]]$mod[optimalMstop]$predictOffset(object$yind) 
+            # regular data or scalar response
+            if(is.null(object$id)){
+              if( length(ret)==1 ) ret <- rep(ret, modRisk[[1]]$mod$ydim[2])
+            # irregular data
             }else{
-              if(is.null(object$id)) ret <- rep(ret, modRisk[[1]]$mod$ydim[2]) else ret <- rep(ret, length(object$id))
+              if( length(ret)==1 ){ ret <- rep(ret, sum(object$id==g)) }else{ ret <- ret[object$id==g] }
             }
           }else{ # other effects
             ret <- predict(modRisk[[g]]$mod[optimalMstop], which=l-1) # model g
             if(!(l-1) %in% selected(modRisk[[g]]$mod[optimalMstop]) ){ # effect was never chosen
-              if(is.null(object$id)) ret <- rep(0, modRisk[[1]]$mod$ydim[2]) else ret <- matrix(0, nrow=length(object$id), ncol=1)
+              if(is.null(object$id)){
+                ret <- matrix(0, ncol=modRisk[[1]]$mod$ydim[2], nrow=modRisk[[1]]$mod$ydim[1])
+              }else{
+                ret <- matrix(0, nrow=length(object$id), ncol=1)
+              } 
             }
             if(is.null(object$id)){
               ret <- ret[g,] # save g-th row = preds for g-th observations
@@ -708,7 +730,7 @@ plot.validateFDboost <- function(x, risk=c("median","mean"),
     ylim <- range(response, pred, na.rm = TRUE)
     funplot(x$yind, responseMat, id=x$id, lwd = 1, pch = 1, ylim = ylim,  
             ylab = "", xlab = attr(x$yind, "nameyind"), main="Measured and Predicted Values", ...)
-    funplot(x$yind, predMat, id=x$id, lwd = 1.5, pch = 2, add = TRUE, ...)
+    funplot(x$yind, predMat, id=x$id, lwd = 2, pch = 2, add = TRUE, ...)
     
     # Plot residuals for the optimal mstop
     funplot(x$yind, responseMat-predMat, id=x$id, ylab = "", xlab = attr(x$yind, "nameyind"), 
@@ -791,44 +813,47 @@ plotPredCoef <- function(x, which=NULL,
     }
     
     if(commonRange & is.null(ylim)){ 
-      if(length(x$yind)>1){
-        ylim <- range(x$predCV[-1]) # exclude offset in calculation of common range
-      }else{
-        ylim <- range(x$predCV[which])
-      } 
+      ylim <- range(x$predCV[which])
     }
+    # <FIXME> use extra ylim for functional offset?
     
     ### loop over base-learners
     for(l in which){
       
-      if(l==1 && length(x$yind)>1){ # do not use common range for offset for functional response
-        matplot(x$yind, t(x$predCV[[l]]), type="l", 
-                main=names(x$predCV)[l], xlab=attr(x$yind, "nameyind"), ylab="coef", ylim=NULL, ...)
+      if( is.null(x$id) ){
+        
+        if(length(x$yind)>1){
+          if(l==1 && length(x$yind)>1){ 
+            matplot(x$yind, t(x$predCV[[l]]), type="l", 
+                    main=names(x$predCV)[l], xlab=attr(x$yind, "nameyind"), ylab="coef", ylim=ylim, ...)
+          }else{
+            matplot(x$yind, t(x$predCV[[l]]), type="l", 
+                    main=names(x$predCV)[l], xlab=attr(x$yind, "nameyind"), ylab="coef", ylim=ylim, ...)
+            
+            if(showNumbers){
+              matplot(x$yind, t(x$predCV[[l]]), add=TRUE, ...)
+            }
+          }
+        }else{
+          plot(1:length(x$predCV[[l]]), x$predCV[[l]], main=names(x$predCV)[l], xlab="index", ylab="coef")
+        }
         
       }else{
+        funplot(x$yind, unlist(x$predCV[[l]]), 
+                id=x$id, type="l", 
+                main=names(x$predCV)[l], xlab=attr(x$yind, "nameyind"), ylab="coef", ylim=ylim, ...)
         
-        if( is.null(x$id) ){
-          matplot(x$yind, t(x$predCV[[l]]), type="l", 
-                  main=names(x$predCV)[l], xlab=attr(x$yind, "nameyind"), ylab="coef", ylim=ylim, ...)
-          if(showNumbers){
-            matplot(x$yind, t(x$predCV[[l]]), add=TRUE, ...)
-          }
-          
-        }else{
-          funplot(x$yind, unlist(x$predCV[[l]]), 
-                  id=rep(1:length(x$predCV[[l]]), times=sapply(x$predCV[[l]], length)), type="l", 
-                  main=names(x$predCV)[l], xlab=attr(x$yind, "nameyind"), ylab="coef", ylim=ylim, ...)
-          if(showNumbers){
-            points(x$yind, unlist(x$predCV[[l]]), type="p", pch=paste(x$id))
-          }
+        if(showNumbers){
+          points(x$yind, unlist(x$predCV[[l]]), type="p", pch=paste(x$id))
         }
-      }
-    }
+      } 
+    } # end for-loop 
+    
   }else{ # plot coefficients
     
     if(commonRange & is.null(ylim)){
       if(length(x$yind)>1){
-        ylim <- range(lapply(x$coefCV[-1], function(x) x$value)) # exclude offset in calculation of common range
+        ylim <- range(lapply(x$coefCV[which], function(x) x$value)) 
       }else{
         ylim <- range(lapply(x$coefCV[which], function(x) x$value))
       } 
@@ -842,24 +867,40 @@ plotPredCoef <- function(x, which=NULL,
       # set the range for each effect individually
       if(FALSE) ylim <- range(temp$value)
       
-      # plot the estimated offset
+      ## plot the estimated offset
       if(l==1 && length(x$yind)>1){
-        #temp <- x$coefCV[[1]]
-        myMat <- temp$offset
+        myMat <- attr(x$coefCV, "offset")
         
-        matplot(seq(min(x$yind), max(x$yind), length=ncol(myMat)), t(myMat), type="l", 
-                xlab=attr(x$yind,"nameyind"),
-                main="offset", ylab="coef", ...)
+        browser()
         
-        if(showNumbers){
-          matplot(seq(min(x$yind), max(x$yind), length=ncol(myMat)), t(myMat), add=TRUE, ...)
+        if(showQuantiles){ 
+          timeHelp <- seq(min(x$yind), max(x$yind), length=nrow(myMat))
+          matplot(timeHelp, myMat, 
+                  type="l", xlab=temp$xlab,
+                  main=temp$main, ylab="coef", ylim=NULL, 
+                  col=rgb(0.6,0.6,0.6, alpha=0.5), ...)
+          
+          if(showNumbers){
+            matplot(timeHelp, myMat, add=TRUE, col=rgb(0.6,0.6,0.6, alpha=0.5), ...)
+          }
+          lines(timeHelp, rowMeans(myMat), col=1, lwd=2)
+          lines(timeHelp, apply(myMat, 1, quantile, 0.95), col=2, lwd=2, lty=2)
+          lines(timeHelp, apply(myMat, 1, quantile, 0.05), col=2, lwd=2, lty=2)
+          
+        }else{
+          matplot(seq(min(x$yind), max(x$yind), length=ncol(myMat)), t(myMat), type="l", 
+                  xlab=attr(x$yind,"nameyind"),
+                  main="offset", ylab="coef", ...)
+          
+          if(showNumbers){
+            matplot(seq(min(x$yind), max(x$yind), length=ncol(myMat)), t(myMat), add=TRUE, ...)
+          }
         }
-        
       }
       
       if(temp$dim==1){
         # impute vector of 0 if effect was never chosen
-        temp$value[sapply(temp$value, function(x) length(x)==1)] <- list(rep(0, 50))
+        temp$value[sapply(temp$value, function(x) length(x)==1)] <- list(rep(0, 40))
         myMat <- sapply(temp$value, function(x) x) # as one matrix
         
         if(showQuantiles){
