@@ -942,7 +942,7 @@ plotPredCoef <- function(x, which=NULL,
           for(j in 1:length(quanty)){ 
             
             # impute matrix of 0 if effect was never chosen
-            temp$value[sapply(temp$value, function(x) is.null(dim(x)))] <- list(matrix(0, ncol=20, nrow=20))
+            temp$value[sapply( temp$value, function(x){ is.null(dim(x)) || dim(x)[2]==1 })] <- list(matrix(0, ncol=20, nrow=20))
             
             # set lower triangular matrix to NA for historic effect
             if(grepl("bhist", temp$main)){
