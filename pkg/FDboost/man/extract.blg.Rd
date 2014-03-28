@@ -35,7 +35,7 @@
   Takes a base-learner and extracts information.
 }
 \seealso{
-  \code{\link[mboost]{extract}} for the extract funcitons
+  \code{\link[mboost]{extract}} for the extract functions
   of the package mboost
 }
 

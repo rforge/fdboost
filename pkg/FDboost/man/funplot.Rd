@@ -10,7 +10,7 @@
   \item{y}{matrix of functional data with functions in rows
   and measured times in columns}
 
-  \item{id}{defaults fo NULL for y matrix, is id-variables
+  \item{id}{defaults to NULL for y matrix, is id-variables
   for y in long format}
 
   \item{rug}{logical. Should rugs be plotted? Defaults to
@@ -27,7 +27,7 @@
   All observations are marked by a small cross
   (\code{pch=3}). Missing values are imputed by linear
   interpolation. Parts that are interpolated are plotted by
-  dotted lines, parts with nonmissing values as solid
+  dotted lines, parts with non-missing values as solid
   lines.
 }
 

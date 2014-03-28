@@ -26,8 +26,8 @@
   \item{numInt}{integration scheme for the integration of
   the loss function. One of \code{c("equal", "Riemann")}
   meaning equal weights of 1 or trapezoidal Riemann
-  weights. Alternativley a vector of length
-  \code{nrow(response)} containing arbitray positive
+  weights. Alternatively a vector of length
+  \code{nrow(response)} containing arbitrary positive
   weights can be specified.}
 
   \item{data}{a data frame or list containing the variables
@@ -59,7 +59,7 @@
   \code{mboost}. Special \code{\link{predict.FDboost}},
   \code{\link{coef.FDboost}} and \code{\link{plot.FDboost}}
   methods are available. The methods of
-  \code{\link[mboost]{mboost}} ara available as well, e.g.
+  \code{\link[mboost]{mboost}} are available as well, e.g.
   \code{\link[mboost]{extract}}
 }
 \description{

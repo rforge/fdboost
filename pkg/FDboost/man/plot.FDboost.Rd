@@ -20,7 +20,7 @@
   \item{x}{a fitted \code{FDboost}-object}
 
   \item{raw}{logical defaults to FALSE. If raw=FALSE for
-  each effect the estimated function/surface is calcuated
+  each effect the estimated function/surface is calculated
   If raw=TRUE the coefficients of the model are returned.}
 
   \item{rug}{when TRUE (default) then the covariate to
@@ -43,7 +43,7 @@
 
   \item{n2}{see below}
 
-  \item{n3}{n1, n2, n3 give the number of gridpoints for
+  \item{n3}{n1, n2, n3 give the number of grid-points for
   1-/2-/3-dimensional smooth terms used in the marginal
   equidistant grids over the range of the covariates at
   which the estimated effects are evaluated.}

@@ -11,9 +11,9 @@
   \item{time}{name of time variable}
 
   \item{newtime}{new time vector that should be used. Must
-  be part of the old timeline.}
+  be part of the old time-line.}
 
-  \item{data}{list containig all the data}
+  \item{data}{list containing all the data}
 }
 \value{
   A list with the data containing all variables of the

@@ -345,7 +345,7 @@ fitted.FDboost <- function(object, ...) {
 #' @param object a fitted \code{FDboost}-object
 #' @param ... not used
 #' 
-#' @details The residual is missing if the correspondig value of the response was missing.
+#' @details The residual is missing if the corresponding value of the response was missing.
 #' @seealso \code{\link{FDboost}} for the model fit.
 #' @return matrix of residual values
 #' @method residuals FDboost
@@ -373,7 +373,7 @@ residuals.FDboost <- function(object, ...){
 #' 
 #' @param object a fitted \code{FDboost}-object
 #' @param raw  logical defaults to FALSE.
-#' If raw=FALSE for each effect the estimated function/surface is calcuated
+#' If raw=FALSE for each effect the estimated function/surface is calculated
 #' If raw=TRUE the coefficients of the model are returned. 
 #' @param which a subset of base-learners for which the coefficients
 #' should be computed (numeric vector), 
@@ -382,7 +382,7 @@ residuals.FDboost <- function(object, ...){
 #' @param computeCoef defaults to TRUE, if FALSE only the names of the terms are returned
 #' @param n1 see below
 #' @param n2 see below
-#' @param n3 n1, n2, n3 give the number of gridpoints for 1-/2-/3-dimensional 
+#' @param n3 n1, n2, n3 give the number of grid-points for 1-/2-/3-dimensional 
 #' smooth terms used in the marginal equidistant grids over the range of the 
 #' covariates at which the estimated effects are evaluated.
 #' @param n4 gives the number of points for the third dimension in a 3-dimensional smooth term
@@ -394,7 +394,7 @@ residuals.FDboost <- function(object, ...){
 #'  \item \code{smterms} a named list with one entry for each smooth term in the model. 
 #'  Each entry contains
 #'     \itemize{
-#'          \item \code{x, y, z} the unique gridpoints used to evaluate the smooth/coefficient function/coefficient surface
+#'          \item \code{x, y, z} the unique grid-points used to evaluate the smooth/coefficient function/coefficient surface
 #'          \item \code{xlim, ylim, zlim} the extent of the x/y/z-axes
 #'          \item \code{xlab, ylab, zlab} the names of the covariates for the x/y/z-axes
 #'          \item \code{value} a vector/matrix/list of matrices containing the coefficient values 
@@ -710,7 +710,7 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
   }
 }
 
-# help funtion to color perspective plots - col1 positive values, col2 negative values
+# help function to color perspective plots - col1 positive values, col2 negative values
 getColPersp <- function(z, col1="tomato", col2="lightblue"){
   nrz <- nrow(z)
   ncz <- ncol(z)
@@ -735,7 +735,7 @@ getColPersp <- function(z, col1="tomato", col2="lightblue"){
 #' 
 #' @param x a fitted \code{FDboost}-object
 #' @param raw  logical defaults to FALSE.
-#' If raw=FALSE for each effect the estimated function/surface is calcuated
+#' If raw=FALSE for each effect the estimated function/surface is calculated
 #' If raw=TRUE the coefficients of the model are returned. 
 #' @param rug when TRUE (default) then the covariate to which the plot applies is 
 #' displayed as a rug plot at the foot of each plot of a 1-d smooth, 
@@ -749,7 +749,7 @@ getColPersp <- function(z, col1="tomato", col2="lightblue"){
 #' has to hit Return to see next plot.
 #' @param n1 see below
 #' @param n2 see below
-#' @param n3 n1, n2, n3 give the number of gridpoints for 1-/2-/3-dimensional 
+#' @param n3 n1, n2, n3 give the number of grid-points for 1-/2-/3-dimensional 
 #' smooth terms used in the marginal equidistant grids over the range of the 
 #' covariates at which the estimated effects are evaluated.
 #' @param n4 gives the number of points for the third dimension in a 3-dimensional smooth term
@@ -1042,7 +1042,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
     for(i in 1:length(terms)){
       # set values of predicted effect to missing if response is missing
       if(sum(is.na(x$response))>0) terms[[i]][is.na(x$response)] <- NA
-      range <- range(terms[[i]])
+      range <- range(terms[[i]], na.rm=TRUE)
       if(length(time)>1){
         
         plotWithArgs(funplot, args=argsFunplot, 
@@ -1083,7 +1083,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
 #' for a base-learner B.
 #' @param ... currently not used
 #' @method extract blg
-#' @seealso \code{\link[mboost]{extract}} for the extract funcitons of the package mboost
+#' @seealso \code{\link[mboost]{extract}} for the extract functions of the package mboost
 extract.blg <- function(object, what = c("design", "penalty", "index"),
                         asmatrix = FALSE, expand = FALSE, ...){
   what <- match.arg(what)

@@ -50,7 +50,7 @@
   \item{terms,}{logical, defaults to TRUE plot the added
   terms (default) or the coefficients?}
 
-  \item{probs}{vector of qunatiles to be used in the
+  \item{probs}{vector of quantiles to be used in the
   plotting of 2-dimensional coefficients surfaces, defaults
   to \code{probs=c(0.25, 0.5, 0.75)}}
 
@@ -60,13 +60,13 @@
 }
 \description{
   Methods for objects that are fitted to determine the
-  optimal mstop and the prediciton error of a model fitted
+  optimal mstop and the prediction error of a model fitted
   by FDboost.
 }
 \details{
   \code{plot.validateFDboost} plots cross-validated risk,
   RMSE, MRD, measured and predicted values and residuals as
-  determined by validateFDboost.
+  determined by \code{validateFDboost}.
   \code{mstop.validateFDboost} extracts the optimal mstop
   by minimizing the median risk.
 }

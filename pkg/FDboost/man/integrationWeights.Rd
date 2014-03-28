@@ -19,9 +19,9 @@
 }
 \details{
   The function \code{integrationWeights()} computes
-  trapezoidal integraion weights, that are symmetric. The
+  trapezoidal integration weights, that are symmetric. The
   function \code{integrationWeightsLeft()} computes
-  weights, that take into account soley the distance to the
+  weights, that take into account only the distance to the
   prior observation point.  Those weights are adequate for
   historical effects.
 }

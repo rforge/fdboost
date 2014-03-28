@@ -22,8 +22,8 @@ o_control <- function(k_min=20, rule=2, silent=TRUE, cyclic=FALSE, knots=NULL) {
 #' 
 #' @param funVar names of functional variables that should be truncated
 #' @param time name of time variable
-#' @param newtime new time vector that should be used. Must be part of the old timeline.
-#' @param data list containig all the data
+#' @param newtime new time vector that should be used. Must be part of the old time-line.
+#' @param data list containing all the data
 #' @note All variables that are not part if \code{funVar}, or \code{time}
 #' are simply copied into the new data list
 #' @return A list with the data containing all variables of the original dataset
@@ -57,13 +57,13 @@ truncateTime <- function(funVar, time, newtime, data){
 #' 
 #' @param x optional, time-vector for plotting 
 #' @param y matrix of functional data with functions in rows and measured times in columns
-#' @param id defaults fo NULL for y matrix, is id-variables for y in long format
+#' @param id defaults to NULL for y matrix, is id-variables for y in long format
 #' @param rug logical. Should rugs be plotted? Defaults to TRUE.
 #' @param ... further arguments passed to \code{\link[graphics]{matplot}}.
 #' 
 #' @details All observations are marked by a small cross (\code{pch=3}).
 #' Missing values are imputed by linear interpolation. Parts that are
-#' interpolated are plotted by dotted lines, parts with nonmissing values as solid lines.
+#' interpolated are plotted by dotted lines, parts with non-missing values as solid lines.
 #' @export
 # with(fda::growth, funplot(age, t(hgtm)))
 funplot <- function(x, y, id=NULL, rug=TRUE, ...){
@@ -133,6 +133,14 @@ funplot <- function(x, y, id=NULL, rug=TRUE, ...){
     for(i in 1:length(unique(idOrig))){
       id[idOrig==unique(idOrig)[i]] <- i
     }
+    
+    # there should be no mising values in long format
+    temp <- data.frame(id, y, x) # dim(temp)
+    temp <- na.omit(temp)    
+    id <- temp$id
+    x <- temp$x
+    y <- temp$y
+    rm(temp)
     
     stopifnot(length(x)==length(y) & length(y)==length(id))
     
@@ -294,12 +302,12 @@ getYYhatTime <- function(object, breaks=object$yind){
 
 #' Functional R-squared
 #' 
-#' Claculates the functional R-squared for a fitted FDboost-object
+#' Calculates the functional R-squared for a fitted FDboost-object
 #' 
 #' @param object fitted FDboost-object
-#' @param overTime per default the functional R-squared is calcualted over time
+#' @param overTime per default the functional R-squared is calculated over time
 #' if \code{overTime=FALSE}, the R-squared is calculated per curve
-#' @param breaks an optional vector or number giving the timepoints at which the model is evaluated.
+#' @param breaks an optional vector or number giving the time-points at which the model is evaluated.
 #' Can be specified as number of equidistant time-points or as vector of time-points.
 #' Defaults to the index of the response in the model.
 #' @param global logical. defaults to \code{FALSE}, 
@@ -313,10 +321,10 @@ getYYhatTime <- function(object, breaks=object$yind){
 #' 
 #' @details \code{breaks} should be set to some grid, if there are many
 #' missing values or time-points with very few observations in the dataset.
-#' Otherwiese at these points of t the variance will be almost 0 
-#' (or even 0 if there is only one observation at a timepoint),
+#' Otherwise at these points of t the variance will be almost 0 
+#' (or even 0 if there is only one observation at a time-point),
 #' and then the prediction by the local means \eqn{\mu(t)} is locally very good.
-#' The observations are interpolated linearily if necessary.
+#' The observations are interpolated linearly if necessary.
 #' 
 #' Formula to calculate R-squared over time, \code{overTime=TRUE}: \cr
 #' \eqn{R^2(t) = 1 - \sum_{i}( Y_i(t) - \hat{Y}_i(t))^2 /  \sum_{i}( Y_i(t) - \bar{Y}(t) )^2 } 
@@ -389,12 +397,12 @@ funRsquared <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,
 
 #' Functional MSE
 #' 
-#' Claculates the functional MSE for a fitted FDboost-object
+#' Calculates the functional MSE for a fitted FDboost-object
 #' 
 #' @param object fitted FDboost-object
-#' @param overTime per default the functional R-squared is calcualted over time
+#' @param overTime per default the functional R-squared is calculated over time
 #' if \code{overTime=FALSE}, the R-squared is calculated per curve
-#' @param breaks an optional vector or number giving the timepoints at which the model is evaluated.
+#' @param breaks an optional vector or number giving the time-points at which the model is evaluated.
 #' Can be specified as number of equidistant time-points or as vector of time-points.
 #' Defaults to the index of the response in the model.
 #' @param global logical. defaults to \code{FALSE}, 
@@ -464,12 +472,12 @@ funMSE <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,
 
 #' Functional MRD
 #' 
-#' Claculates the functional MRD for a fitted FDboost-object
+#' Calculates the functional MRD for a fitted FDboost-object
 #' 
 #' @param object fitted FDboost-object
-#' @param overTime per default the functional MRD is calcualted over time
+#' @param overTime per default the functional MRD is calculated over time
 #' if \code{overTime=FALSE}, the MRD is calculated per curve
-#' @param breaks an optional vector or number giving the timepoints at which the model is evaluated.
+#' @param breaks an optional vector or number giving the time-points at which the model is evaluated.
 #' Can be specified as number of equidistant time-points or as vector of time-points.
 #' Defaults to the index of the response in the model.
 #' @param global logical. defaults to \code{FALSE}, 

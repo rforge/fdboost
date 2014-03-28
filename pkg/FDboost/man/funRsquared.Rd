@@ -9,11 +9,11 @@
   \item{object}{fitted FDboost-object}
 
   \item{overTime}{per default the functional R-squared is
-  calcualted over time if \code{overTime=FALSE}, the
+  calculated over time if \code{overTime=FALSE}, the
   R-squared is calculated per curve}
 
   \item{breaks}{an optional vector or number giving the
-  timepoints at which the model is evaluated. Can be
+  time-points at which the model is evaluated. Can be
   specified as number of equidistant time-points or as
   vector of time-points. Defaults to the index of the
   response in the model.}
@@ -29,17 +29,17 @@
   extra information in attributes.
 }
 \description{
-  Claculates the functional R-squared for a fitted
+  Calculates the functional R-squared for a fitted
   FDboost-object
 }
 \details{
   \code{breaks} should be set to some grid, if there are
   many missing values or time-points with very few
-  observations in the dataset. Otherwiese at these points
-  of t the variance will be almost 0 (or even 0 if there is
-  only one observation at a timepoint), and then the
+  observations in the dataset. Otherwise at these points of
+  t the variance will be almost 0 (or even 0 if there is
+  only one observation at a time-point), and then the
   prediction by the local means \eqn{\mu(t)} is locally
-  very good. The observations are interpolated linearily if
+  very good. The observations are interpolated linearly if
   necessary.
 
   Formula to calculate R-squared over time,

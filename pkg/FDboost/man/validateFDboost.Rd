@@ -24,7 +24,7 @@
   \item{object}{fitted FDboost-object}
 
   \item{response}{you can specify a response vector to
-  calculate predictions errors. Defaults fo NULL which
+  calculate predictions errors. Defaults to NULL which
   means that the response of the fitted model is used.}
 
   \item{weights}{a numeric vector of weights for the model
@@ -43,11 +43,11 @@
 
   \item{mrdDelete}{Delete values that are mrdDelete percent
   smaller then the mean of the response. Defaults to 0
-  which means that only response values beeing 0 are not
-  used in the calculaiton of the MRD (= mean relative
+  which means that only response values being 0 are not
+  used in the calculation of the MRD (= mean relative
   deviation)}
 
-  \item{ydim}{dimensions of reponse-matrix}
+  \item{ydim}{dimensions of response-matrix}
 
   \item{type}{character argument for specifying the
   cross-validation method. Currently (stratified)
@@ -81,7 +81,7 @@
   Cross-Validation over Curves.
 }
 \details{
-  The funciton \code{validateFDboost} calculates honest
+  The function \code{validateFDboost} calculates honest
   estimates of prediction errors as the curve/observations
   that should be predicted is not part of the model fit.
   The function \code{cvMa} can be used to build an

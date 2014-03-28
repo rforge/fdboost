@@ -19,7 +19,7 @@
   \item{...}{matrix of functional data and the vector of
   observation points. The functional covariates have to be
   supplied as n by <no. of evaluations> matrices, i.e. each
-  row is one functional observation. The baselearner
+  row is one functional observation. The base-learner
   \code{bhist} expects three arguments: functional
   covariate, index of functional covariate, index of
   functional response \eqn{[0,1]} is assumed.}

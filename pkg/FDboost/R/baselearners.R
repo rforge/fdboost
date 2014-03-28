@@ -7,15 +7,15 @@
 #' 
 #' @aliases integrationWeightsLeft
 #' 
-#'  @details The function \code{integrationWeights()} computes trapezoidal integraion weights, 
+#'  @details The function \code{integrationWeights()} computes trapezoidal integration weights, 
 #'  that are symmetric. The function \code{integrationWeightsLeft()} computes weights,
-#'  that take into account soley the distance to the prior observation point. 
+#'  that take into account only the distance to the prior observation point. 
 #'  Those weights are adequate for historical effects.
 #'   
 #' 
 #' @export
 ################################# 
-# Trapezoidal integration weights for a functional covariable X1 on grid xind
+# Trapezoidal integration weights for a functional variable X1 on grid xind
 # corresponds to mean of left and right Riemann integration sum
 integrationWeights <- function(X1, xind, id=NULL){
   
@@ -129,9 +129,10 @@ integrationWeightsLeft <- function(X1, xind){
 
 ################################################################################
 ################################################################################
-# Base-learners for functional covariable 
+# Base-learners for functional covariates 
 
-### model.matrix for P-splines baselearner of signal matrix mf
+### model.matrix for P-splines base-learner of signal matrix mf
+### with index/time as attribute
 X_bsignal <- function(mf, vary, args) {
   
   stopifnot(is.data.frame(mf))
@@ -186,7 +187,7 @@ X_bsignal <- function(mf, vary, args) {
     # If the argument Z is not NULL use the given Z (important for prediction!)
     if(is.null(args$Z)){
       C <- t(X) %*% rep(1, nrow(X))
-      Q <- qr.Q(qr(C), complete=TRUE) # orthonormal matrix of QR decompositon
+      Q <- qr.Q(qr(C), complete=TRUE) # orthonormal matrix of QR decomposition
       Z <- Q[  , 2:ncol(Q)] # only keep last columns    
     }else Z <- args$Z
     
@@ -204,7 +205,7 @@ X_bsignal <- function(mf, vary, args) {
   #print("X_bsignal")
   #print(Z[1:3,1:3])
   
-  ### Weighting with matrix of functional covariable
+  ### Weighting with matrix of functional covariate
   L <- integrationWeights(X1=X1, xind=xind)
   # Design matrix is product of weighted X1 and basis expansion over xind 
   X <- (L*X1) %*% X
@@ -259,7 +260,7 @@ X_bsignal <- function(mf, vary, args) {
 #' @param ... matrix of functional data and the vector of observation points.
 #' The functional covariates have to be supplied as n by <no. of evaluations> 
 #' matrices, i.e. each row is one functional observation.
-#' The baselearner \code{bhist} expects three arguments: functional covariate,
+#' The base-learner \code{bhist} expects three arguments: functional covariate,
 #' index of functional covariate, index of functional response 
 #' \eqn{[0,1]} is assumed.
 #' @param index a vector of integers for expanding the signal variable in \code{....} 
@@ -331,7 +332,7 @@ X_bsignal <- function(mf, vary, args) {
 #' print("to do")
 #' ###############################################################################
 #' @export
-### P-spline base learner for signal matrix with index vector
+### P-spline base-learner for signal matrix with index vector
 bsignal <- function(...,  index = NULL, #by = NULL,
                     knots = 10, boundary.knots = NULL, degree = 3, differences = 2, df = 4, 
                     lambda = NULL, #center = FALSE, 
@@ -434,7 +435,7 @@ bsignal <- function(...,  index = NULL, #by = NULL,
   return(ret)
 }
 
-# ### hyper parameters for bsignal baselearner
+# ### hyper parameters for bsignal base-learner
 # # add the parameter Z
 # hyper_bsignal <- function(df = NULL, lambda = 0, intercept = TRUE,
 #                        contrasts.arg = "contr.treatment", Z=NULL)
@@ -455,9 +456,9 @@ bsignal <- function(...,  index = NULL, #by = NULL,
 
 
 #################################
-# Base-learner for concurrent effect of functional covariable
+# Base-learner for concurrent effect of functional covariate
 
-### model.matrix for P-splines baselearner of signal matrix mf
+### model.matrix for P-splines base-learner of signal matrix mf
 X_conc <- function(mf, vary, args) {
   
   stopifnot(is.data.frame(mf))
@@ -628,10 +629,10 @@ bconcurrent <- function(..., #by = NULL, index = NULL,
 
 
 #################################
-#### Base-learner for historic effect of functional covariable
+#### Base-learner for historic effect of functional covariate
 ### with integral over s<=t
 
-### model.matrix for P-splines baselearner of signal matrix mf
+### model.matrix for P-splines base-learner of signal matrix mf
 X_hist <- function(mf, vary, args) {
   
   stopifnot(is.data.frame(mf))
@@ -663,7 +664,7 @@ X_hist <- function(mf, vary, args) {
   
   colnames(B.s) <- paste(xname, 1:ncol(B.s), sep="")
   
-  # Weighting with matrix of functional covariable
+  # Weighting with matrix of functional covariate
   L <- integrationWeightsLeft(X1=X1, xind=xind)
   X1L <- L*X1
   
@@ -773,7 +774,8 @@ X_hist <- function(mf, vary, args) {
 }
 
 ### 
-### model.matrix for P-splines baselearner of signal matrix mf
+### model.matrix for P-splines base-learner of signal matrix mf
+### for irregular response
 X_hist2 <- function(mf, vary, args) {
   
   stopifnot(is.data.frame(mf))
@@ -809,7 +811,7 @@ X_hist2 <- function(mf, vary, args) {
   
   colnames(B.s) <- paste(xname, 1:ncol(B.s), sep="")
   
-  # Weighting with matrix of functional covariable
+  # Weighting with matrix of functional covariate
   L <- integrationWeightsLeft(X1=X1, xind=xind)
   X1L <- L*X1
   
@@ -854,9 +856,7 @@ X_hist2 <- function(mf, vary, args) {
   ### use function limits to set up design matrix according to function limits 
   ### by setting 0 at the time-points that should not be used
   if (!is.null(limits)) {
-    ## at the moment: xind and yind are the same for all observations
-    ## expand yind by replication to the yind of all observations together
-    if(is.null(id)){
+    if(is.null(id)){ # yind is the same for all observations
       ind0 <- !t(outer( xind, rep(yind, each=nobs), limits) )
     } else{ # yind is over all observations in long format
       ind0 <- !t(outer( xind, yind, limits) )
@@ -888,9 +888,9 @@ X_hist2 <- function(mf, vary, args) {
   
   ### Penalty matrix: product differences matrix
   K1 <- diff(diag(ncol(X1des)), differences = args$differences)
-  K1 <- crossprod(K1)
+  K1 <- crossprod(K1) 
   K2 <- diff(diag(ncol(B.t)), differences = args$differences)
-  K2 <- crossprod(K2)  
+  K2 <- crossprod(K2) 
   K <- kronecker(K2, diag(ncol(X1des))) +
     kronecker(diag(ncol(B.t)), K1)
   
@@ -1070,7 +1070,7 @@ bhist <- function(..., index = NULL, #by = NULL,
 
 
 #################################
-# Base-learner with constraints for smooth varying scalar covariable
+# Base-learner with constraints for smooth varying scalar covariate
 
 ### almost equal to X_bbs() of package mboost
 ### difference: implements sum-to-zero-constraint over index of response
@@ -1227,7 +1227,7 @@ X_bbsc <- function(mf, vary, args) {
   # If the argument Z is not NULL use the given Z (important for prediction!)
   if(is.null(args$Z)){
     C <- t(X) %*% rep(1, nrow(X))
-    Q <- qr.Q(qr(C), complete=TRUE) # orthonormal matrix of QR decompositon
+    Q <- qr.Q(qr(C), complete=TRUE) # orthonormal matrix of QR decomposition
     Z <- Q[  , 2:ncol(Q)] # only keep last columns    
   }else Z <- args$Z
   
@@ -1235,7 +1235,7 @@ X_bbsc <- function(mf, vary, args) {
   X <- X %*% Z
   K <- t(Z) %*% K %*% Z
   
-  attr(X, "Z") <- Z # Z wird momentan nicht benutzt!!
+  attr(X, "Z") <- Z # attribute is not used at the moment
   #----------------------------------
     
   ## compare specified degrees of freedom to dimension of null space
@@ -1291,7 +1291,7 @@ X_bbsc <- function(mf, vary, args) {
 #' in \code{brandomc}. It leads to a 
 #' dummy coding as returned by \code{model.matrix(~ x - 1)} were the 
 #' intercept is implicitly included but each factor level gets a 
-#' seperate effect estimate (for more details see \code{\link[mboost]{brandom}}).
+#' separate effect estimate (for more details see \code{\link[mboost]{brandom}}).
 #' @param intercept if intercept = TRUE an intercept is added to the design matrix 
 #' of a linear base-learner. 
 #' 
@@ -1412,7 +1412,7 @@ bbsc <- function(..., by = NULL, index = NULL, knots = 10, boundary.knots = NULL
 # str(blz$dpp(weights=rep(1,17)))
 
 #################
-### model.matrix for constrained ols baselearner with penalty matrix K
+### model.matrix for constrained ols base-learner with penalty matrix K
 X_olsc <- function(mf, vary, args) {
   
   if (mboost:::isMATRIX(mf)) {
@@ -1516,7 +1516,7 @@ X_olsc <- function(mf, vary, args) {
   X <- X %*% Z
   K <- t(Z) %*% K %*% Z
   
-  attr(X, "Z") <- Z # Z wird momentan nicht benutzt!!
+  attr(X, "Z") <- Z # attr not used at the moment
   #----------------------------------
   
   ### </FIXME>
@@ -1530,7 +1530,7 @@ X_olsc <- function(mf, vary, args) {
 
 #' @rdname bbsc
 #' @export
-### Linear baselearner, potentially Ridge-penalized (but not by default)
+### Linear base-learner, potentially Ridge-penalized (but not by default)
 ### one can specify the penalty matrix K
 ### with sum-to-zero constraint over index of response
 bolsc <- function(..., by = NULL, index = NULL, intercept = TRUE, df = NULL,
@@ -1615,11 +1615,11 @@ bolsc <- function(..., by = NULL, index = NULL, intercept = TRUE, df = NULL,
   ret$dpp <- mboost:::bl_lin(ret, Xfun = X_olsc, args = hyper_olsc(
     df = df, lambda = lambda, K = K, # use penalty matrix as argument
     intercept = intercept, contrasts.arg = contrasts.arg,
-    Z=NULL)) # Z in args wird momentan nicht benutzt!!
+    Z=NULL)) # Z in args not used at the moment
   return(ret)
 }
 
-### hyper parameters for olsc baselearner
+### hyper parameters for olsc base-learner
 # add the parameters Z and K
 hyper_olsc <- function(df = NULL, lambda = 0, K=NULL, intercept = TRUE,
                       contrasts.arg = "contr.treatment", Z=NULL)
@@ -1631,7 +1631,7 @@ hyper_olsc <- function(df = NULL, lambda = 0, K=NULL, intercept = TRUE,
 
 #' @rdname bbsc
 #' @export
-# random-effects (Ridge-penalized ANOVA) baselearner
+# random-effects (Ridge-penalized ANOVA) base-learner
 # almost equal to brandom, but with sum-to-zero-constraint over index of t
 brandomc <- function (..., contrasts.arg = "contr.dummy", df = 4) {
   cl <- cltmp <- match.call()
@@ -1653,11 +1653,11 @@ brandomc <- function (..., contrasts.arg = "contr.dummy", df = 4) {
 # further utility functions of library mboost, bl.R
 # necessary to copy them into FDboost?
 
-### extract variables names from baselearner
+### extract variables names from base-learner
 names.blg <- function(x)
   x$get_names()
 
-### extract data from baselearner
+### extract data from base-learner
 model.frame.blg <- function(formula, ...)
   formula$model.frame(...)
  
@@ -1683,7 +1683,7 @@ model.frame.blg <- function(formula, ...)
 # dpp.blg <- function(object, weights)
 #   object$dpp(weights)
 # 
-# ### actually fit a baselearner to response y
+# ### actually fit a base-learner to response y
 # fit <- function(object, y)
 #   UseMethod("fit", object)
 # 

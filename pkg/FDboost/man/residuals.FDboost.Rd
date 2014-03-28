@@ -17,7 +17,7 @@
   residuals.
 }
 \details{
-  The residual is missing if the correspondig value of the
+  The residual is missing if the corresponding value of the
   response was missing.
 }
 \seealso{

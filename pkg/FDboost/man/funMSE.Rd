@@ -9,11 +9,11 @@
   \item{object}{fitted FDboost-object}
 
   \item{overTime}{per default the functional R-squared is
-  calcualted over time if \code{overTime=FALSE}, the
+  calculated over time if \code{overTime=FALSE}, the
   R-squared is calculated per curve}
 
   \item{breaks}{an optional vector or number giving the
-  timepoints at which the model is evaluated. Can be
+  time-points at which the model is evaluated. Can be
   specified as number of equidistant time-points or as
   vector of time-points. Defaults to the index of the
   response in the model.}
@@ -37,7 +37,7 @@
   information in attributes.
 }
 \description{
-  Claculates the functional MSE for a fitted FDboost-object
+  Calculates the functional MSE for a fitted FDboost-object
 }
 \details{
   Formula to calculate MSE over time, \code{overTime=TRUE}:

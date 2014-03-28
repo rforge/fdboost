@@ -63,7 +63,7 @@
   in \code{brandomc}. It leads to a dummy coding as
   returned by \code{model.matrix(~ x - 1)} were the
   intercept is implicitly included but each factor level
-  gets a seperate effect estimate (for more details see
+  gets a separate effect estimate (for more details see
   \code{\link[mboost]{brandom}}).}
 
   \item{intercept}{if intercept = TRUE an intercept is

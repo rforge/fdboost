@@ -10,7 +10,7 @@
   \item{object}{a fitted \code{FDboost}-object}
 
   \item{raw}{logical defaults to FALSE. If raw=FALSE for
-  each effect the estimated function/surface is calcuated
+  each effect the estimated function/surface is calculated
   If raw=TRUE the coefficients of the model are returned.}
 
   \item{which}{a subset of base-learners for which the
@@ -27,7 +27,7 @@
 
   \item{n2}{see below}
 
-  \item{n3}{n1, n2, n3 give the number of gridpoints for
+  \item{n3}{n1, n2, n3 give the number of grid-points for
   1-/2-/3-dimensional smooth terms used in the marginal
   equidistant grids over the range of the covariates at
   which the estimated effects are evaluated.}
@@ -43,15 +43,15 @@
   non-functional coefficients \item \code{smterms} a named
   list with one entry for each smooth term in the model.
   Each entry contains \itemize{ \item \code{x, y, z} the
-  unique gridpoints used to evaluate the smooth/coefficient
-  function/coefficient surface \item \code{xlim, ylim,
-  zlim} the extent of the x/y/z-axes \item \code{xlab,
-  ylab, zlab} the names of the covariates for the
-  x/y/z-axes \item \code{value} a vector/matrix/list of
-  matrices containing the coefficient values \item
-  \code{dim} the dimensionality of the effect \item
-  \code{main} the label of the smooth term (a short label)
-  }}
+  unique grid-points used to evaluate the
+  smooth/coefficient function/coefficient surface \item
+  \code{xlim, ylim, zlim} the extent of the x/y/z-axes
+  \item \code{xlab, ylab, zlab} the names of the covariates
+  for the x/y/z-axes \item \code{value} a
+  vector/matrix/list of matrices containing the coefficient
+  values \item \code{dim} the dimensionality of the effect
+  \item \code{main} the label of the smooth term (a short
+  label) }}
 }
 \description{
   Takes a fitted \code{FDboost}-object produced by

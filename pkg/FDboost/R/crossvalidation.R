@@ -2,7 +2,7 @@
 #' @rdname validateFDboost
 #' @export
 # wrapper for function cv() of mboost, additional type "curves"
-# add option id to sample on the level of id if there are reapeated measures
+# add option id to sample on the level of id if there are repeated measures
 cvMa <- function(ydim, weights=NULL, 
                  type = c("bootstrap", "kfold", "subsampling", "curves"), 
                  B = ifelse(type == "kfold", 10, 25), prob = 0.5, strata = NULL, id=NULL){
@@ -73,7 +73,7 @@ cvLong <- function(weights, id,
 #' 
 #' @param object fitted FDboost-object
 #' @param response you can specify a response vector to calculate predictions errors. 
-#' Defaults fo NULL which means that the response of the fitted model is used.
+#' Defaults to NULL which means that the response of the fitted model is used.
 #' @param weights a numeric vector of weights for the model to be cross-validated.
 #' if weights=NULL all weights are taken to be 1.
 #' @param folds a weight matrix with number of rows equal to the number of observations. 
@@ -81,9 +81,9 @@ cvLong <- function(weights, id,
 #' @param getCoefCV logical, defaults to TRUE Should the coefficients and predictions
 #'  be computed for all the models on the sampled data?
 #' @param mrdDelete Delete values that are mrdDelete percent smaller then the mean
-#'  of the response. Defaults to 0 which means that only response values beeing 0
-#'  are not used in the calculaiton of the MRD (= mean relative deviation)
-#' @param ydim dimensions of reponse-matrix
+#'  of the response. Defaults to 0 which means that only response values being 0
+#'  are not used in the calculation of the MRD (= mean relative deviation)
+#' @param ydim dimensions of response-matrix
 #' @param type character argument for specifying the cross-validation 
 #' method. Currently (stratified) bootstrap, k-fold cross-validation 
 #' and subsampling are implemented.
@@ -98,7 +98,7 @@ cvLong <- function(weights, id,
 #' (Only interesting in the case that several observations per individual were made.)
 #' @param ... further arguments passed to mclapply
 #' 
-#' @details The funciton \code{validateFDboost} calculates honest estimates 
+#' @details The function \code{validateFDboost} calculates honest estimates 
 #' of prediction errors as the curve/observations
 #' that should be predicted is not part of the model fit.
 #'   The function \code{cvMa} can be used to build an appropriate 
@@ -212,7 +212,7 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
     mod <- withCallingHandlers(suppressMessages(eval(call)), warning = h) # suppress the warning of missing responses    
     #test <- FDboost(formula(object$formulaFDboost), timeformula=formula(object$timeformula), data=dathelp)
     
-    mod[max(grid)]
+    mod <- mod[max(grid)]
     
     # oob risk
     ## risk <- mod$risk()[grid] # this risk is out-of-bag if the argument in control is set to "oob"
@@ -257,7 +257,7 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
         if( length(object$yind) > 1){ # functional response
           predOOB <- sapply(predOOB, function(x) as.vector(x[keepRow, ]) )[,grid]
         }else{ # scalar response
-          predOOB <- sapply(predOOB, function(x) as.vector(x[keepRow, ]) )[grid]
+          predOOB <- sapply(predOOB, function(x) as.vector(x[keepRow, ]) )[,grid]
         }
         respOOB <- as.vector(matrix(mod$response, nObs, Gy)[keepRow,] )
         attr(respOOB, "curves") <- which(keepRow)
@@ -391,7 +391,7 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
     message(paste("In fold ", which(riskOptimal>bound), ": " ,
                   round(riskOptimal[which(riskOptimal>bound)], 2), collapse=",  ", sep="" )  )  
   }
-  
+
   ## only makes sense for type="curves" with leaving-out one curve per fold!!
   if(grepl( "curves", type)){
   ## predict response for all mstops in grid out of bag
@@ -633,7 +633,7 @@ mstop.validateFDboost <- function(object, ...){
 #' Methods for objects of class validateFDboost
 #' 
 #' Methods for objects that are fitted to determine the optimal mstop and the 
-#' prediciton error of a model fitted by FDboost.
+#' prediction error of a model fitted by FDboost.
 #' 
 #' @param x object of class validateFDboost
 #' @param object object of class validateFDboost
@@ -649,13 +649,13 @@ mstop.validateFDboost <- function(object, ...){
 #' @param showQuantiles plot the 0.05 and the 0.95 Quantile of coefficients in 1-dim effects
 #' @param showNumbers show number of curve in plot of predicted coefficients, defaults to FALSE
 #' @param terms, logical, defaults to TRUE plot the added terms (default) or the coefficients?
-#' @param probs vector of qunatiles to be used in the plotting of 2-dimensional coefficients surfaces,
+#' @param probs vector of quantiles to be used in the plotting of 2-dimensional coefficients surfaces,
 #' defaults to \code{probs=c(0.25, 0.5, 0.75)}
 #' @param ylim values for limits of y-axis
 #' @param ... additional arguments passed to callies.
 #' 
 #' @details \code{plot.validateFDboost} plots cross-validated risk, RMSE, MRD, measured and predicted values 
-#' and residuals as determined by validateFDboost.
+#' and residuals as determined by \code{validateFDboost}.
 #' \code{mstop.validateFDboost} extracts the optimal mstop by minimizing the median risk.
 #' 
 #' @aliases mstop.validateFDboost
@@ -870,8 +870,6 @@ plotPredCoef <- function(x, which=NULL,
       ## plot the estimated offset
       if(l==1 && length(x$yind)>1){
         myMat <- attr(x$coefCV, "offset")
-        
-        browser()
         
         if(showQuantiles){ 
           timeHelp <- seq(min(x$yind), max(x$yind), length=nrow(myMat))

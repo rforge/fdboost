@@ -29,7 +29,7 @@
 #' @param numInt integration scheme for the integration of the loss function.
 #' One of \code{c("equal", "Riemann")} meaning equal weights of 1 or 
 #' trapezoidal Riemann weights.
-#' Alternativley a vector of length \code{nrow(response)} containing arbitray 
+#' Alternatively a vector of length \code{nrow(response)} containing arbitrary 
 #' positive weights can be specified.
 #' @param data a data frame or list containing the variables in the model.
 #' @param weights (1) a numeric vector of weights for observational units, 
@@ -47,7 +47,7 @@
 #' @return on object of class \code{FDboost} that inherits from \code{mboost}.
 #' Special \code{\link{predict.FDboost}}, \code{\link{coef.FDboost}} and 
 #' \code{\link{plot.FDboost}} methods are available. 
-#' The methods of \code{\link[mboost]{mboost}} ara available as well, 
+#' The methods of \code{\link[mboost]{mboost}} are available as well, 
 #' e.g. \code{\link[mboost]{extract}}
 #' 
 #' @author Sarah Brockhaus, Torsten Hothorn
@@ -120,7 +120,7 @@ FDboost <- function(formula,          ### response ~ xvars
     data <- data[all.vars(formula)[-1]]    
   }else data <- list(NULL)  # <SB> intercept-model without covariates
       
-  ### get covariates that are modelled constant over time
+  ### get covariates that are modeled constant over time
   # code of function pffr() of package refund
   tf <- terms.formula(formula, specials=c("c"))
   trmstrings <- attr(tf, "term.labels")
@@ -142,7 +142,7 @@ FDboost <- function(formula,          ### response ~ xvars
     ### check dimensions
     ### response has trajectories as rows
     stopifnot(is.matrix(response))
-    # <SB> dataframe is list and can contain time-points of functional covariables of arbitrary length
+    # <SB> dataframe is list and can contain time-points of functional covariates of arbitrary length
     # if (nrow(data) > 0) stopifnot(nrow(response) == nrow(data))
     nr <- nrow(response)
     stopifnot(ncol(response) == length(time))
@@ -267,7 +267,7 @@ FDboost <- function(formula,          ### response ~ xvars
       meanNA <- apply(response, 1, function(x) mean(is.na(x)))
       responseInter <- t(apply(response[meanNA < 0.9 & rowSums(matrix(w, ncol=nc))!=0 , ], 1, function(x) 
         approx(time, x, rule=offset_control$rule, xout=time)$y))
-      # check whether first or last columns of the response contain soley NA
+      # check whether first or last columns of the response contain solely NA
       # then use the values of the next column
       if(any(apply(responseInter, 2, function(x) all(is.na(x)) ) )){
         warning("Column of interpolated response contains nothing but NA.")
