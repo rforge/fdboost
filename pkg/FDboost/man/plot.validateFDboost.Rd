@@ -7,8 +7,9 @@
   \method{mstop}{validateFDboost} (object, ...)
 
   \method{plot}{validateFDboost} (x,
-    risk = c("median", "mean"), modObject = NULL,
-    predictNA = FALSE, names.arg = NULL, ask = TRUE, ...)
+    risk = c("median", "mean"), which = 1,
+    modObject = NULL, predictNA = FALSE, names.arg = NULL,
+    ask = TRUE, ...)
 
   plotPredCoef(x, which = NULL, commonRange = TRUE,
     showNumbers = FALSE, showQuantiles = TRUE, ask = TRUE,
@@ -36,7 +37,9 @@
   \item{ask}{par(ask=ask)}
 
   \item{which}{a subset of base-learners to take into
-  account for plotting}
+  account for plotting. In the case of
+  \code{plot.validateFDboost} the diagnostic plots that are
+  given.}
 
   \item{commonRange,}{plot predicted coefficients on a
   common range, defaults to TRUE}

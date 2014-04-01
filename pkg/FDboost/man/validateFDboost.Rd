@@ -9,7 +9,7 @@
     B = ifelse(type == "kfold", 10, 25), prob = 0.5,
     strata = NULL, id = NULL)
 
-  cvLong(weights, id,
+  cvLong(id, weights = rep(1, l = length(id)),
     type = c("bootstrap", "kfold", "subsampling", "curves"),
     B = ifelse(type == "kfold", 10, 25), prob = 0.5,
     strata = NULL)
@@ -18,7 +18,7 @@
     weights = model.weights(object),
     folds = cvMa(ydim = object$ydim, weights = model.weights(object), type = "bootstrap"),
     grid = 1:mstop(object), getCoefCV = TRUE,
-    mrdDelete = 0, ...)
+    mrdDelete = 0, refitSmoothOffset = TRUE, ...)
 }
 \arguments{
   \item{object}{fitted FDboost-object}
@@ -46,6 +46,11 @@
   which means that only response values being 0 are not
   used in the calculation of the MRD (= mean relative
   deviation)}
+
+  \item{refitSmoothOffset}{logical, should the offset be
+  refitted in each learning sample?  Defaults to TRUE.  In
+  \code{\link[mboost]{cvrisk}} the offset of the original
+  model \code{object} is used.}
 
   \item{ydim}{dimensions of response-matrix}
 

@@ -381,10 +381,16 @@ FDboost <- function(formula,          ### response ~ xvars
       
     # no time-specific offset -> constant offset is estimated within mboost()
     }else{
-      message("Use a constant offset for irregular data.")
-      offsetVec <- NULL
-      offset <- NULL # use one constant offset in mboost()
-      predictOffset <- function(time) 0 
+      if(length(offset)==length(response)){
+        offsetVec <- NULL
+        offset <- offset # use a given offset
+        predictOffset <- function(time) 0 
+      }else{
+        message("Use a constant offset for irregular data.")
+        offsetVec <- NULL
+        offset <- NULL # use one constant offset in mboost()
+        predictOffset <- function(time) 0  
+      }
     }
     
 

@@ -45,7 +45,7 @@ cvMa <- function(ydim, weights=NULL,
 #' @export
 # wrapper for function cv() of mboost, additional type "curves"
 # create folds for data in long format
-cvLong <- function(weights, id, 
+cvLong <- function(id, weights=rep(1, l=length(id)), 
                  type = c("bootstrap", "kfold", "subsampling", "curves"), 
                  B = ifelse(type == "kfold", 10, 25), prob = 0.5, strata = NULL){
   type <- match.arg(type)
@@ -83,6 +83,9 @@ cvLong <- function(weights, id,
 #' @param mrdDelete Delete values that are mrdDelete percent smaller then the mean
 #'  of the response. Defaults to 0 which means that only response values being 0
 #'  are not used in the calculation of the MRD (= mean relative deviation)
+#'  @param refitSmoothOffset logical, should the offset be refitted in each learning sample? 
+#'  Defaults to TRUE. 
+#'  In \code{\link[mboost]{cvrisk}} the offset of the original model \code{object} is used.
 #' @param ydim dimensions of response-matrix
 #' @param type character argument for specifying the cross-validation 
 #' method. Currently (stratified) bootstrap, k-fold cross-validation 
@@ -125,7 +128,8 @@ cvLong <- function(weights, id,
 #' @export
 validateFDboost <- function(object, response=NULL, weights=model.weights(object), 
                             folds=cvMa(ydim=object$ydim, weights=model.weights(object), type="bootstrap"),
-                            grid=1:mstop(object), getCoefCV=TRUE, mrdDelete=0, ...){
+                            grid=1:mstop(object), getCoefCV=TRUE, mrdDelete=0, 
+                            refitSmoothOffset=TRUE, ...){
   
   if(is.null(folds)){
     warning("is.null(folds), per default folds=cvMa(ydim=object$ydim, weights=model.weights(object), type=\"bootstrap\")")
@@ -205,18 +209,27 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
     
     # as weights of original model fit are used they should not be transformed again
     call$numInt <- "equal" 
+ 
+    # Using the offset of object with the following settings 
+    # call$control <- boost_control(risk="oobag")
+    # call$oobweights <- oobweights
+    if(refitSmoothOffset==FALSE && is.null(call$offset) ){
+      if(is.null(object$id)){
+        call$offset <- matrix(object$offset, ncol=object$ydim[2])[1,]
+      }else{
+        call$offset <- object$offset
+      }
+    } 
+    # the model is the same for  
+    # mod <- object$update(weights = weights, oobweights = oobweights) # (cvrisk) 
+    # and
+    # mod <- withCallingHandlers(suppressMessages(eval(call)), warning = h)
+    # and then the risk can be computed by
+    # risk <- mod$risk()[grid] 
     
-    # <FIXME> check whether the risk is calculated oob?
-    #call$control <- boost_control(risk="oobag")
-    
+    ## compute the model by FDboost() - the offset is computed on learning sample
     mod <- withCallingHandlers(suppressMessages(eval(call)), warning = h) # suppress the warning of missing responses    
-    #test <- FDboost(formula(object$formulaFDboost), timeformula=formula(object$timeformula), data=dathelp)
-    
     mod <- mod[max(grid)]
-    
-    # oob risk
-    ## risk <- mod$risk()[grid] # this risk is out-of-bag if the argument in control is set to "oob"
-    # calculate the risk out of bag
     
     # get risk function of the family
     riskfct <- get("family", environment(mod$update))@risk
@@ -224,12 +237,12 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
     # oobweights using riskfct() like in mboost
     risk <- sapply(grid, function(g){riskfct( mod$response, mod[g]$fitted(), w=oobweights)})
     
-    #     # do not include oobweights in ()^2! gives same results as calculation im mboost, for family=Gaussian
-    #     risk <- sapply(grid, function(g){
+    # do not include oobweights in ()^2! 
+    # gives same results as calculation im mboost, for family=Gaussian
+    # risk <- sapply(grid, function(g){
     #       sum( oobweights*(((mod$response -  mod[g]$fitted())))^2 ) } )
     
-    # mod[grid[which.min(risk)]]
-    
+    # mod[grid[which.min(risk)]]    
     # matrix(oobweights, nObs, Gy)
     
     relMSE <- simplify2array(mclapply(grid, function(g){
@@ -644,7 +657,8 @@ mstop.validateFDboost <- function(object, ...){
 #' @param predictNA should missing values in the response be predicted? Defaults to FALSE.
 #' @param names.arg names of the observed curves
 #' @param ask par(ask=ask)
-#' @param which a subset of base-learners to take into account for plotting
+#' @param which a subset of base-learners to take into account for plotting. 
+#' In the case of \code{plot.validateFDboost} the diagnostic plots that are given. 
 #' @param commonRange, plot predicted coefficients on a common range, defaults to TRUE
 #' @param showQuantiles plot the 0.05 and the 0.95 Quantile of coefficients in 1-dim effects
 #' @param showNumbers show number of curve in plot of predicted coefficients, defaults to FALSE
@@ -663,7 +677,8 @@ mstop.validateFDboost <- function(object, ...){
 #' @method plot validateFDboost
 #' 
 #' @export
-plot.validateFDboost <- function(x, risk=c("median","mean"),
+plot.validateFDboost <- function(x, risk=c("median","mean"), 
+                                 which=1, 
                                  modObject=NULL, predictNA=FALSE, 
                                  names.arg=NULL, ask=TRUE, ...){
   
@@ -673,34 +688,36 @@ plot.validateFDboost <- function(x, risk=c("median","mean"),
   # get the position in the grid of mopt
   mpos <- which(x$grid==mopt)
   
-  par(ask=ask)
+  if(length(which)>1) par(ask=ask)
   
-  # Plot the cross validated risk
-  ylim <- c(min(x$oobrisk), quantile(x$oobrisk, 0.97))
-  matplot(colnames(x$oobrisk), t(x$oobrisk), type="l", col="grey", 
-          ylim=ylim, xlab="Number of boosting iterations", ylab="Squared Error",
-          main=attr(x$folds, "type"), 
-          sub=attr(mopt, "risk"))
-  
-  riskMean <- colMeans(x$oobrisk)
-  lines(colnames(x$oobrisk), riskMean, lty=1)
-  mOptMean <- x$grid[which.min(riskMean)]
-  lines(c(mOptMean, mOptMean), 
-        c(min(c(0, ylim[1] * ifelse(ylim[1] < 0, 2, 0.5))), 
-          riskMean[paste(mOptMean)]), lty = 1)
-  
-  riskMedian <- apply(x$oobrisk, 2, median) 
-  lines(colnames(x$oobrisk), riskMedian, lty=2)
-  mOptMedian <- x$grid[which.min(riskMedian)]
-  lines(c(mOptMedian, mOptMedian), 
-        c(min(c(0, ylim[1] * ifelse(ylim[1] < 0, 2, 0.5))), 
-          riskMedian[paste(mOptMedian)]), lty = 2)
-  
-  legend("topright", legend=paste(c(mOptMean, mOptMedian), c("(mean)","(median)")),
-         lty=c(1,2), col=c("black","black"))
-  
-  #mOptOverModels <- apply(x$oobrisk, 1, which.min)
-  #abline(v=mOptOverModels, lty=3)
+  if(1 %in% which){
+    # Plot the cross validated risk
+    ylim <- c(min(x$oobrisk), quantile(x$oobrisk, 0.97))
+    matplot(colnames(x$oobrisk), t(x$oobrisk), type="l", col="grey", 
+            ylim=ylim, xlab="Number of boosting iterations", ylab="Squared Error",
+            main=attr(x$folds, "type"), 
+            sub=attr(mopt, "risk"))
+    
+    riskMean <- colMeans(x$oobrisk)
+    lines(colnames(x$oobrisk), riskMean, lty=1)
+    mOptMean <- x$grid[which.min(riskMean)]
+    lines(c(mOptMean, mOptMean), 
+          c(min(c(0, ylim[1] * ifelse(ylim[1] < 0, 2, 0.5))), 
+            riskMean[paste(mOptMean)]), lty = 1)
+    
+    riskMedian <- apply(x$oobrisk, 2, median) 
+    lines(colnames(x$oobrisk), riskMedian, lty=2)
+    mOptMedian <- x$grid[which.min(riskMedian)]
+    lines(c(mOptMedian, mOptMedian), 
+          c(min(c(0, ylim[1] * ifelse(ylim[1] < 0, 2, 0.5))), 
+            riskMedian[paste(mOptMedian)]), lty = 2)
+    
+    legend("topright", legend=paste(c(mOptMean, mOptMedian), c("(mean)","(median)")),
+           lty=c(1,2), col=c("black","black"))
+    
+    #mOptOverModels <- apply(x$oobrisk, 1, which.min)
+    #abline(v=mOptOverModels, lty=3)
+  }
   
   # Plot RMSE and MRD for optimal mstop
   if(is.null(names.arg)){
@@ -708,11 +725,18 @@ plot.validateFDboost <- function(x, risk=c("median","mean"),
   }
   stopifnot(length(names.arg)==length(x$rmseCurves[,mpos]))
   
-  barplot(x$rmseCurves[,mpos], main="RMSE", names.arg = names.arg, las=2) # 
-  abline(h=x$rmse[mpos], lty=2)
-  barplot(x$mrdCurves[,mpos], main="MRD", names.arg = names.arg, las=2)
-  abline(h=x$mrd[mpos], lty=2)
+  # plot RMSE
+  if(2 %in% which){
+    barplot(x$rmseCurves[,mpos], main="RMSE", names.arg = names.arg, las=2) # 
+    abline(h=x$rmse[mpos], lty=2)
+  }
   
+  # plot MRD
+  if(3 %in% which){
+    barplot(x$mrdCurves[,mpos], main="MRD", names.arg = names.arg, las=2)
+    abline(h=x$mrd[mpos], lty=2)
+  }
+    
   # Plot the predictions for the optimal mstop
   if(!is.null(x$oobpreds[,mpos])){
     response <- x$response
@@ -727,16 +751,21 @@ plot.validateFDboost <- function(x, risk=c("median","mean"),
     if(is.null(x$id)) predMat <- matrix(pred, ncol=length(x$yind))
     if(is.null(x$id)) responseMat <- matrix(response, ncol=length(x$yind))
     
-    ylim <- range(response, pred, na.rm = TRUE)
-    funplot(x$yind, responseMat, id=x$id, lwd = 1, pch = 1, ylim = ylim,  
-            ylab = "", xlab = attr(x$yind, "nameyind"), main="Measured and Predicted Values", ...)
-    funplot(x$yind, predMat, id=x$id, lwd = 2, pch = 2, add = TRUE, ...)
+    if(4 %in% which){
+      ylim <- range(response, pred, na.rm = TRUE)
+      funplot(x$yind, responseMat, id=x$id, lwd = 1, pch = 1, ylim = ylim,  
+              ylab = "", xlab = attr(x$yind, "nameyind"), main="Measured and Predicted Values", ...)
+      funplot(x$yind, predMat, id=x$id, lwd = 2, pch = 2, add = TRUE, ...)
+    }
     
-    # Plot residuals for the optimal mstop
-    funplot(x$yind, responseMat-predMat, id=x$id, ylab = "", xlab = attr(x$yind, "nameyind"), 
-            main="Residuals", ...)
-    abline(h=0, lty=2, col="grey")
+    if(5 %in% which){
+      # Plot residuals for the optimal mstop
+      funplot(x$yind, responseMat-predMat, id=x$id, ylab = "", xlab = attr(x$yind, "nameyind"), 
+              main="Residuals", ...)
+      abline(h=0, lty=2, col="grey")
+    }
   }
+     
   
 #   }else{
 #     response <- x$respOOB

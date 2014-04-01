@@ -15,7 +15,10 @@ Imports:
     zoo,
     nnls
 Suggests:
-    fda, fields, maps, mapdata
+    fda,
+    fields,
+    maps,
+    mapdata
 License: GPL-2
 Packaged: 2013-04-30 08:41:28 UTC; brockhaus
 Collate:
