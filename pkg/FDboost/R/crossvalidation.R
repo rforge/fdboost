@@ -231,6 +231,8 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
     mod <- withCallingHandlers(suppressMessages(eval(call)), warning = h) # suppress the warning of missing responses    
     mod <- mod[max(grid)]
     
+    
+    ############# compute risk, mse, relMSE and mrd
     # get risk function of the family
     riskfct <- get("family", environment(mod$update))@risk
     
@@ -245,12 +247,30 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
     # mod[grid[which.min(risk)]]    
     # matrix(oobweights, nObs, Gy)
     
+    # mean of resposne in learning sample
+    meanResp <- sum(mod$response*weights, na.rm=TRUE)/sum(weights)
+    
+    # compute relative mse
     relMSE <- simplify2array(mclapply(grid, function(g){
-      sum(((mod$response - mod[g]$fitted())[oobweights!=0])^2) /
-        sum( ( (mod$response - mean(mod$response[oobweights]))[oobweights!=0] )^2)
+      sum( ((mod$response - mod[g]$fitted())^2*oobweights), na.rm=TRUE ) /
+        sum( ((mod$response - meanResp)^2*oobweights), na.rm=TRUE )
     }, mc.cores=1) )
     
-    # prediction for all observations, not only oob! 
+    ### mse (squared error) equals risk*sum(oobweights) in the case of familiy=Gaussian()
+    mse <- simplify2array(mclapply(grid, function(g){
+      sum( ((mod$response - mod[g]$fitted())^2*oobweights), na.rm=TRUE )
+    }, mc.cores=1) ) / sum(oobweights)
+    
+    ### mean relative deviation
+    resp0 <- mod$response
+    resp0[abs(resp0) <= mrdDelete | round(resp0, 1) == 0] <- NA
+    mrd <- simplify2array(mclapply(grid, function(g){
+      sum( abs(resp0 - mod[g]$fitted())/abs(resp0)*oobweights, na.rm=TRUE )
+    }, mc.cores=1) ) / sum(oobweights)
+    rm(resp0, meanResp)
+    
+    
+    ####### prediction for all observations, not only oob! 
     # -> oob-predictions have to be merged out of predGrid
     predGrid <- predict(mod, aggregate="cumsum", unlist=FALSE)
     
@@ -293,60 +313,9 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
       } 
     }
     
-    return(list(risk=risk, predGrid=predGrid, predOOB=predOOB, respOOB=respOOB, relMSE=relMSE, mod=mod))  
-  }
-  
-  #   ###### Function to fit the model
-  #   # This code is ok, if offset=0, i.e. offset=NULL in mboost,
-  #   # otherwise the offset of the whole model is used in the optimization!
-  #   fitfct <- object$update  
-  #   dummyfct <- function(weights, oobweights) {
-  #     
-  #     # fit the model as mboost-model!
-  #     mod <- withCallingHandlers(fitfct(weights = weights, oobweights = oobweights), 
-  #                                warning = h) # suppress the warning of missing responses
-  #     mod[max(grid)]
-  #     
-  #     # oob risk
-  #     risk <- mod$risk()[grid] 
-  #     
-  #     # prediction for all observations, not only oob! 
-  #     # -> oob-predictions have to be merged out of predGrid
-  #     predGrid <- predict(mod, aggregate="cumsum")[,grid] 
-  #     
-  #     # estimations of the coefficients
-  #     # use the coef.FDboost() function to calculate the coefficients 
-  #     mod$yind <- object$yind
-  #     mod$predictOffset <- function(time) mod$offset
-  #     mod$offsetVec <- mod$offset
-  #     class(mod)
-  #     class(mod) <- c("FDboost", class(mod))
-  #     
-  #     # Compute coefficients all mstops in grid -> takes some time!
-  #     coefCV <- list()
-  #     
-  #     if(getCoefCV){
-  #       # <ToDo> deal with j=1 in more intelligent way.
-  #       for(j in 1:length(object$baselearner)){
-  #         coefCV[[j]] <- coef(mod, which=j, n1 = 50, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]
-  #         coefCV[[j]]$value <- lapply(grid, function(g){
-  #           ret <- coef(mod[g], which=j, n1 = 50, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]$value
-  #           if(j>1) attr(ret, "offset") <- NULL # as offset is the same within one model
-  #           return(ret)
-  #         })
-  #         names(coefCV[[j]]$value) <- grid
-  #       } 
-  #       #     # plot example coefficients one for a small number on the grid, the other for a large one
-  #       #     matplot(t(coefCV[[2]]$value[[10]]), type="l", lty=1)
-  #       #     matplot(t(coefCV[[2]]$value[[3]]), type="l", add=TRUE, lty=3)  
-  #       #     matplot(t(coefCV[[13]]$value[[10]]), type="l", lty=1)
-  #       #     matplot(t(coefCV[[13]]$value[[3]]), type="l", add=TRUE, lty=3) 
-  #     } 
-  #     rm(mod)
-  #     
-  #     return(list(risk=risk, predGrid=predGrid, coefCV=coefCV)) #mod=mod
-  #   }
-  #  
+    return(list(risk=risk, predGrid=predGrid, predOOB=predOOB, respOOB=respOOB, 
+                mse=mse, relMSE=relMSE, mrd=mrd, mod=mod))  
+  } 
   
   ### computation of models on partitions of data
   if(Sys.info()["sysname"]=="Linux"){
@@ -385,16 +354,7 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
   
   # matrix(model.weights(modRisk[[1]]$mod), ncol=Gy) 
   
-  ####### restructure the results
-  
-  ## get the out-of-bag risk
-  oobrisk <- t(sapply(modRisk, function(x) x$risk))
-  ### <SB> transformation like in mboost - "mean(oobrisk)"
-  oobrisk <- oobrisk / colSums(OOBweights) 
-  colnames(oobrisk) <- grid
-  rownames(oobrisk) <- which(modFitted)
-  
-  ## check for folds with extreme risk-values at the global median
+  ############# check for folds with extreme risk-values at the global median
   riskOptimal <- oobrisk[ , which.min(apply(oobrisk, 2, median))]
   bound <- median(riskOptimal) + 1.5*(quantile(riskOptimal, 0.75) - quantile(riskOptimal, 0.25))
   
@@ -404,27 +364,51 @@ validateFDboost <- function(object, response=NULL, weights=model.weights(object)
     message(paste("In fold ", which(riskOptimal>bound), ": " ,
                   round(riskOptimal[which(riskOptimal>bound)], 2), collapse=",  ", sep="" )  )  
   }
+  
+  ####### restructure the results
+  
+  ## get the out-of-bag risk
+  oobrisk <- t(sapply(modRisk, function(x) x$risk))
+  ### <SB> transformation like in mboost - "mean(oobrisk)"
+  oobrisk <- oobrisk / colSums(OOBweights) 
+  colnames(oobrisk) <- grid
+  rownames(oobrisk) <- which(modFitted)
+  
+  ## get out-of-bag mse
+  oobmse <- t(sapply(modRisk, function(x) x$mse))
+  colnames(oobmse) <- grid
+  rownames(oobmse) <- which(modFitted)
+  
+  ## get out-of-bag relMSE
+  oobrelMSE <- t(sapply(modRisk, function(x) x$relMSE))
+  colnames(oobrelMSE) <- grid
+  rownames(oobrelMSE) <- which(modFitted)
+  
+  ## get out-of-bag mrd
+  oobmrd <- t(sapply(modRisk, function(x) x$mrd))
+  colnames(oobmrd) <- grid
+  rownames(oobmrd) <- which(modFitted)
 
   ## only makes sense for type="curves" with leaving-out one curve per fold!!
   if(grepl( "curves", type)){
-  ## predict response for all mstops in grid out of bag
-  # predictions for each response are in a vector!
-  # if a curve was several times not in the training data the last prediction is taken
-  oobpreds0 <- lapply(modRisk, function(x) x$predGrid)
-  oobpreds <- matrix(nrow=nrow(oobpreds0[[1]]) , ncol=ncol(oobpreds0[[1]]))
-  for(j in 1:length(oobpreds0)){
-    oobpreds[folds[,j]==0] <- oobpreds0[[j]][folds[,j]==0] 
-  }
-  colnames(oobpreds) <- grid
-  rm(oobpreds0)
-  
-  #   # use this predictions to calculate the MSE for each mstop in grid
-  #   # results are slightly different due to handlig of weights and missings
-  #   round(colMeans((oobpreds - object$response)^2, na.rm=TRUE)); round(colMeans(oobrisk))
-  #   plot(colMeans((oobpreds - object$response)^2, na.rm=TRUE), colMeans(oobrisk))
-  
-  # Almost equal: look at 2nd mstop in grid
-  # mean(oobrisk[, 2]); mean((oobpreds[,2] - response)^2, na.rm=TRUE)
+    ## predict response for all mstops in grid out of bag
+    # predictions for each response are in a vector!
+    # if a curve was several times not in the training data the last prediction is taken
+    oobpreds0 <- lapply(modRisk, function(x) x$predGrid)
+    oobpreds <- matrix(nrow=nrow(oobpreds0[[1]]) , ncol=ncol(oobpreds0[[1]]))
+    for(j in 1:length(oobpreds0)){
+      oobpreds[folds[,j]==0] <- oobpreds0[[j]][folds[,j]==0] 
+    }
+    colnames(oobpreds) <- grid
+    rm(oobpreds0)
+    
+    #   # use this predictions to calculate the MSE for each mstop in grid
+    #   # results are slightly different due to handlig of weights and missings
+    #   round(colMeans((oobpreds - object$response)^2, na.rm=TRUE)); round(colMeans(oobrisk))
+    #   plot(colMeans((oobpreds - object$response)^2, na.rm=TRUE), colMeans(oobrisk))
+    
+    # Almost equal: look at 2nd mstop in grid
+    # mean(oobrisk[, 2]); mean((oobpreds[,2] - response)^2, na.rm=TRUE)
   }else{
     oobpreds <- NULL
   }
