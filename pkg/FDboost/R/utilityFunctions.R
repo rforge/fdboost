@@ -129,23 +129,25 @@ funplot <- function(x, y, id=NULL, rug=TRUE, ...){
   
   }else{
     
+    stopifnot(length(x)==length(y) & length(y)==length(id))
+    
     idOrig <- id
     for(i in 1:length(unique(idOrig))){
       id[idOrig==unique(idOrig)[i]] <- i
     }
     
+    xlabel <- deparse(substitute(x))
+    ylabel <- deparse(substitute(y))
+    
     # there should be no mising values in long format
     temp <- data.frame(id, y, x) # dim(temp)
-    temp <- na.omit(temp)    
+    temp <- na.omit(temp)   
+    # order values of temp
+    temp <- temp[order(temp$id, temp$x),] 
     id <- temp$id
     x <- temp$x
     y <- temp$y
     rm(temp)
-    
-    stopifnot(length(x)==length(y) & length(y)==length(id))
-    
-    xlabel <- deparse(substitute(x))
-    ylabel <- deparse(substitute(y))
     
     # Plot the observed points
     if(!"add" %in% names(dots)){

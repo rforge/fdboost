@@ -56,9 +56,9 @@ integrationWeights <- function(X1, xind, id=NULL){
       if(!any(is.na(x))){
         l <- L[i, ] # no missing values in curve i
       }else{
-        xindL <- xind 
+        xindL <- xind # lower
         xindL[is.na(x)] <- NA
-        xindU <- xindL 
+        xindU <- xindL # upper
         
         if(is.na(xindL[1])){ # first observation is missing
           xindL[1] <- xind[1] - diff(c(xind[1], xind[2])) 
