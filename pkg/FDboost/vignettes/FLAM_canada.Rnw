@@ -83,7 +83,6 @@ Load data and choose the time-interval.
 library(fda)
 data("CanadianWeather", package="fda")
 
-
 ### use data on a monthly basis (c.f. Scheipl et. al. online supplement)
 dataM <- with(CanadianWeather, 
         list(
@@ -179,13 +178,16 @@ library(fields)
   P_nu1 <- solve(corr_nu1)
   #P_nu10 <- solve(corr_nu10)
    
-#   curve(Matern(x, nu=.5, range=r.5), 0, 5000, ylab="Correlation(d)", 
-#         xlab="d [km]",  lty=2)
-#   curve(Matern(x, nu=1, range=r1), 0, 5000, add=TRUE, lty=3)
-#   curve(Matern(x, nu=10, range=r10), 0, 5000, add=TRUE, lty=4)
-#   legend("topright", inset=0.2, lty=c(2,NA,3, NA,4), 
-#          legend=c(".5", "", "1", "", "10"), 
-#        title=expression(nu), cex=.8, bty="n") 
+if(FALSE){
+  curve(Matern(x, nu=.5, range=r.5), 0, 5000, ylab="Correlation(d)", 
+        xlab="d [km]",  lty=2)
+  curve(Matern(x, nu=1, range=r1), 0, 5000, add=TRUE, lty=3)
+  curve(Matern(x, nu=10, range=r10), 0, 5000, add=TRUE, lty=4)
+  legend("topright", inset=0.2, lty=c(2,NA,3, NA,4), 
+         legend=c(".5", "", "1", "", "10"), 
+       title=expression(nu), cex=.8, bty="n") 
+}
+
 
 ## for uncorrelated resiaudls
 #   P_nu.5 <- diag(35)

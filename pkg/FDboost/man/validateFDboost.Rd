@@ -2,7 +2,7 @@
 \alias{cvLong}
 \alias{cvMa}
 \alias{validateFDboost}
-\title{Cross-Validation over Curves}
+\title{Cross-Validation and Bootstrapping over Curves}
 \usage{
   cvMa(ydim, weights = NULL,
     type = c("bootstrap", "kfold", "subsampling", "curves"),
@@ -15,8 +15,7 @@
     strata = NULL)
 
   validateFDboost(object, response = NULL,
-    weights = model.weights(object),
-    folds = cvMa(ydim = object$ydim, weights = model.weights(object), type = "bootstrap"),
+    folds = cv(rep(1, object$ydim[1]), type = "bootstrap"),
     grid = 1:mstop(object), getCoefCV = TRUE,
     mrdDelete = 0, refitSmoothOffset = TRUE, ...)
 }
@@ -27,12 +26,8 @@
   calculate predictions errors. Defaults to NULL which
   means that the response of the fitted model is used.}
 
-  \item{weights}{a numeric vector of weights for the model
-  to be cross-validated. if weights=NULL all weights are
-  taken to be 1.}
-
   \item{folds}{a weight matrix with number of rows equal to
-  the number of observations.}
+  the number of observed trajectories.}
 
   \item{grid}{the grid over which the optimal mstop is
   searched}
@@ -48,11 +43,15 @@
   deviation)}
 
   \item{refitSmoothOffset}{logical, should the offset be
-  refitted in each learning sample?  Defaults to TRUE.  In
+  refitted in each learning sample? Defaults to TRUE. In
   \code{\link[mboost]{cvrisk}} the offset of the original
   model \code{object} is used.}
 
   \item{ydim}{dimensions of response-matrix}
+
+  \item{weights}{a numeric vector of weights for the model
+  to be cross-validated. if weights=NULL all weights are
+  taken to be 1.}
 
   \item{type}{character argument for specifying the
   cross-validation method. Currently (stratified)
@@ -79,22 +78,50 @@
   \item{...}{further arguments passed to mclapply}
 }
 \value{
-  \code{cvMa} retruns a matrix of weights to be used in
-  \code{cvrisk} or \code{validateFDboost}.
+  \code{cvMa} and \code{cvLong} return a matrix of weights
+  to be used in \code{cvrisk}. \code{validateFDboost}
+  returns an validateFDboost-object, which is a named list
+  containing: \item{response}{the response} \item{yind}{the
+  observation points of the response} \item{id}{the id
+  variable of the response} \item{folds}{folds that were
+  used} \item{grid}{grid of possible numbers of boosting
+  iterations} \item{coefCV}{if \code{getCoefCV} is TRUE the
+  estimated coefficient functions in the folds}
+  \item{predCV}{if \code{getCoefCV} is TRUE the out-of-bag
+  predicted values of the response} \item{oobpreds}{if the
+  type of folds is curves the out-of-bag predictions for
+  each trajectory} \item{oobrisk}{the out-of-bag risk}
+  \item{oobriskMean}{the out-of-bag risk at the minimal
+  mean risk} \item{oobmse}{the out-of-bag mean squared
+  error (MSE)} \item{oobrelMSE}{the out-of-bag relative
+  mean squared error (relMSE)} \item{oobmrd}{the out-of-bag
+  mean relative deviation (MRD)} \item{oobrisk0}{the
+  out-of-bag risk without consideration of integration
+  weights} \item{oobmse0}{the out-of-bag mean squared error
+  (MSE) without consideration of integration weights}
 }
 \description{
-  Cross-Validation over Curves.
+  Cross-Validation and bootstrapping over curves to compute
+  the empirical risk for hyper-parameter selection and to
+  compute resampled coefficients and predictions for the
+  models.
 }
 \details{
   The function \code{validateFDboost} calculates honest
-  estimates of prediction errors as the curve/observations
-  that should be predicted is not part of the model fit.
-  The function \code{cvMa} can be used to build an
-  appropriate weight matrix to be used with \code{cvrisk}
-  or \code{validateFDboost}.  In \code{cvMa} whole
-  trajectories are sampled. The probability for each
-  trajectory to enter a fold is equal over all
-  trajectories.  If \code{strata} is defined sampling is
+  estimates of prediction errors as the curves/observations
+  that should be predicted are not part of the model fit.
+  The functions \code{cvMa} and \code{cvLong} can be used
+  to build an appropriate weight matrix to be used with
+  \code{cvrisk}. The function \code{cvMa} is appropriate
+  for responses observed over a regular grid. The function
+  \code{cvLong} for responsese that are observed over a
+  irregular grid. Note, that the function
+  \code{validateFDboost} expects folds that give weights
+  per trajectory and that \code{cvrisk} expectes folds that
+  give weights for single observations. In \code{cvMa} and
+  \code{cvLong} trajectories are sampled. The probability
+  for each trajectory to enter a fold is equal over all
+  trajectories. If \code{strata} is defined sampling is
   performed in each stratum separately thus preserving the
   distribution of the \code{strata} variable in each fold.
   If \code{id} is defined sampling is performed on the
@@ -109,6 +136,30 @@
 \examples{
 Ytest <- matrix(rnorm(15), ncol=3) # 5 trajectories, each with 3 observations
 cvMa(ydim=c(5,3), type="bootstrap", B=4)
+
+
+data("viscosity", package = "FDboost")
+## set time-interval that should be modeled
+interval <- "101"
+
+## model time until "interval" and take log() of viscosity
+end <- which(viscosity$timeAll==as.numeric(interval))
+viscosity$vis <- log(viscosity$visAll[,1:end])
+viscosity$time <- viscosity$timeAll[1:end]
+# with(viscosity, funplot(time, vis, pch=16, cex=0.2))
+
+## fit median regression model with 200 boosting iterations,
+## step-length 0.2 and
+## smooth time-specific offset
+mod <- FDboost(vis ~ 1 + bols(T_C) + bols(T_A),
+               timeformula=~bbs(time, lambda=100),
+               numInt="Riemann", family=QuantReg(),
+               offset=NULL, offset_control = o_control(k_min = 9),
+               data=viscosity, control=boost_control(mstop = 100, nu = 0.4))
+
+## for the example B is set to a small value so that bootstrap is faster
+val1 <- validateFDboost(mod, folds=cv(rep(1, 64), B=3) )
+# plot(val1)
 }
 \seealso{
   \code{\link{cvrisk}} to perform cross-validation.

@@ -34,11 +34,12 @@
   in the model.}
 
   \item{weights}{(1) a numeric vector of weights for
-  observational units, i.e. length(weights) has to be
-  nrow(response), (2) alternatively weights can be
-  specified for single observations then length(weights)
-  has to be \code{nrow(response)}*\code{ncol(response)} per
-  default weights is constantly 1.}
+  observational units, i.e. \code{length(weights)} has to
+  be \code{nrow(response)}, (2) alternatively weights can
+  be specified for single observations then
+  \code{length(weights)} has to be
+  \code{nrow(response)}*\code{ncol(response)} per default
+  weights is constantly 1.}
 
   \item{offset_control}{parameters for the calculation of
   the offset, defaults to \code{offset_control(k_min=20,
@@ -48,7 +49,7 @@
   the index of the response (optional). If no offset is
   specified, per default a smooth time-specific offset is
   calculated and used within the model fit. If you do not
-  want to use an offset you can set offset=0.}
+  want to use an offset you can set \code{offset=0}.}
 
   \item{...}{additional arguments passed to
   \code{\link[mboost]{mboost}}, including \code{offset},
@@ -60,7 +61,25 @@
   \code{\link{coef.FDboost}} and \code{\link{plot.FDboost}}
   methods are available. The methods of
   \code{\link[mboost]{mboost}} are available as well, e.g.
-  \code{\link[mboost]{extract}}
+  \code{\link[mboost]{extract}}.
+
+  The \code{FDboost}-object is a named list containing:
+  \item{...}{all elements of an
+  \code{\link[mboost]{mboost}-object}} \item{yname}{the
+  name of the response} \item{yind}{the observation points
+  of the response, with its name as attribute}
+  \item{data}{the data that was used for the model fit}
+  \item{id}{NULL for a response over a regular grid,
+  otherwise the id variable of the response}
+  \item{predictOffset}{the function to predict the smooth
+  offset} \item{offsetVec}{the offset for one trajectory
+  for regular response and otherwise the offset for all
+  trajectories} \item{callEval}{the evaluated function
+  call} \item{timeformula}{the time-formula}
+  \item{formulaFDboost}{the formula with which
+  \code{FDboost} was called} \item{formulaMboost}{the
+  formula with which \code{mboost} was called within
+  \code{FDboost}}
 }
 \description{
   Gradient boosting for optimizing arbitrary loss
@@ -92,12 +111,6 @@ print("to do")
 }
 \author{
   Sarah Brockhaus, Torsten Hothorn
-}
-\references{
-  Ivanescu, A., Staicu, A.-M., Scheipl, F. and Greven, S.
-  (2012).  Penalized function-on-function regression.
-  (submitted)
-  \url{http://biostats.bepress.com/jhubiostat/paper240/}
 }
 \seealso{
   \code{\link[mboost]{mboost}} for the help of the wrapped

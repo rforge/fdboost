@@ -430,7 +430,13 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
     ret$offset$main <- "offset"
     
     # For the special case of which=0, only return the coefficients of the offset
-    if(!is.null(which) & length(which)==1 && which==0) return(ret)
+    if(!is.null(which) & length(which)==1 && which==0){
+      if(computeCoef){
+        return(ret)
+      }else{
+        return("offset")
+      }  
+    } 
     
     getCoefs <- function(i){
       ## this constructs a grid over the range of the covariates
@@ -1043,6 +1049,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
       # set values of predicted effect to missing if response is missing
       if(sum(is.na(x$response))>0) terms[[i]][is.na(x$response)] <- NA
       range <- range(terms[[i]], na.rm=TRUE)
+      
       if(length(time)>1){
         
         plotWithArgs(funplot, args=argsFunplot, 

@@ -788,10 +788,13 @@ X_hist2 <- function(mf, vary, args) {
   
   # get id-variable
   id <- attr(mf[,xname], "id") # for data in long format
-  
+    
   ###### EXTRA LINE in comparison to X_hist
   ## important for prediction, otherwise id=NULL and yind is multiplied accordingly
   if(is.null(id)) id <- 1:nrow(X1)
+  
+  ## check yind 
+  stopifnot(length(yind)==length(id))
   
   #   stopifnot(is.list(mf))
   #   xname <- names(mf)[1]
@@ -881,7 +884,7 @@ X_hist2 <- function(mf, vary, args) {
     B.t <- B.t[rep(1:length(yind), each=nobs), ]
   }  
   # in long format B.t is already over all time-points in the response
-  
+
   # calculate row-tensor
   # X <- (X1 %x% t(rep(1, ncol(X2))) ) * ( t(rep(1, ncol(X1))) %x% X2  )
   X <- X1des[,rep(1:ncol(X1des), each=ncol(B.t))] * B.t[,rep(1:ncol(B.t), times=ncol(X1des))] 
@@ -956,6 +959,10 @@ bhist <- function(..., index = NULL, #by = NULL,
   
   if(!is.atomic(mfL[[2]])) stop("index of signal has to be a vector")
   if(!is.atomic(mfL[[3]])) stop("index of response has to be a vector")
+  
+  # compare range of index signal and index response
+  # minimal value of the signal-index has to be smaller than the response-index
+  if(min(mfL[[2]]) < min(mfL[[3]]) ) stop("Index of response has values before index of signal.")
   
   # Reshape mfL so that it is the dataframe of the signal with 
   # the index of the signal and the index of the response as attributes

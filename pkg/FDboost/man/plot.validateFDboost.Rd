@@ -4,17 +4,18 @@
 \alias{plotPredCoef}
 \title{Methods for objects of class validateFDboost}
 \usage{
-  \method{mstop}{validateFDboost} (object, ...)
+  \method{mstop}{validateFDboost} (object,
+    risk = c("mean", "median"), ...)
 
   \method{plot}{validateFDboost} (x,
-    risk = c("median", "mean"), which = 1,
+    risk = c("mean", "median"), which = 1,
     modObject = NULL, predictNA = FALSE, names.arg = NULL,
     ask = TRUE, ...)
 
-  plotPredCoef(x, which = NULL, commonRange = TRUE,
-    showNumbers = FALSE, showQuantiles = TRUE, ask = TRUE,
-    terms = TRUE, probs = c(0.25, 0.5, 0.75), ylim = NULL,
-    ...)
+  plotPredCoef(x, which = NULL, pers = TRUE,
+    commonRange = TRUE, showNumbers = FALSE,
+    showQuantiles = TRUE, ask = TRUE, terms = TRUE,
+    probs = c(0.05, 0.5, 0.95), ylim = NULL, ...)
 }
 \arguments{
   \item{x}{object of class validateFDboost}
@@ -22,7 +23,8 @@
   \item{object}{object of class validateFDboost}
 
   \item{risk}{which risk is minimized to obtain the optimal
-  stopping iteration? defaults to the median}
+  stopping iteration? defaults to the mean, can be changed
+  to the median.}
 
   \item{modObject}{if the original model object of class
   \code{FDboost} is given predicted values of the whole
