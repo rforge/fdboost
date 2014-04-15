@@ -5,10 +5,10 @@
 \title{Methods for objects of class validateFDboost}
 \usage{
   \method{mstop}{validateFDboost} (object,
-    risk = c("mean", "median"), ...)
+    riskopt = c("mean", "median"), ...)
 
   \method{plot}{validateFDboost} (x,
-    risk = c("mean", "median"), which = 1,
+    riskopt = c("mean", "median"), which = 1,
     modObject = NULL, predictNA = FALSE, names.arg = NULL,
     ask = TRUE, ...)
 
@@ -22,9 +22,9 @@
 
   \item{object}{object of class validateFDboost}
 
-  \item{risk}{which risk is minimized to obtain the optimal
-  stopping iteration? defaults to the mean, can be changed
-  to the median.}
+  \item{riskopt}{how the risk is minimized to obtain the
+  optimal stopping iteration; defaults to the mean, can be
+  changed to the median.}
 
   \item{modObject}{if the original model object of class
   \code{FDboost} is given predicted values of the whole
@@ -42,6 +42,9 @@
   account for plotting. In the case of
   \code{plot.validateFDboost} the diagnostic plots that are
   given.}
+
+  \item{pers}{plot coefficient surfaces as persp-plots?
+  Defaults to TRUE.}
 
   \item{commonRange,}{plot predicted coefficients on a
   common range, defaults to TRUE}

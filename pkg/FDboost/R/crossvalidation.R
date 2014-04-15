@@ -80,6 +80,8 @@ cvLong <- function(id, weights=rep(1, l=length(id)),
 #' @param grid the grid over which the optimal mstop is searched 
 #' @param getCoefCV logical, defaults to TRUE Should the coefficients and predictions
 #' be computed for all the models on the sampled data?
+#' @param riskopt how is the optimal stopping iteration determined. Defaults to the mean
+#' but median is possible as well. 
 #' @param mrdDelete Delete values that are mrdDelete percent smaller then the mean
 #' of the response. Defaults to 0 which means that only response values being 0 
 #' are not used in the calculation of the MRD (= mean relative deviation) 
@@ -641,6 +643,7 @@ mstop.validateFDboost <- function(object, riskopt=c("mean", "median"), ...){
 #' @param ask par(ask=ask)
 #' @param which a subset of base-learners to take into account for plotting. 
 #' In the case of \code{plot.validateFDboost} the diagnostic plots that are given. 
+#' @param pers plot coefficient surfaces as persp-plots? Defaults to TRUE.
 #' @param commonRange, plot predicted coefficients on a common range, defaults to TRUE
 #' @param showQuantiles plot the 0.05 and the 0.95 Quantile of coefficients in 1-dim effects
 #' @param showNumbers show number of curve in plot of predicted coefficients, defaults to FALSE

@@ -17,7 +17,8 @@
   validateFDboost(object, response = NULL,
     folds = cv(rep(1, object$ydim[1]), type = "bootstrap"),
     grid = 1:mstop(object), getCoefCV = TRUE,
-    mrdDelete = 0, refitSmoothOffset = TRUE, ...)
+    riskopt = c("mean", "median"), mrdDelete = 0,
+    refitSmoothOffset = TRUE, ...)
 }
 \arguments{
   \item{object}{fitted FDboost-object}
@@ -35,6 +36,10 @@
   \item{getCoefCV}{logical, defaults to TRUE Should the
   coefficients and predictions be computed for all the
   models on the sampled data?}
+
+  \item{riskopt}{how is the optimal stopping iteration
+  determined. Defaults to the mean but median is possible
+  as well.}
 
   \item{mrdDelete}{Delete values that are mrdDelete percent
   smaller then the mean of the response. Defaults to 0
