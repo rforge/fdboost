@@ -123,7 +123,7 @@ integrationWeightsLeft <- function(X1, xind){
 
 
 ################################################################################
-### syntax for base learners is modified code of the package mboost
+### syntax for base learners is modified code of the package mboost, see bl.R
 
 
 
