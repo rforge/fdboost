@@ -321,16 +321,19 @@ X_bsignal <- function(mf, vary, args) {
 #' \code{fit} finally returns an object of class \code{bm} (base-model).
 #' 
 #' @seealso \code{\link{FDboost}} for the model fit. 
-#' \code{\link[mboost]{bbs}} and \code{\link[mboost]{brandom}} for the 
-#' corresponding base-learners in mboost.
 #' @keywords models
-#' @references Ivanescu, A., Staicu, A.-M., Scheipl, F. and Greven, S. (2012). 
-#'  Penalized function-on-function regression. (submitted) 
-#' \url{http://biostats.bepress.com/jhubiostat/paper240/} 
-#' @examples  
-#' ###############################################################################
-#' print("to do")
-#' ###############################################################################
+#' @references Scheipl, F., Staicu, A.-M., and Greven, S. (2014), 
+#' Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 
+#' in press, DOI 10.1080/10618600.2014.901914.
+#' \url{http://arxiv.org/abs/1207.5947} 
+#' @examples 
+#' ### example for scalar response and two functional covariates 
+#' data(fuel)
+#' modFuel <- FDboost(heatan ~ bsignal(UVVIS, uvvis.lambda, knots=40, df=4) 
+#'            + bsignal(NIR, nir.lambda, knots=40, df=4), 
+#'            timeformula=~bols(1), data=fuel)
+#' summary(modFuel)
+#' ## plot(modFuel, rug=FALSE)
 #' @export
 ### P-spline base-learner for signal matrix with index vector
 bsignal <- function(...,  index = NULL, #by = NULL,
@@ -1302,8 +1305,8 @@ X_bbsc <- function(mf, vary, args) {
 #' @param intercept if intercept = TRUE an intercept is added to the design matrix 
 #' of a linear base-learner. 
 #' 
-#' @details The base-learners \code{bbsc} and \code{brandomc} are 
-#' basically the base-learners \code{\link[mboost]{bbs}} and 
+#' @details The base-learners \code{bbsc}, \code{bolsc} and \code{brandomc} are 
+#' basically the base-learners \code{\link[mboost]{bbs}}, \code{\link[mboost]{bols}} and 
 #' \code{\link[mboost]{brandom}} with additional identifiability constraints. 
 #' Instead of the default identifiability constraints 
 #' (\eqn{\sum_{i,t} \hat f(x_i, t) = 0}) 
@@ -1326,8 +1329,12 @@ X_bbsc <- function(mf, vary, args) {
 #' \code{fit} finally returns an object of class \code{bm} (base-model).
 #' 
 #' @seealso \code{\link{FDboost}} for the model fit. 
-#' \code{\link[mboost]{bbs}} and \code{\link[mboost]{brandom}} for the 
-#' corresponding base-learners in \code{mboost}.
+#' \code{\link[mboost]{bbs}}, \code{\link[mboost]{bols}} and \code{\link[mboost]{brandom}} for the 
+#' corresponding base-learners in mboost.
+#' @references Scheipl, F., Staicu, A.-M., and Greven, S. (2014), 
+#' Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 
+#' in press, DOI 10.1080/10618600.2014.901914.
+#' \url{http://arxiv.org/abs/1207.5947}
 #' @keywords models
 #' @aliases brandomc
 #' @export

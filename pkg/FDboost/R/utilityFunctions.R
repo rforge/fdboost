@@ -28,6 +28,22 @@ o_control <- function(k_min=20, rule=2, silent=TRUE, cyclic=FALSE, knots=NULL) {
 #' are simply copied into the new data list
 #' @return A list with the data containing all variables of the original dataset
 #' with the variables of \code{funVar} truncated according to \code{newtime}.
+#' @examples
+#' if(require(fda)){
+#'   dat <- fda::growth
+#'   dat$hgtm <- t(dat$hgtm[,1:10])
+#'   dat$hgtf <- t(dat$hgtf[,1:10])
+#'   
+#'   ## only use time-points 1:16 of variable age
+#'   datTr <- truncateTime(funVar=c("hgtm","hgtf"), time="age", newtime=1:16, data=dat)
+#'   
+#'   \dontrun{
+#'   par(mfrow=c(1,2))
+#'   with(dat, funplot(age, hgtm, main="Original data"))
+#'   with(datTr, funplot(age, hgtm, main="Yearly data"))
+#'   par(mfrow=c(1,1))   
+#'   }
+#' }
 #' @export 
 truncateTime <- function(funVar, time, newtime, data){
   
@@ -43,15 +59,6 @@ truncateTime <- function(funVar, time, newtime, data){
   rm(data)
   return(ret)  
 }
-# dat <- fda::growth
-# dat$hgtm <- t(dat$hgtm[,1:10])
-# dat$hgtf <- t(dat$hgtf[,1:10])
-# datTr <- truncateTime(funVar=c("hgtm","hgtf"), time="age", newtime=1:16, data=dat)
-# 
-# par(mfrow=c(1,2))
-# with(dat, funplot(age, hgtm, main="Original data"))
-# with(datTr, funplot(age, hgtm, main="Yearly data"))
-# par(mfrow=c(1,1))
 
 #' Plot functional data with linear interpolation of missing values 
 #' 
@@ -64,8 +71,16 @@ truncateTime <- function(funVar, time, newtime, data){
 #' @details All observations are marked by a small cross (\code{pch=3}).
 #' Missing values are imputed by linear interpolation. Parts that are
 #' interpolated are plotted by dotted lines, parts with non-missing values as solid lines.
+#' @examples 
+#' \dontrun{
+#' ### examples for regular data in wide format
+#' data(viscosity)
+#' with(viscosity, funplot(timeAll, visAll, pch=20))
+#' if(require(fda)){
+#'   with(fda::growth, funplot(age, t(hgtm)))
+#' }
+#' }
 #' @export
-# with(fda::growth, funplot(age, t(hgtm)))
 funplot <- function(x, y, id=NULL, rug=TRUE, ...){
   
   ### Get further arguments passed to the matplot-functions

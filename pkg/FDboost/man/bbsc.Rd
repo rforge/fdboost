@@ -85,8 +85,9 @@
   covariates in models with functional response
 }
 \details{
-  The base-learners \code{bbsc} and \code{brandomc} are
-  basically the base-learners \code{\link[mboost]{bbs}} and
+  The base-learners \code{bbsc}, \code{bolsc} and
+  \code{brandomc} are basically the base-learners
+  \code{\link[mboost]{bbs}}, \code{\link[mboost]{bols}} and
   \code{\link[mboost]{brandom}} with additional
   identifiability constraints. Instead of the default
   identifiability constraints (\eqn{\sum_{i,t} \hat f(x_i,
@@ -100,11 +101,18 @@
 
   Cannot deal with any missing values in the covariates.
 }
+\references{
+  Scheipl, F., Staicu, A.-M., and Greven, S. (2014),
+  Functional Additive Mixed Models, Journal of
+  Computational and Graphical Statistics, in press, DOI
+  10.1080/10618600.2014.901914.
+  \url{http://arxiv.org/abs/1207.5947}
+}
 \seealso{
   \code{\link{FDboost}} for the model fit.
-  \code{\link[mboost]{bbs}} and
+  \code{\link[mboost]{bbs}}, \code{\link[mboost]{bols}} and
   \code{\link[mboost]{brandom}} for the corresponding
-  base-learners in \code{mboost}.
+  base-learners in mboost.
 }
 \keyword{models}
 

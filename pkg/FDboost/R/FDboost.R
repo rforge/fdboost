@@ -67,7 +67,9 @@
 #' 
 #' @author Sarah Brockhaus, Torsten Hothorn
 #' @seealso \code{\link[mboost]{mboost}} for the help of the wrapped function in 
-#' package mboost.
+#' package mboost.  
+#' See \code{\link[FDboost]{bsignal}} and \code{\link[FDboost]{bbsc}} 
+#' for possible base-learners
 #' 
 #' @keywords models, nonlinear 
 #' @examples  

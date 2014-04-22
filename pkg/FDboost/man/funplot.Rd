@@ -30,4 +30,14 @@
   dotted lines, parts with non-missing values as solid
   lines.
 }
+\examples{
+\dontrun{
+### examples for regular data in wide format
+data(viscosity)
+with(viscosity, funplot(timeAll, visAll, pch=20))
+if(require(fda)){
+  with(fda::growth, funplot(age, t(hgtm)))
+}
+}
+}
 

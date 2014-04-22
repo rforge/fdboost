@@ -110,21 +110,23 @@
   Cannot deal with any missing values in the covariates.
 }
 \examples{
-###############################################################################
-print("to do")
-###############################################################################
+### example for scalar response and two functional covariates
+data(fuel)
+modFuel <- FDboost(heatan ~ bsignal(UVVIS, uvvis.lambda, knots=40, df=4)
+           + bsignal(NIR, nir.lambda, knots=40, df=4),
+           timeformula=~bols(1), data=fuel)
+summary(modFuel)
+## plot(modFuel, rug=FALSE)
 }
 \references{
-  Ivanescu, A., Staicu, A.-M., Scheipl, F. and Greven, S.
-  (2012).  Penalized function-on-function regression.
-  (submitted)
-  \url{http://biostats.bepress.com/jhubiostat/paper240/}
+  Scheipl, F., Staicu, A.-M., and Greven, S. (2014),
+  Functional Additive Mixed Models, Journal of
+  Computational and Graphical Statistics, in press, DOI
+  10.1080/10618600.2014.901914.
+  \url{http://arxiv.org/abs/1207.5947}
 }
 \seealso{
   \code{\link{FDboost}} for the model fit.
-  \code{\link[mboost]{bbs}} and
-  \code{\link[mboost]{brandom}} for the corresponding
-  base-learners in mboost.
 }
 \keyword{models}
 

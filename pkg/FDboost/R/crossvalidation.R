@@ -146,8 +146,7 @@ cvLong <- function(id, weights=rep(1, l=length(id)),
 #' 
 #' @examples
 #' Ytest <- matrix(rnorm(15), ncol=3) # 5 trajectories, each with 3 observations 
-#' cvMa(ydim=c(5,3), type="bootstrap", B=4) 
-#' 
+#' cvMa(ydim=c(5,3), type="bootstrap", B=4)  
 #' 
 #' data("viscosity", package = "FDboost") 
 #' ## set time-interval that should be modeled
@@ -168,9 +167,12 @@ cvLong <- function(id, weights=rep(1, l=length(id)),
 #'                offset=NULL, offset_control = o_control(k_min = 9),
 #'                data=viscosity, control=boost_control(mstop = 100, nu = 0.4))
 #' 
+#' \dontrun{
 #' ## for the example B is set to a small value so that bootstrap is faster               
 #' val1 <- validateFDboost(mod, folds=cv(rep(1, 64), B=3) )
 #' # plot(val1)
+#' mstop(val1)
+#' }
 #' 
 #' @aliases cvMa cvLong
 #' 

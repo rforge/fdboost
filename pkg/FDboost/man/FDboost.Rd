@@ -129,7 +129,9 @@ summary(mod)
 }
 \seealso{
   \code{\link[mboost]{mboost}} for the help of the wrapped
-  function in package mboost.
+  function in package mboost. See
+  \code{\link[FDboost]{bsignal}} and
+  \code{\link[FDboost]{bbsc}} for possible base-learners
 }
 \keyword{models,}
 \keyword{nonlinear}
