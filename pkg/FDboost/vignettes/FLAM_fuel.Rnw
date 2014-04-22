@@ -106,9 +106,9 @@ The predicted humidity is contained already in the dataset \emph{fuel}.
 \section{Model to predict humidity}
 
 We consider the following regression model to predict the humidity.
-\[ 
+\[
 E(Y_i) = \int \mbox{NIR}_i(s_1)\beta_1(s_1)ds_1 + \int \mbox{UVVIS}_i(s_2)\beta_2(s_2)ds_2
-+ \int \mbox{dNIR}_i(s_3)\beta_1(s_3)ds_3 + \int \mbox{dUVVIS}_i(s_4)\beta_2(s_4)ds_4,
+ + \int \mbox{dNIR}_i(s_3)\beta_1(s_3)ds_3 + \int \mbox{dUVVIS}_i(s_4)\beta_2(s_4)ds_4,
 \]
 with $Y_i$ being the humidity and NIR, UVVIS are the spectra and dNIR, dUVVIS the respective derivatives, measured over $s_1,\ldots, s_4$ respectively.
 The optimal stopping iteration is determined by 10-fold bootstrap.
@@ -119,7 +119,6 @@ modH2O <- FDboost(h2o ~ bsignal(UVVIS, uvvis.lambda, knots=40, df=4)
                     + bsignal(dUVVIS, duvvis.lambda, knots=40, df=4) 
                     + bsignal(dNIR, dnir.lambda, knots=40, df=4), 
                     timeformula=~bols(1), data=fuel)
-
 
 set.seed(212)
 cvmH2O <- suppressWarnings(cvrisk(modH2O, grid=seq(100, 5000, by=100), 
@@ -185,7 +184,6 @@ We consider the following regression model to predict the heat values.
 E(Y_i) = \int \mbox{NIR}_i(s_1)\beta_1(s_1)ds_1 + \int \mbox{UVVIS}_i(s_2)\beta_2(s_2)ds_2,
 \]
 with $Y_i$ being the heat value and NIR and UVVIS are the spectra, measured over $s_1$ and $s_2$ respectively. 
-The optimal stopping iteration is determined by 50-fold bootstrap. We compute in each bootstrap-sample the coefficient functions to get an idea of the variability of the estimates.
 
 <<model-spec, echo=TRUE>>=
 formula <- formula(heatan ~ bsignal(UVVIS, uvvis.lambda, knots=40, df=4.41) 
@@ -193,7 +191,11 @@ formula <- formula(heatan ~ bsignal(UVVIS, uvvis.lambda, knots=40, df=4.41)
 
 ## do a model fit:
 mod <- FDboost(formula, timeformula=~bols(1), data=fuel)
+mod <- mod[198]
+@
 
+The optimal stopping iteration is determined by 50-fold bootstrap. We compute in each bootstrap-sample the coefficient functions to get an idea of the variability of the estimates.
+<<cv-model-spec, echo=TRUE, eval=FALSE>>=
 ## get optimal mstop and do bootstrapping for coefficient estimates
 set.seed(2703)
 val <- validateFDboost(mod, 
@@ -204,55 +206,46 @@ mopt <- val$grid[which.min(colMeans(val$oobrisk))]
 print(mopt)
 
 ## use optimal mstop
-mod <- mod[mopt]
+mod <- mod[mopt] # 198
 @
 
 Plot the coefficient functions.
 \begin{figure}
 \begin{center}
 <<model-spec-plot, echo=TRUE, fig = TRUE, width=10, heigth=5>>=
-# pdf("valCoefspectra2.pdf")
-# par(mar=c(5, 3, 1, 1), cex.axis=1.5, cex.lab=1.5)
 par(mfrow=c(1,2))
-plot(mod, which=1, lwd=2, col="white", main="", lty=5, rug=FALSE,
-     ylab="", xlab="normalized wavelength", ylim=range(val$coefCV[[1]]$value) )
-plotPredCoef(val, terms=FALSE, commonRange=TRUE, which=1, add=TRUE)
-plot(mod, which=1, lwd=2, col=4, main="", lty=5, rug=FALSE, add=TRUE)
+plot(mod, which=1, lwd=2, lty=5, rug=FALSE,
+     ylab="", xlab="wavelength [nm]")
 
-legend("topright", legend=c("data", "BS", "mean BS", "5, 95% BS"), 
-       lty=c(5,1,1,2), col=c(4,8,1,2),
+plot(mod, which=2, lwd=2, lty=5, rug=FALSE, 
+     ylab="", xlab="wavelength [nm]")
+
+# plot with bootstrapped coefficient functions
+if(FALSE){
+  pdf("spec_valCoef.pdf")
+  par(mar=c(5, 3, 1, 1), cex.axis=1.5, cex.lab=1.5)
+  plot(mod, which=1, lwd=2, col="white", main="", lty=5, rug=FALSE,
+     ylab="", xlab="wavelength [nm]", ylim=range(val$coefCV[[1]]$value) )
+  plotPredCoef(val, terms=FALSE, commonRange=TRUE, which=1, add=TRUE)
+  plot(mod, which=1, lwd=2, col=4, main="", lty=5, rug=FALSE, add=TRUE)
+
+  legend("topright", legend=c("data", "BS", "mean BS", "5, 95% BS"), 
+       lty=c(5,1,1,2), col=c(4,8,1,2), cex=1.5,
        lwd=c(2,1,2,2))
 
-plot(mod, which=2, lwd=2, col="white", main="", lty=5, rug=FALSE, 
-     ylab="", xlab="normalized wavelength", ylim=range(val$coefCV[[2]]$value) )
-plotPredCoef(val, terms=FALSE, commonRange=TRUE, which=2, add=TRUE)
-plot(mod, which=2, lwd=2, col=4, main="", lty=5, rug=FALSE, add=TRUE)
-#dev.off()
+  plot(mod, which=2, lwd=2, col="white", main="", lty=5, rug=FALSE, 
+     ylab="", xlab="wavelength [nm]", ylim=range(val$coefCV[[2]]$value) )
+  plotPredCoef(val, terms=FALSE, commonRange=TRUE, which=2, add=TRUE)
+  plot(mod, which=2, lwd=2, col=4, main="", lty=5, rug=FALSE, add=TRUE)
+  dev.off()
+}
 @
 \end{center}
-\caption{Coefficient estimates for the effects of the two spectra. The gray lines
-show the estimates in the 50 bootstrap folds, the black line gives the mean estimated coefficient function over the bootstrap folds, the dashed red lines point-wise 5\% and 95\% values, the dotdashed blue lines give the estimated coefficients for the model on the whole dataset. In each plot the zero line is marked by a dotted black line.}
+\caption{Coefficient estimates for the effects of the two spectra.}
 \end{figure}
 
+% The gray lines show the estimates in the 50 bootstrap folds, the black line gives the mean estimated coefficient function over the bootstrap folds, the dashed red lines point-wise 5\% and 95\% values, the dotdashed blue lines give the estimated coefficients for the model on the whole dataset.
 
-<<model-spec-plot2, echo=TRUE, fig = FALSE>>=
-pdf("spec_valCoef.pdf")
-par(mar=c(5, 3, 2, 1), cex.axis=1.5, cex.lab=1.5)
-plot(mod, which=1, lwd=2, col="white", main="UV-VIS", lty=5, rug=FALSE,
-     ylab="", xlab="wavelength [nm]", ylim=range(val$coefCV[[1]]$value) )
-plotPredCoef(val, terms=FALSE, commonRange=TRUE, which=1, add=TRUE)
-plot(mod, which=1, lwd=2, col=4, main="", lty=5, rug=FALSE, add=TRUE)
-
-legend("topright", legend=c("data", "BS", "mean BS", "5, 95% BS"), 
-       lty=c(5,1,1,2), col=c(4,8,1,2),
-       lwd=c(2,1,2,2))
-
-plot(mod, which=2, lwd=2, col="white", main="NIR", lty=5, rug=FALSE, 
-     ylab="", xlab="wavelength [nm]", ylim=range(val$coefCV[[2]]$value) )
-plotPredCoef(val, terms=FALSE, commonRange=TRUE, which=2, add=TRUE)
-plot(mod, which=2, lwd=2, col=4, main="", lty=5, rug=FALSE, add=TRUE)
-dev.off()
-@
 
 
 

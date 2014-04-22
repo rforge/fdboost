@@ -49,7 +49,7 @@
 
   Formula to calculate R-squared over subjects,
   \code{overTime=FALSE}: \cr \eqn{R^2_i = 1 - \int (Y_i(t)
-  - \hat{Y}_i(t))^2 dt / \int (Y_i(t) - \bar{Y}(t))^2 dt }
+  - \hat{Y}_i(t))^2 dt / \int (Y_i(t) - \bar{Y}_i )^2 dt }
 }
 \note{
   \code{breaks} cannot be changed in the case the

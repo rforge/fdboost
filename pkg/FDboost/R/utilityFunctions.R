@@ -332,7 +332,7 @@ getYYhatTime <- function(object, breaks=object$yind){
 #' \eqn{R^2(t) = 1 - \sum_{i}( Y_i(t) - \hat{Y}_i(t))^2 /  \sum_{i}( Y_i(t) - \bar{Y}(t) )^2 } 
 #' 
 #' Formula to calculate R-squared over subjects, \code{overTime=FALSE}: \cr
-#' \eqn{R^2_i = 1 - \int (Y_i(t) - \hat{Y}_i(t))^2 dt /  \int (Y_i(t) - \bar{Y}(t))^2 dt }
+#' \eqn{R^2_i = 1 - \int (Y_i(t) - \hat{Y}_i(t))^2 dt /  \int (Y_i(t) - \bar{Y}_i )^2 dt }
 #' 
 #' @references Ramsay, J., Silverman, B. (2006). Functional data analysis. 
 #' Wiley Online Library. chapter 16.3
@@ -342,26 +342,40 @@ getYYhatTime <- function(object, breaks=object$yind){
 #' @export
 funRsquared <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE, ...){
   
-  # Get y, yhat and time of the model fit
-  temp <- getYYhatTime(object=object, breaks=breaks)
-  y <- temp$y
-  yhat <- temp$yhat
-  time <- temp$time
-  
-  stopifnot(dim(y)==dim(yhat))
-  stopifnot(dim(y)[2]==length(time))
+  if(length(object$yind)<2 | !is.null(object$id)){
+    y <- object$response
+    yhat <- object$fitted()
+    time <- object$yind
+    id <- object$id
+    if(is.null(id)) id <- 1:length(y)
+    if(overTime & !global) {
+      overTime <- FALSE
+      message("For scalar or irregualr response the functional R-squared cannot be computed over time.")
+    }
+    if(length(object$yind)<2) global <- TRUE
+  }else{
+    # Get y, yhat and time of the model fit
+    temp <- getYYhatTime(object=object, breaks=breaks)
+    y <- temp$y
+    yhat <- temp$yhat
+    time <- temp$time
+    
+    stopifnot(dim(y)==dim(yhat))
+    stopifnot(dim(y)[2]==length(time))
+    
+  }
   
   if(global){
     ret <- 1 - ( sum((y-yhat)^2, na.rm=TRUE)  / sum( (y-mean(y, na.rm=TRUE))^2, na.rm=TRUE) )
     attr(ret, "name") <- "global R-squared"
     return(ret)
   }
-  
-  # Mean function over time (matrix containing the mean in each t in the whole column)
-  mut <- matrix(colMeans(y, na.rm=TRUE), nrow=nrow(y), ncol=ncol(y), byrow=TRUE)
-  
+    
   ### for each time-point t 
   if(overTime){ 
+    # Mean function over time (matrix containing the mean in each t in the whole column)
+    mut <- matrix(colMeans(y, na.rm=TRUE), nrow=nrow(y), ncol=ncol(y), byrow=TRUE)
+    
     # numerator cannot be 0
     num <- colSums((y - mut)^2, na.rm=TRUE)
     num[round(num, 2)==0] <- NA
@@ -375,13 +389,25 @@ funRsquared <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,
     attr(ret, "missings") <- apply(y, 2, function(x) sum(is.na(x))/length(x) )
     
   }else{ ### for each subject i
-    # numerator cannot be 0
-    num <- rowSums((y - mut)^2, na.rm=TRUE)
-    num[round(num, 2)==0] <- NA    
-    ret <- 1 - ( rowSums((y - yhat)^2, na.rm=TRUE) /  num ) # over subjects
-    
-    attr(ret, "name") <- "R-squared over subjects"
-    attr(ret, "missings") <- apply(y, 1, function(x) sum(is.na(x))/length(x))
+    if(length(object$yind)<2 | !is.null(object$id)){
+      # Mean for each subject
+      mut <- tapply(y, id, mean, na.rm=TRUE  )[id]
+      # numerator cannot be 0
+      num <- tapply((y - mut)^2, id, mean, na.rm=TRUE )[id]
+      num[round(num, 2)==0] <- NA 
+      ret <- 1 - tapply((y - yhat)^2 /num, id, mean, na.rm=TRUE  )
+      attr(ret, "name") <- "MSE over subjects"              
+    }else{
+      # Mean for each subject
+      mut <- matrix(rowMeans(y, na.rm=TRUE), nrow=nrow(y), ncol=ncol(y), byrow=TRUE)
+      # numerator cannot be 0
+      num <- rowSums((y - mut)^2, na.rm=TRUE)
+      num[round(num, 2)==0] <- NA    
+      ret <- 1 - ( rowSums((y - yhat)^2, na.rm=TRUE) /  num ) # over subjects
+      
+      attr(ret, "name") <- "R-squared over subjects"
+      attr(ret, "missings") <- apply(y, 1, function(x) sum(is.na(x))/length(x)) 
+    }
   }
   return(ret)
 }
@@ -433,11 +459,23 @@ funRsquared <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,
 funMSE <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE, 
                    relative=FALSE, root=FALSE, ...){
   
-  # Get y, yhat and time of the model fit
-  temp <- getYYhatTime(object=object, breaks=breaks)
-  y <- temp$y
-  yhat <- temp$yhat
-  time <- temp$time
+  if(length(object$yind)<2 | !is.null(object$id)){
+    y <- object$response
+    yhat <- object$fitted()
+    time <- object$yind
+    id <- object$id
+    if(is.null(id)) id <- 1:length(y)
+    if(overTime & !global) {
+      overTime <- FALSE
+      message("For scalar or irregualr response the functional MSE cannot be computed over time.")
+    }
+  }else{
+    # Get y, yhat and time of the model fit
+    temp <- getYYhatTime(object=object, breaks=breaks)
+    y <- temp$y
+    yhat <- temp$yhat
+    time <- temp$time
+  }
   
   if(global){
     ret <- mean((y-yhat)^2, na.rm=TRUE)
@@ -451,9 +489,14 @@ funMSE <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,
       attr(ret, "missings") <- apply(y, 2, function(x) sum(is.na(x))/length(x))     
     }else{ 
       ### for each subject i
-      ret <- rowMeans((y - yhat)^2, na.rm=TRUE)
-      attr(ret, "name") <- "MSE over subjects"      
-      attr(ret, "missings") <- apply(y, 1, function(x) sum(is.na(x))/length(x))
+      if(length(object$yind)<2 | !is.null(object$id)){
+        ret <- tapply((y - yhat)^2, id, mean, na.rm=TRUE  )
+        attr(ret, "name") <- "MSE over subjects"              
+      }else{
+        ret <- rowMeans((y - yhat)^2, na.rm=TRUE)
+        attr(ret, "name") <- "MSE over subjects"      
+        attr(ret, "missings") <- apply(y, 1, function(x) sum(is.na(x))/length(x))
+      }
     }    
   }
   
@@ -476,7 +519,7 @@ funMSE <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,
 #' 
 #' Calculates the functional MRD for a fitted FDboost-object
 #' 
-#' @param object fitted FDboost-object
+#' @param object fitted FDboost-object with regular response
 #' @param overTime per default the functional MRD is calculated over time
 #' if \code{overTime=FALSE}, the MRD is calculated per curve
 #' @param breaks an optional vector or number giving the time-points at which the model is evaluated.
@@ -503,12 +546,24 @@ funMSE <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,
 #' @export
 funMRD <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,  ...){
   
-  # Get y, yhat and time of the model fit
-  temp <- getYYhatTime(object=object, breaks=breaks)
-  y <- temp$y
-  yhat <- temp$yhat
-  time <- temp$time
-  
+  if(length(object$yind)<2 | !is.null(object$id)){
+    y <- object$response
+    yhat <- object$fitted()
+    time <- object$yind
+    id <- object$id
+    if(is.null(id)) id <- 1:length(y)
+    if(overTime & !global) {
+      overTime <- FALSE
+      message("For scalar or irregualr response the functional MRD cannot be computed over time.")
+    }
+  }else{
+    # Get y, yhat and time of the model fit
+    temp <- getYYhatTime(object=object, breaks=breaks)
+    y <- temp$y
+    yhat <- temp$yhat
+    time <- temp$time
+  }
+
   # You cannot use observations that are 0, so set them to NA
   y1 <- y
   y1[ round(y1, 1) == 0 ] <- NA
@@ -525,9 +580,14 @@ funMRD <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,  ...
       attr(ret, "missings") <- apply(y, 2, function(x) sum(is.na(x))/length(x))     
     }else{ 
       ### for each subject i
-      ret <- rowMeans( abs((y1 - yhat) / y1), na.rm=TRUE  )
-      attr(ret, "name") <- "MRD over subjects"      
-      attr(ret, "missings") <- apply(y, 1, function(x) sum(is.na(x))/length(x))
+      if(length(object$yind)<2 | !is.null(object$id)){
+        ret <- tapply( abs((y1 - yhat) / y1), id, mean, na.rm=TRUE  )
+        attr(ret, "name") <- "MRD over subjects"              
+      }else{
+        ret <- rowMeans( abs((y1 - yhat) / y1), na.rm=TRUE  )
+        attr(ret, "name") <- "MRD over subjects"      
+        attr(ret, "missings") <- apply(y, 1, function(x) sum(is.na(x))/length(x))
+      }
     }    
   }
   

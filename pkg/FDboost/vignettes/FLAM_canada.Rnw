@@ -71,6 +71,7 @@
            \texttt{sarah.brockhaus@stat.uni-muenchen.de}
            \newline
 
+The analysis is based on the analysis in the online appendix of Scheipl et al. (2014).  
 
 \section{Load and plot data}
 Load FDboost package.
@@ -214,7 +215,7 @@ mod3 <- FDboost(l10precip ~ bols(region, df=2.5, contrasts.arg = "contr.dummy")
 Get optimal stopping iteration by 25-fold bootstrap over curves.
 
 <<cv-bootstrap0, eval = TRUE>>=
-mod3 <- mod3[49]
+mod3 <- mod3[48]
 @
 
 Do not run bootstrapping. 
@@ -222,7 +223,7 @@ Do not run bootstrapping.
 set.seed(2303)
 folds <- cvMa(ydim=mod3$ydim, type="bootstrap", B=25) 
 cvMod3 <- cvrisk(mod3, grid=seq(1, 1000, by=1), folds=folds, mc.cores=10) 
-mod3 <- mod3[mstop(cvMod3)]
+mod3 <- mod3[mstop(cvMod3)] # 48
 # summary(mod3)
 @
 
@@ -237,11 +238,11 @@ mod3 <- mod3[mstop(cvMod3)]
 % \end{figure}
 
 Base-learner for smooth residuals is not selected into the model. Look at effects of region and temperature.
+%modCanada3.pdf
 
-\begin{figure}
-\begin{center}
-<<plot-bootstrap-model1a, echo = TRUE, fig=TRUE, height=6, width=10>>=
-par(mfrow=c(1,2), mar=c(4,4,2,1), cex=1.5, cex.main=0.9)
+<<plot-bootstrap-model1a, echo = TRUE>>=
+pdf("modCanada3.pdf")
+par(mar=c(4,4,2,1), cex=1.5, cex.main=0.9)
 predRegion <- predict(mod3, which=1, 
                       newdata=list(region=factor(c("Arctic","Atlantic",
                                                    "Continental","Pacific")),
@@ -256,8 +257,14 @@ legend("bottom", lty=1:4, legend=levels(dataM$region), col=1:4, bty = "n", lwd=2
 ## plot the effect of temperature
 plot(mod3, which=2, pers=TRUE, main="temperature", zlab="",
      xlab="s, time [month]", ylab="t, time [month]")
+dev.off()
 @
-\caption{The estimated coefficients for the four climatic regions are plotted with color coded regions (left panel).  The coefficient function for the functional effect of temperature is colored in red for positive values and in blue for negative values (right panel).}
+
+\begin{figure}
+\begin{center} 
+\includegraphics[width=0.4\textwidth, page=1]{modCanada3}
+\includegraphics[width=0.4\textwidth, page=2]{modCanada3}
+\caption{Coefficients for model with 49 boosting iterations (determinded by 25 fold bootstrap). The estimated coefficients for the four climatic regions are plotted with color coded regions (left panel).  The coefficient function for the functional effect of temperature is colored in red for positive values and in blue for negative values (right panel).}
 \end{center}
 \end{figure} 
 
@@ -297,8 +304,9 @@ mod3 <- mod3[mStop]
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 Plot the coefficient functions for the effects of temperature and region.
-<<plot-bootstrap-model1b, echo = TRUE, fig=TRUE, height=6, width=10>>=
-par(mfrow=c(1,2), mar=c(4,4,2,1), cex=1.5, cex.main=0.9)
+<<plot-bootstrap-model1b, echo = TRUE>>=
+pdf("modCanada3curves.pdf")
+par(mar=c(4,4,2,1), cex=1.5, cex.main=0.9)
 predRegion <- predict(mod3, which=1, 
                       newdata=list(region=factor(c("Arctic","Atlantic",
                                                    "Continental","Pacific")),
@@ -313,12 +321,19 @@ legend("bottom", lty=1:4, legend=levels(dataM$region), col=1:4, bty = "n", lwd=2
 ## plot the effect of temperature
 plot(mod3, which=2, pers=TRUE, main="temperature", zlab="",
      xlab="s, time [month]", ylab="t, time [month]")
+dev.off()
 @
-
-Plot the smooth residual curves.
 \begin{figure}
 \begin{center}
-<<plot-bootstrap-model2, echo = TRUE, fig=TRUE, heigth=10, width=10>>= 
+\includegraphics[width=0.4\textwidth, page=1]{modCanada3curves.pdf}
+\includegraphics[width=0.4\textwidth, page=2]{modCanada3curves.pdf}
+\caption{Coefficients for model with 750 boosting iterations (determinded by leaving-one-curve-out cross-validation). The estimated coefficients for the four climatic regions are plotted with color coded regions (left panel).  The coefficient function for the functional effect of temperature is colored in red for positive values and in blue for negative values (right panel).}
+\end{center}
+\end{figure} 
+
+
+Prepare data for plot of smooth residual curves. The stations a roughly ordered. 
+<<plot-bootstrap-model2, echo = TRUE>>= 
 ord <- c("Dawson", "Whitehorse", "Yellowknife", "Uranium City", "Churchill",
          "Edmonton",  "Pr. Albert", "The Pas", "Calgary", "Regina", "Winnipeg",
          "Thunder Bay",
@@ -336,8 +351,11 @@ regionOrd <- dataM$region[ind]
 
 fit3 <- (predict(mod3))[ind,] 
 response <- dataM$l10precip[ind, ]
+@
 
-# pdf("modCanada3resi.pdf", width=7, height=10)
+Plot the smooth residual curves.
+<<plot-bootstrap-model2, echo = TRUE>>= 
+pdf("modCanada3resi.pdf", width=7, height=10)
 par(mar = c(2.55, 2.05, 2.05, 1.05), oma=c(0,0,0,0))
 layout(rbind(matrix(1:36, 6, 6), rep(37,6), rep(37,6)))
 for(i in 1:35) {
@@ -362,24 +380,25 @@ if(require(maps) & require(mapdata)){
        labels=as.character(i), cex=0.8)
  }
 }
-#dev.off()
+dev.off()
 @
+
+\begin{figure}[hp]
+\begin{center}
+\includegraphics[width=0.9\textwidth]{modCanada3resi}
 \end{center}
 \caption{The estimated smooth spatially correlated residual curves (lines) and the residuals (circles) are plotted with regions color-coded. 
 The locations of the weather stations are given in the map at the bottom.}
 \end{figure} 
 
 
-% 
-% \begin{Schunk}
-% \begin{Sinput}
-% R> glmboost(Surv(wpbc$time, wpbc$status == "N") ~ .,
-%          data = wpbc, family = CoxPH(), center = TRUE)
-% \end{Sinput}
-% \end{Schunk}
-% 
-% For more examples, such as fitting an additive Cox model using
-% \Rpackage{FDboost}.
-% 
+
+\textbf{References}
+\begin{itemize}
+\item[] Scheipl, F., Staicu, A.-M., and Greven, S. (2014), Functional Additive Mixed Models, \textit{{Journal of Computational and Graphical Statistics}}, in press, 
+DOI 10.1080/10618600.2014.901914.
+\end{itemize}
+
+
 
 \end{document}

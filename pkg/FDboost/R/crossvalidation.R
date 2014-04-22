@@ -744,10 +744,9 @@ plot.validateFDboost <- function(x, riskopt=c("mean", "median"),
               ylab = "", xlab = attr(x$yind, "nameyind"), 
               main="Measured and Predicted Values", ...)
       funplot(x$yind, predMat, id=x$id, lwd = 2, pch = 2, add = TRUE, ...)
+      posLegend <- "topleft"
+      legend(posLegend, legend=c("observed","predicted"), col=1, pch=1:2)  
     }
-    
-    posLegend <- "topleft"
-    legend(posLegend, legend=c("observed","predicted"), col=1, pch=1:2)  
     
     if(5 %in% which){
       # Plot residuals for the optimal mstop

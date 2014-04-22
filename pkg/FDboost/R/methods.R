@@ -458,7 +458,7 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
         #generate grid of values in range of original data
         if(trm$dim==1){
           ng <- n1
-          varnms <- varnms[-which(varnms %in% c("ONEx", "ONEtime")) ] 
+          varnms <- varnms[!varnms %in% c("ONEx", "ONEtime")] 
           # Extra setup of dataframe in the case of a functional covariate
           if(grepl("bsignal", trm$get_call()) | grepl("bconcurrent", trm$get_call())){
             x <- attr(trm$model.frame()[[1]], "signalIndex")
@@ -475,7 +475,9 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
           attr(d, "xm") <- xg
           attr(d, "xname") <- varnms
           # For effect constant over index of response: add dummy-index so that length in clear
-          if(attr(object$yind, "nameyind") != varnms) d[[attr(object$yind, "nameyind")]] <- object$yind          
+          if(attr(object$yind, "nameyind") != varnms){
+            d[[attr(object$yind, "nameyind")]] <- seq(min(object$yind), max(object$yind),length=ng) 
+          }           
         }        
         
         if(trm$dim > 1){          

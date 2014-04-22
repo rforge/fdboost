@@ -6,7 +6,8 @@
     global = FALSE, ...)
 }
 \arguments{
-  \item{object}{fitted FDboost-object}
+  \item{object}{fitted FDboost-object with regular
+  response}
 
   \item{overTime}{per default the functional MRD is
   calculated over time if \code{overTime=FALSE}, the MRD is
