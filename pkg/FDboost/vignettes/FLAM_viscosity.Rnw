@@ -60,7 +60,7 @@
 
 \setkeys{Gin}{width=\textwidth}
 
-\title{Viscosity: scalar-on-function regression}
+\title{Viscosity: function-on-scalar regression}
 \author{Sarah Brockhaus$^1$}
 \date{}
 \maketitle

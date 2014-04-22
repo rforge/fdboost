@@ -816,7 +816,7 @@ plotPredCoef <- function(x, which=NULL, pers=TRUE,
   argsMatplot  <- getArguments(x=c(formals(graphics::matplot), par()), dots=dots)
   argsFunplot  <- getArguments(x=c(formals(funplot), par()), dots=dots)
 
-  argsPersp <- getArguments(x=formals(graphics:::persp.default), dots=dots)
+  argsPersp <- getArguments(x=formals(getS3method("persp", "default")), dots=dots)
   
   plotWithArgs <- function(plotFun, args, myargs){        
     args <- c(myargs[!names(myargs) %in% names(args)], args)        

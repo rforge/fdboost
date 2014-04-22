@@ -808,7 +808,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
 
   argsImage <- getArguments(x=formals(graphics::image.default), dots=dots)
   argsContour <- getArguments(x=formals(graphics::contour.default), dots=dots)
-  argsPersp <- getArguments(x=formals(graphics:::persp.default), dots=dots)
+  argsPersp <- getArguments(x=formals(getS3method("persp", "default")), dots=dots)
   
   plotWithArgs <- function(plotFun, args, myargs){        
     args <- c(myargs[!names(myargs) %in% names(args)], args)        

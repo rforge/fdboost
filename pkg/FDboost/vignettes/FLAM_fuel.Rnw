@@ -44,7 +44,7 @@
 
 
 \hypersetup{%
-  pdftitle = {FLAM viscosity},
+  pdftitle = {FLAM fossil fuels},
   pdfsubject = {package vignette},
   pdfauthor = {Sarah Brockhaus},
 %% change colorlinks to false for pretty printing

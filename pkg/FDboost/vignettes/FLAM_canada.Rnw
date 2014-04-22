@@ -44,7 +44,7 @@
 
 
 \hypersetup{%
-  pdftitle = {FLAM viscosity},
+  pdftitle = {FLAM canada},
   pdfsubject = {package vignette},
   pdfauthor = {Sarah Brockhaus},
 %% change colorlinks to false for pretty printing
@@ -60,7 +60,7 @@
 
 \setkeys{Gin}{width=\textwidth}
 
-\title{Viscosity: scalar-on-function regression}
+\title{Canadian climate: function-on-function regression}
 \author{Sarah Brockhaus$^1$}
 \date{}
 \maketitle
