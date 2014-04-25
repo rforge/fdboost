@@ -213,7 +213,17 @@ validateFDboost <- function(object, response=NULL,
   }
   
   # save integration weights of original model
-  intWeights <- model.weights(object)
+  ### intWeights <- model.weights(object) # weights are rescaled in mboost, see mboost:::rescale_weights  
+  if(!is.null(object$callEval$numInt) && object$callEval$numInt=="Riemann"){
+    if(is.null(object$id)){
+      intWeights <- as.vector(integrationWeights(X1=matrix(object$response, 
+                              ncol=object$ydim[2]), object$yind))
+    }else{
+      intWeights <- integrationWeights(X1=object$response, object$yind, id)
+    }
+  }else{
+    intWeights <- model.weights(object) 
+  }
   
   # out-of-bag-weights: i.e. the left out curve/ the left out observations
   OOBweights <- matrix(1, ncol = ncol(folds), nrow=nrow(folds))
@@ -243,7 +253,7 @@ validateFDboost <- function(object, response=NULL,
   ### compute ("length of each trajectory")^-1 in the response
   if(length(object$yind)>1){
     lengthTi1 <- 1/tapply(yindLong[!is.na(response)], id[!is.na(response)], function(x) max(x) - min(x))
-    if(any(is.infinite(lengthTi1))) lengthTi1[is.infinite(lengthTi1)] <- max(lengthTi1[is.infinite(lengthTi1)])
+    if(any(is.infinite(lengthTi1))) lengthTi1[is.infinite(lengthTi1)] <- max(lengthTi1[!is.infinite(lengthTi1)])
   }else{
     lengthTi1 <- rep(1, l=length(response))
   }
