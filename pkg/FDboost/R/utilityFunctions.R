@@ -551,10 +551,10 @@ funMSE <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,
 #' 
 #' @details 
 #' Formula to calculate MRD over time, \code{overTime=TRUE}: \cr
-#' \eqn{ MRD(t) = n^{-1} \sum_i |(Y_i(t) - \hat{Y}_i(t))^2|/|Y_i(t)| } 
+#' \eqn{ MRD(t) = n^{-1} \sum_i |Y_i(t) - \hat{Y}_i(t)| / |Y_i(t)| } 
 #' 
 #' Formula to calculate MRD over subjects, \code{overTime=FALSE}: \cr
-#' \eqn{ MRD_i = \int |(Y_i(t) - \hat{Y}_i(t))^2|/|Y_i(t)| dt  \approx G^{-1} \sum_g |(Y_i(t_g) - \hat{Y}_i(t_g))^2| / |Y_i(t)|}
+#' \eqn{ MRD_{i} = \int |Y_i(t) - \hat{Y}_i(t)| / |Y_i(t)| dt  \approx G^{-1} \sum_g |Y_i(t_g) - \hat{Y}_i(t_g)| / |Y_i(t)|}
 #' 
 #' @return Returns a vector with the calculated MRD and some extra information in attributes.
 #' 

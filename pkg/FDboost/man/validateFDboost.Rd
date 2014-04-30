@@ -18,7 +18,7 @@
     folds = cv(rep(1, object$ydim[1]), type = "bootstrap"),
     grid = 1:mstop(object), getCoefCV = TRUE,
     riskopt = c("mean", "median"), mrdDelete = 0,
-    refitSmoothOffset = TRUE, ...)
+    refitSmoothOffset = TRUE, showProgress = TRUE, ...)
 }
 \arguments{
   \item{object}{fitted FDboost-object}
@@ -48,7 +48,9 @@
   deviation)}
 
   \item{refitSmoothOffset}{logical, should the offset be
-  refitted in each learning sample? Defaults to TRUE. In
+  refitted in each learning sample? Defaults to TRUE.}
+
+  \item{showProgress}{logigal, default to TRUE In
   \code{\link[mboost]{cvrisk}} the offset of the original
   model \code{object} is used.}
 
@@ -104,6 +106,8 @@
   out-of-bag risk without consideration of integration
   weights} \item{oobmse0}{the out-of-bag mean squared error
   (MSE) without consideration of integration weights}
+  \item{oobmrd0}{the out-of-bag mean relative deviation
+  (MRD) without consideration of integration weights}
 }
 \description{
   Cross-Validation and bootstrapping over curves to compute

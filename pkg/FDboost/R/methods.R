@@ -889,7 +889,20 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
       trm <- terms[[i]] 
       
       if(grepl("bhist", trm$main)){
-        trm$value[lower.tri(trm$value, diag = FALSE)] <- NA
+        ## set 0 to NA so that beta only has values in its domain
+        # get the limits- function
+        limits <- get("args", (environment(x$baselearner[[which[i]]]$dpp)))$limits
+        if (!is.function(limits) && limits == "s<=t") {
+          limits <- function(s, t) {
+            (s < t) | (s == t)
+          }
+        }
+        if (!is.function(limits) && limits == "s<t") {
+          limits <- function(s, t) {
+            s < t
+          }
+        }
+        trm$value[!outer(trm$x, trm$y, limits)] <- NA
       }
       
       # plot for 1-dim effects
