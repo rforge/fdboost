@@ -633,9 +633,10 @@ bconcurrent <- function(..., #by = NULL, index = NULL,
 
 #################################
 #### Base-learner for historic effect of functional covariate
-### with integral over s<=t
+### with integral over specific limits, e.g. s<=t
 
 ### model.matrix for P-splines base-learner of signal matrix mf
+### for response observed over a common grid
 X_hist <- function(mf, vary, args) {
   
   stopifnot(is.data.frame(mf))
@@ -648,6 +649,7 @@ X_hist <- function(mf, vary, args) {
   
   # get id-variable
   id <- attr(mf[,xname], "id") # for data in long format
+  # id is NULL for regular response
   
   #   stopifnot(is.list(mf))
   #   xname <- names(mf)[1]
@@ -669,14 +671,14 @@ X_hist <- function(mf, vary, args) {
   
   # Weighting with matrix of functional covariate
   L <- integrationWeightsLeft(X1=X1, xind=xind)
-  X1L <- L*X1
+  X1 <- L*X1
   
 #   # set up design matrix for historical model and s<=t with s and t equal to xind
 #   # expand matrix of original observations to lower triangular matrix 
 #   X1des0 <- matrix(0, ncol=ncol(X1), nrow=ncol(X1)*nrow(X1))
 #   for(i in 1:ncol(X1des0)){
 #     #print(nrow(X1)*(i-1)+1)
-#     X1des0[(nrow(X1)*(i-1)+1):nrow(X1des0) ,i] <- X1L[,i] # use fun. variable * integration weights
+#     X1des0[(nrow(X1)*(i-1)+1):nrow(X1des0) ,i] <- X1[,i] # use fun. variable * integration weights
 #   }
   
   ## set up design matrix for historical model according to limit()
@@ -701,27 +703,36 @@ X_hist <- function(mf, vary, args) {
       }
     }
   }
-  
-  ### expand the design matrix for all observations (yind is equal for all observations!)
-  ### the response is a vector (y1(t1), y2(t1), ... , yn(t1), yn(tG))
-  if(is.null(id)){
-    X1des <- X1L[rep(1:nobs, times=length(yind)), ]
-  } else{ # yind is over all observations in long format
-    X1des <- X1L[id, ] 
-  }
+
   ### use function limits to set up design matrix according to function limits 
   ### by setting 0 at the time-points that should not be used
   if (!is.null(limits)) {
-    ## at the moment: xind and yind are the same for all observations
     ## expand yind by replication to the yind of all observations together
-    if(is.null(id)){
-      ind0 <- !t(outer( xind, rep(yind, each=nobs), limits) )
-    } else{ # yind is over all observations in long format
-      ind0 <- !t(outer( xind, yind, limits) )
-    } 
+    ind0 <- !t(outer( xind, rep(yind, each=nobs), limits) )
+  }
+
+  ### Compute the design matrix as sparse or normal matrix 
+  ### depending on dimensions of the final design matrix
+  MATRIX <- any(c(nrow(ind0), ncol(B.s)^2) > c(500, 50)) #MATRIX <- any(dim(X) > c(500, 50))
+  MATRIX <- MATRIX && options("mboost_useMatrix")$mboost_useMatrix
+  if(MATRIX){
+    #message("use sparse matrix in X_hist")
+    diag <- Diagonal
+    cbind <- cBind
+    ### compute the design matrix as sparse matrix
+    tempIndexDesign <- which(!ind0, arr.ind=TRUE)
+    tempIndexX1 <- cbind(rep(1:nobs, length.out=nrow(tempIndexDesign)), tempIndexDesign[,2] )
+    X1des <- sparseMatrix(i=tempIndexDesign[,1], j=tempIndexDesign[,2],
+                          x=X1[tempIndexX1], dims=dim(ind0))  
+    # object.size(X1des)
+    rm(tempIndexX1, tempIndexDesign)
+  }else{
+    ### expand the design matrix for all observations (yind is equal for all observations!)
+    ### the response is a vector (y1(t1), y2(t1), ... , yn(t1), yn(tG))
+    X1des <- X1[rep(1:nobs, times=length(yind)), ]
     X1des[ind0] <- 0
   }
-  
+    
   # Design matrix is product of expanded X1 and basis expansion over xind 
   X1des <- X1des %*% B.s
   
@@ -734,14 +745,14 @@ X_hist <- function(mf, vary, args) {
     B.t <- mboost:::bsplines(yind, knots=knots, boundary.knots=args$boundary.knots, 
                           degree=args$degree) 
   }
-  # stack design-matrix of response n times
-  if(is.null(id)){
-    B.t <- B.t[rep(1:length(yind), each=nobs), ]
-  }  
-  # in long format B.t is already over all time-points in the response
+
+  # stack design-matrix of response nobs times
+  B.t <- B.t[rep(1:length(yind), each=nobs), ]
+
     
   # calculate row-tensor
   # X <- (X1 %x% t(rep(1, ncol(X2))) ) * ( t(rep(1, ncol(X1))) %x% X2  )
+  dimnames(B.t) <- NULL # otherwise warning "dimnames [2] mismatch..."
   X <- X1des[,rep(1:ncol(X1des), each=ncol(B.t))] * B.t[,rep(1:ncol(B.t), times=ncol(X1des))] 
   
   ### Penalty matrix: product differences matrix
@@ -749,15 +760,14 @@ X_hist <- function(mf, vary, args) {
   K1 <- crossprod(K1)
   K2 <- diff(diag(ncol(B.t)), differences = args$differences)
   K2 <- crossprod(K2)  
-  K <- kronecker(K2, diag(ncol(X1des))) +
-    kronecker(diag(ncol(B.t)), K1)
+  suppressMessages(K <- kronecker(K2, diag(ncol(X1des))) +
+    kronecker(diag(ncol(B.t)), K1))
   
-  ### <FIXME> necessary if K1 and K2 are not the same anyway?
-  if(!is.null(id)){
-    K <- kronecker(K1, diag(ncol(B.t))) +
-      kronecker(diag(ncol(X1des)), K2)
-  }
-    
+#   ### <FIXME> necessary if K1 and K2 are not the same anyway?
+#   if(!is.null(id)){
+#     K <- kronecker(K1, diag(ncol(B.t))) +
+#       kronecker(diag(ncol(X1des)), K2)
+#   }
   
   ## compare specified degrees of freedom to dimension of null space
   if (!is.null(args$df)){
@@ -819,14 +829,14 @@ X_hist2 <- function(mf, vary, args) {
   
   # Weighting with matrix of functional covariate
   L <- integrationWeightsLeft(X1=X1, xind=xind)
-  X1L <- L*X1
+  X1 <- L*X1
   
   #   # set up design matrix for historical model and s<=t with s and t equal to xind
   #   # expand matrix of original observations to lower triangular matrix 
   #   X1des0 <- matrix(0, ncol=ncol(X1), nrow=ncol(X1)*nrow(X1))
   #   for(i in 1:ncol(X1des0)){
   #     #print(nrow(X1)*(i-1)+1)
-  #     X1des0[(nrow(X1)*(i-1)+1):nrow(X1des0) ,i] <- X1L[,i] # use fun. variable * integration weights
+  #     X1des0[(nrow(X1)*(i-1)+1):nrow(X1des0) ,i] <- X1[,i] # use fun. variable * integration weights
   #   }
   
   ## set up design matrix for historical model according to limit()
@@ -852,61 +862,75 @@ X_hist2 <- function(mf, vary, args) {
     }
   }
   
-  ### expand the design matrix for all observations (yind is equal for all observations!)
-  ### the response is a vector (y1(t1), y2(t1), ... , yn(t1), yn(tG))
-  if(is.null(id)){
-    X1des <- X1L[rep(1:nobs, times=length(yind)), ]
-  } else{ # yind is over all observations in long format
-    X1des <- X1L[id, ] 
-  }
-  ### use function limits to set up design matrix according to function limits 
-  ### by setting 0 at the time-points that should not be used
+  ### generate a matrix giving FALSE for non-zero-entries accoring to limits()
   if (!is.null(limits)) {
-    if(is.null(id)){ # yind is the same for all observations
-      ind0 <- !t(outer( xind, rep(yind, each=nobs), limits) )
+    # yind is over all observations in long format
+    ind0 <- !t(outer( xind, yind, limits) )
+  }else{
+    warning("Function limits is NULL!")
+    ind0 <- matrix(FALSE, ncol=length(xind), nrow=length(yind))
+  }  
+  
+  ### Compute the design matrix as sparse or normal matrix 
+  ### depending on dimensions of the final design matrix
+  MATRIX <- any(c(length(id), ncol(B.s)^2) > c(500, 50)) #MATRIX <- any(dim(X) > c(500, 50))
+  MATRIX <- MATRIX && options("mboost_useMatrix")$mboost_useMatrix
+  if(MATRIX){
+    #message("use sparse matrix in X_hist2")
+    diag <- Diagonal
+    cbind <- cBind
+    ### compute the design matrix as sparse matrix
+    tempj <- unlist(apply(!ind0, 1, which)) # in which columns are the values? 
+    ## i: row numbers: one row number per observation of response, 
+    #     repeat the row number for each entry
+    ## index for the X1 matrix taking each value of original matrix
+    tempIndex <- cbind(rep(unique(id), tapply(apply(!ind0, 1, sum), id, sum)), tempj )
+    X1des <- sparseMatrix(i=rep(1:length(id), times=rowSums(!ind0)), j=tempj,
+                          x=X1[ tempIndex], dims=dim(ind0))
+    # object.size(X1des)
+    rm(tempj, tempIndex)
+  }else{
+    ### expand the design matrix for all observations (yind is equal for all observations!)
+    ### the response is a vector (y1(t1), y2(t1), ... , yn(t1), yn(tG))
+    if(is.null(id)){
+      id <- rep(1:nobs, times=length(yind))
+      X1des <- X1[rep(1:nobs, times=length(yind)), ] 
     } else{ # yind is over all observations in long format
-      ind0 <- !t(outer( xind, yind, limits) )
-    } 
+      X1des <- X1[id, ] 
+    }
+    ### use function limits to set up design matrix according to function limits 
+    ### set 0 at the time-points that should not be used
     X1des[ind0] <- 0
   }
   
   # Design matrix is product of expanded X1 and basis expansion over xind 
   X1des <- X1des %*% B.s
   
-  # if xind and yind are equal B.t and B.s are equal as well
-  if(length(xind)==length(yind) && all(xind==yind) ){
-    # design matrix over index of response for one response
-    B.t <- B.s
-  } else{
-    # design matrix over index of response for one response
-    B.t <- mboost:::bsplines(yind, knots=knots, boundary.knots=args$boundary.knots, 
+  # design matrix over index of response (yind has long format!)
+  B.t <- mboost:::bsplines(yind, knots=knots, boundary.knots=args$boundary.knots, 
                              degree=args$degree) 
-  }
-  # stack design-matrix of response n times
-  if(is.null(id)){
-    B.t <- B.t[rep(1:length(yind), each=nobs), ]
-  }  
-  # in long format B.t is already over all time-points in the response
+
 
   # calculate row-tensor
   # X <- (X1 %x% t(rep(1, ncol(X2))) ) * ( t(rep(1, ncol(X1))) %x% X2  )
+  dimnames(B.t) <- NULL # otherwise warning "dimnames [2] mismatch..."
   X <- X1des[,rep(1:ncol(X1des), each=ncol(B.t))] * B.t[,rep(1:ncol(B.t), times=ncol(X1des))] 
-  
+
   ### Penalty matrix: product differences matrix
   K1 <- diff(diag(ncol(X1des)), differences = args$differences)
   K1 <- crossprod(K1) 
   K2 <- diff(diag(ncol(B.t)), differences = args$differences)
   K2 <- crossprod(K2) 
-  K <- kronecker(K2, diag(ncol(X1des))) +
-    kronecker(diag(ncol(B.t)), K1)
+  suppressMessages(K <- kronecker(K2, diag(ncol(X1des))) +
+    kronecker(diag(ncol(B.t)), K1))
   
   ### <FIXME> necessary if K1 and K2 are not the same anyway?
+  # <FIXME> not possible to query using id, as id now never is NULL
   if(!is.null(id)){
-    K <- kronecker(K1, diag(ncol(B.t))) +
-      kronecker(diag(ncol(X1des)), K2)
+    suppressMessages(K <- kronecker(K1, diag(ncol(B.t))) +
+      kronecker(diag(ncol(X1des)), K2))
   }
-  
-  
+    
   ## compare specified degrees of freedom to dimension of null space
   if (!is.null(args$df)){
     rns <- ncol(K) - qr(as.matrix(K))$rank # compute rank of null space
@@ -921,6 +945,10 @@ X_hist2 <- function(mf, vary, args) {
            "(unpenalized part of P-spline). Use larger value for ",
            sQuote("df"), " or set ", sQuote("center = TRUE"), ".")
   }
+
+  # tidy up workspace 
+  rm(B.s, B.t, ind0, X1des, X1, L)
+
   return(list(X = X, K = K))
 }
 
@@ -944,7 +972,7 @@ bhist <- function(..., index = NULL, #by = NULL,
   mfL <- list(...)
   if(length(mfL)>3) stop("bhist has too many arguments")
   if(length(mfL)<3) stop("bhist has too few arguments")
-  if(!is.matrix(mfL[[1]])) stop("signal has to be a matrix")
+  if(!mboost:::isMATRIX(mfL[[1]])) stop("signal has to be a matrix")
   
   varnames <- all.vars(cll)
 

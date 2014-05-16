@@ -254,8 +254,10 @@ validateFDboost <- function(object, response=NULL,
     yindLong <- rep(object$yind, each=object$ydim[1])
   }
   ### compute ("length of each trajectory")^-1 in the response
+  ### more precisely ("sum of integration weights")^-1 is used
   if(length(object$yind)>1){
-    lengthTi1 <- 1/tapply(yindLong[!is.na(response)], id[!is.na(response)], function(x) max(x) - min(x))
+    # lengthTi1 <- 1/tapply(yindLong[!is.na(response)], id[!is.na(response)], function(x) max(x) - min(x))
+    lengthTi1 <- 1/tapply(intWeights, id, function(x) sum(x))
     if(any(is.infinite(lengthTi1))) lengthTi1[is.infinite(lengthTi1)] <- max(lengthTi1[!is.infinite(lengthTi1)])
   }else{
     lengthTi1 <- rep(1, l=length(response))

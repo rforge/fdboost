@@ -186,6 +186,8 @@ FDboost <- function(formula,          ### response ~ xvars
     # check length of response and its time and index
     stopifnot(length(response)==length(time) & length(response)==length(id))
     
+    if(any(is.na(response))) warning("For non-grid observations the response should not contain missing values.")
+    
     nr <- length(response) # total number of observations
     nc <- length(unique(id)) # number of trajectories
     dresponse <- as.vector(response) # column-wise stacking of response  
