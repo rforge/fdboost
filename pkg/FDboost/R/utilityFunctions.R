@@ -154,15 +154,36 @@ funplot <- function(x, y, id=NULL, rug=TRUE, ...){
     xlabel <- deparse(substitute(x))
     ylabel <- deparse(substitute(y))
     
+    # get color specification
+    if("col" %in% names(dots)){
+      col <- dots$col
+      argsPlot$col <- 1
+    }else{
+      col <- 1
+    }
+    
+    # expand vector col if it contains one color per trajectory
+    if(length(col) == length(unique(id)) ){
+      col <- rep(col, table(id) )
+    }
+    
     # there should be no mising values in long format
-    temp <- data.frame(id, y, x) # dim(temp)
+    temp <- data.frame(id, y, x, col) # dim(temp)
     temp <- na.omit(temp)   
     # order values of temp
     temp <- temp[order(temp$id, temp$x),] 
     id <- temp$id
     x <- temp$x
     y <- temp$y
+    col <- temp$col
     rm(temp)
+    
+    # generate vector of colors for each observation
+    if(is.null(argsPlot$col)){
+      col <- rep( (unique(id)-1), table(id))
+      col <- col %% 6 + 1  # only use the colors 1-6
+    }
+    argsPlot$col <- NULL
     
     # Plot the observed points
     if(!"add" %in% names(dots)){
@@ -171,24 +192,13 @@ funplot <- function(x, y, id=NULL, rug=TRUE, ...){
                    myargs=list(x=x[id==1], y=y[id==1], xlab=xlabel, ylab=ylabel, type="p", pch=3,
                                ylim=range(y, na.rm=TRUE), xlim=range(x, na.rm=TRUE)) )
     }
-
-    if("col" %in% names(dots)){
-      col <- dots$col
-      argsPlot$col <- NULL
-    }else{
-      col <- 1:6
-    }
-    
-    if(length(col)<length(unique(id))){
-      col <- rep(col, l=length(unique(id)))
-    }
     
     for(i in unique(id)){
       plotWithArgs(points, args=argsPlot, 
                    myargs=list(x=x[id==i], y=y[id==i], xlab=xlabel, ylab=ylabel, type="p", pch=3,
-                               col=col[i]) )
+                               col=col[id==i]) )
       plotWithArgs(lines, args=argsPlot, 
-                   myargs=list(x=x[id==i], y=y[id==i], xlab=xlabel, ylab=ylabel, col=col[i]) )
+                   myargs=list(x=x[id==i], y=y[id==i], xlab=xlabel, ylab=ylabel, col=col[id==i]) )
     }
     
     if(rug) rug(x, 0.01)
