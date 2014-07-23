@@ -21,10 +21,3 @@ Suggests:
     mapdata
 License: GPL-2
 Packaged: 2013-04-30 08:41:28 UTC; brockhaus
-Collate:
-    'FDboost.R'
-    'baselearners.R'
-    'crossvalidation.R'
-    'methods.R'
-    'bkroneckerTrafo.R'
-    'utilityFunctions.R'
