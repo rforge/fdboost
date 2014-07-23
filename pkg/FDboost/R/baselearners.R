@@ -1,3 +1,4 @@
+
 #' Functions to compute integration weights
 #' 
 #' Computes trapezoidal integration weights for a functional variable X1 on grid xind.
@@ -38,14 +39,14 @@ integrationWeights <- function(X1, xind, id=NULL){
   # trapezoidal
   # \int^b_a f(t) dt = .5* sum_i (t_i - t_{i-1}) f(t_i) + f(t_{i-1}) = 
   #  (t_2 - t_1)/2 * f(a=t_1) + sum^{nx-1}_{i=2} ((t_i - t_{i-1})/2 + (t_{i+1} - t_i)/2) * f(t_i) 
-  #			+ (t_{nx} - t_{nx-1})/2 * f(b=t_{nx})
+  #  		+ (t_{nx} - t_{nx-1})/2 * f(b=t_{nx})
   Li <- colMeans(rbind(c(0,diff(xind)), c(diff(xind), 0))) 
   
   # alternative calculation of trapezoidal weights
   #diffs <- diff(xind)
   #nxgrid <- length(xind)
   #Li <- 0.5 * c(diffs[1],  filter(diffs, filter=c(1,1))[-(nxgrid-1)], diffs[(nxgrid-1)] )
-    
+  
   L <- matrix(Li, nrow=nrow(X1), ncol=ncol(X1), byrow=TRUE)
   
   # taking into account missing values
@@ -74,7 +75,7 @@ integrationWeights <- function(X1, xind, id=NULL){
       }
       return(l)
     }
-           )
+    )
     
     return(t(Lneu))  
     
@@ -146,7 +147,7 @@ X_bsignal <- function(mf, vary, args) {
   #   xind <- mf[[2]]
   
   if(ncol(X1)!=length(xind)) stop("Dimension of signal matrix and its index do not match.")
-    
+  
   ### Construct spline basis over index xind of X1 
   if(is.null(args$boundary.knots))  args$boundary.knots <- range(xind, na.rm = TRUE)
   knots <- seq(from = args$boundary.knots[1], to = args$boundary.knots[2], length = args$knots + 2)
@@ -160,13 +161,13 @@ X_bsignal <- function(mf, vary, args) {
   # use cyclic splines
   if (args$cyclic) {
     X <- mboost:::cbs(xind,
-             knots = knots,
-             boundary.knots = args$boundary.knots,
-             degree = args$degree)
+                      knots = knots,
+                      boundary.knots = args$boundary.knots,
+                      degree = args$degree)
   }
-    
+  
   colnames(X) <- paste(xname, 1:ncol(X), sep="")
-      
+  
   ### use the transformation matrix Z if necessary
   useZ <- FALSE
   ### Check whether integral over trajectories is different then centering is advisable
@@ -233,7 +234,7 @@ X_bsignal <- function(mf, vary, args) {
   
   ### penalty matrix is squared difference matrix
   K <- crossprod(K)
- 
+  
   ## compare specified degrees of freedom to dimension of null space
   if (!is.null(args$df)){
     rns <- ncol(K) - qr(as.matrix(K))$rank # compute rank of null space
@@ -370,10 +371,10 @@ bsignal <- function(...,  index = NULL, #by = NULL,
   mf <- data.frame("z"=I(mf))
   names(mf) <- as.character(cll[[2]])
   
-#   if(all(round(colSums(mf), 4)!=0)){
-#     warning(xname, " is not centered. 
-#     Functional covariates should be mean-centered in each measurement point.")
-#   }
+  #   if(all(round(colSums(mf), 4)!=0)){
+  #     warning(xname, " is not centered. 
+  #     Functional covariates should be mean-centered in each measurement point.")
+  #   }
   
   #   mf <- mfL
   #   names(mf) <- varnames
@@ -400,29 +401,29 @@ bsignal <- function(...,  index = NULL, #by = NULL,
       attr(mf[,xname], "indname") <- attr(mftemp[,xname], "indname")
       return(mf)
     } ,
-              get_call = function(){
-                cll <- deparse(cll, width.cutoff=500L)
-                if (length(cll) > 1)
-                  cll <- paste(cll, collapse="")
-                cll
-              },
-              get_data = function() mf,
-              get_index = function() index,
-              get_vary = function() vary,
-              get_names = function(){
-                attr(xname, "indname") <- indname 
-                xname 
-              }, #colnames(mf),
-              set_names = function(value) {
-                #if(length(value) != length(colnames(mf)))
-                if(length(value) != names(mf[1]))
-                  stop(sQuote("value"), " must have same length as ",
-                       sQuote("names(mf[1])"))
-                for (i in 1:length(value)){
-                  cll[[i+1]] <<- as.name(value[i])
-                }
-                attr(mf, "names") <<- value
-              })
+    get_call = function(){
+      cll <- deparse(cll, width.cutoff=500L)
+      if (length(cll) > 1)
+        cll <- paste(cll, collapse="")
+      cll
+    },
+    get_data = function() mf,
+    get_index = function() index,
+    get_vary = function() vary,
+    get_names = function(){
+      attr(xname, "indname") <- indname 
+      xname 
+    }, #colnames(mf),
+    set_names = function(value) {
+      #if(length(value) != length(colnames(mf)))
+      if(length(value) != names(mf[1]))
+        stop(sQuote("value"), " must have same length as ",
+             sQuote("names(mf[1])"))
+      for (i in 1:length(value)){
+        cll[[i+1]] <<- as.name(value[i])
+      }
+      attr(mf, "names") <<- value
+    })
   class(ret) <- "blg"
   
   #browser()
@@ -430,10 +431,10 @@ bsignal <- function(...,  index = NULL, #by = NULL,
   #print(Z)
   
   ret$dpp <- mboost:::bl_lin(ret, Xfun = X_bsignal,
-                    args = list(mf, vary, knots = knots, boundary.knots =
-                      boundary.knots, degree = degree, differences = differences,
-                                df = df, lambda = lambda, center = FALSE, cyclic = cyclic,
-                                Z=Z))
+                             args = list(mf, vary, knots = knots, boundary.knots =
+                                           boundary.knots, degree = degree, differences = differences,
+                                         df = df, lambda = lambda, center = FALSE, cyclic = cyclic,
+                                         Z=Z))
   
   return(ret)
 }
@@ -564,10 +565,10 @@ bconcurrent <- function(..., #by = NULL, index = NULL,
   mf <- data.frame("z"=I(mf))
   names(mf) <- as.character(cll[[2]]) 
   
-#   if(all(round(colSums(mf, na.rm = TRUE), 4)!=0)){
-#     warning(xname, " is not centered. 
-#     Functional covariates should be mean-centered in each measurement point.")
-#   }
+  #   if(all(round(colSums(mf, na.rm = TRUE), 4)!=0)){
+  #     warning(xname, " is not centered. 
+  #     Functional covariates should be mean-centered in each measurement point.")
+  #   }
   
   #   mf <- mfL
   #   names(mf) <- varnames
@@ -586,29 +587,29 @@ bconcurrent <- function(..., #by = NULL, index = NULL,
   
   ret <- list(model.frame = function() 
     if (is.null(index)) return(mf) else return(mf[index,,drop = FALSE]),
-              get_call = function(){
-                cll <- deparse(cll, width.cutoff=500L)
-                if (length(cll) > 1)
-                  cll <- paste(cll, collapse="")
-                cll
-              },
-              get_data = function() mf,
-              get_index = function() index,
-              get_vary = function() vary,
-              get_names = function(){
-                attr(xname, "indname") <- indname 
-                xname 
-              }, #colnames(mf),
-              set_names = function(value) {
-                #if(length(value) != length(colnames(mf)))
-                if(length(value) != names(mf[1]))
-                  stop(sQuote("value"), " must have same length as ",
-                       sQuote("names(mf[1])"))
-                for (i in 1:length(value)){
-                  cll[[i+1]] <<- as.name(value[i])
-                }
-                attr(mf, "names") <<- value
-              })
+    get_call = function(){
+      cll <- deparse(cll, width.cutoff=500L)
+      if (length(cll) > 1)
+        cll <- paste(cll, collapse="")
+      cll
+    },
+    get_data = function() mf,
+    get_index = function() index,
+    get_vary = function() vary,
+    get_names = function(){
+      attr(xname, "indname") <- indname 
+      xname 
+    }, #colnames(mf),
+    set_names = function(value) {
+      #if(length(value) != length(colnames(mf)))
+      if(length(value) != names(mf[1]))
+        stop(sQuote("value"), " must have same length as ",
+             sQuote("names(mf[1])"))
+      for (i in 1:length(value)){
+        cll[[i+1]] <<- as.name(value[i])
+      }
+      attr(mf, "names") <<- value
+    })
   class(ret) <- "blg"
   
   ret$dpp <- mboost:::bl_lin(ret, Xfun = X_conc,
@@ -673,13 +674,13 @@ X_hist <- function(mf, vary, args) {
   L <- integrationWeightsLeft(X1=X1, xind=xind)
   X1 <- L*X1
   
-#   # set up design matrix for historical model and s<=t with s and t equal to xind
-#   # expand matrix of original observations to lower triangular matrix 
-#   X1des0 <- matrix(0, ncol=ncol(X1), nrow=ncol(X1)*nrow(X1))
-#   for(i in 1:ncol(X1des0)){
-#     #print(nrow(X1)*(i-1)+1)
-#     X1des0[(nrow(X1)*(i-1)+1):nrow(X1des0) ,i] <- X1[,i] # use fun. variable * integration weights
-#   }
+  #   # set up design matrix for historical model and s<=t with s and t equal to xind
+  #   # expand matrix of original observations to lower triangular matrix 
+  #   X1des0 <- matrix(0, ncol=ncol(X1), nrow=ncol(X1)*nrow(X1))
+  #   for(i in 1:ncol(X1des0)){
+  #     #print(nrow(X1)*(i-1)+1)
+  #     X1des0[(nrow(X1)*(i-1)+1):nrow(X1des0) ,i] <- X1[,i] # use fun. variable * integration weights
+  #   }
   
   ## set up design matrix for historical model according to limit()
   # use the argument limits (Code taken of function ff(), package refund)
@@ -703,14 +704,14 @@ X_hist <- function(mf, vary, args) {
       }
     }
   }
-
+  
   ### use function limits to set up design matrix according to function limits 
   ### by setting 0 at the time-points that should not be used
   if (!is.null(limits)) {
     ## expand yind by replication to the yind of all observations together
     ind0 <- !t(outer( xind, rep(yind, each=nobs), limits) )
   }
-
+  
   ### Compute the design matrix as sparse or normal matrix 
   ### depending on dimensions of the final design matrix
   MATRIX <- any(c(nrow(ind0), ncol(B.s)^2) > c(500, 50)) #MATRIX <- any(dim(X) > c(500, 50))
@@ -732,7 +733,7 @@ X_hist <- function(mf, vary, args) {
     X1des <- X1[rep(1:nobs, times=length(yind)), ]
     X1des[ind0] <- 0
   }
-    
+  
   # Design matrix is product of expanded X1 and basis expansion over xind 
   X1des <- X1des %*% B.s
   
@@ -743,13 +744,13 @@ X_hist <- function(mf, vary, args) {
   } else{
     # design matrix over index of response for one response
     B.t <- mboost:::bsplines(yind, knots=knots, boundary.knots=args$boundary.knots, 
-                          degree=args$degree) 
+                             degree=args$degree) 
   }
-
+  
   # stack design-matrix of response nobs times
   B.t <- B.t[rep(1:length(yind), each=nobs), ]
-
-    
+  
+  
   # calculate row-tensor
   # X <- (X1 %x% t(rep(1, ncol(X2))) ) * ( t(rep(1, ncol(X1))) %x% X2  )
   dimnames(B.t) <- NULL # otherwise warning "dimnames [2] mismatch..."
@@ -761,13 +762,13 @@ X_hist <- function(mf, vary, args) {
   K2 <- diff(diag(ncol(B.t)), differences = args$differences)
   K2 <- crossprod(K2)  
   suppressMessages(K <- kronecker(K2, diag(ncol(X1des))) +
-    kronecker(diag(ncol(B.t)), K1))
+                     kronecker(diag(ncol(B.t)), K1))
   
-#   ### <FIXME> necessary if K1 and K2 are not the same anyway?
-#   if(!is.null(id)){
-#     K <- kronecker(K1, diag(ncol(B.t))) +
-#       kronecker(diag(ncol(X1des)), K2)
-#   }
+  #   ### <FIXME> necessary if K1 and K2 are not the same anyway?
+  #   if(!is.null(id)){
+  #     K <- kronecker(K1, diag(ncol(B.t))) +
+  #       kronecker(diag(ncol(X1des)), K2)
+  #   }
   
   ## compare specified degrees of freedom to dimension of null space
   if (!is.null(args$df)){
@@ -801,7 +802,7 @@ X_hist2 <- function(mf, vary, args) {
   
   # get id-variable
   id <- attr(mf[,xname], "id") # for data in long format
-    
+  
   ###### EXTRA LINE in comparison to X_hist
   ## important for prediction, otherwise id=NULL and yind is multiplied accordingly
   if(is.null(id)) id <- 1:nrow(X1)
@@ -908,29 +909,29 @@ X_hist2 <- function(mf, vary, args) {
   
   # design matrix over index of response (yind has long format!)
   B.t <- mboost:::bsplines(yind, knots=knots, boundary.knots=args$boundary.knots, 
-                             degree=args$degree) 
-
-
+                           degree=args$degree) 
+  
+  
   # calculate row-tensor
   # X <- (X1 %x% t(rep(1, ncol(X2))) ) * ( t(rep(1, ncol(X1))) %x% X2  )
   dimnames(B.t) <- NULL # otherwise warning "dimnames [2] mismatch..."
   X <- X1des[,rep(1:ncol(X1des), each=ncol(B.t))] * B.t[,rep(1:ncol(B.t), times=ncol(X1des))] 
-
+  
   ### Penalty matrix: product differences matrix
   K1 <- diff(diag(ncol(X1des)), differences = args$differences)
   K1 <- crossprod(K1) 
   K2 <- diff(diag(ncol(B.t)), differences = args$differences)
   K2 <- crossprod(K2) 
   suppressMessages(K <- kronecker(K2, diag(ncol(X1des))) +
-    kronecker(diag(ncol(B.t)), K1))
+                     kronecker(diag(ncol(B.t)), K1))
   
   ### <FIXME> necessary if K1 and K2 are not the same anyway?
   # <FIXME> not possible to query using id, as id now never is NULL
   if(!is.null(id)){
     suppressMessages(K <- kronecker(K1, diag(ncol(B.t))) +
-      kronecker(diag(ncol(X1des)), K2))
+                       kronecker(diag(ncol(X1des)), K2))
   }
-    
+  
   ## compare specified degrees of freedom to dimension of null space
   if (!is.null(args$df)){
     rns <- ncol(K) - qr(as.matrix(K))$rank # compute rank of null space
@@ -945,10 +946,10 @@ X_hist2 <- function(mf, vary, args) {
            "(unpenalized part of P-spline). Use larger value for ",
            sQuote("df"), " or set ", sQuote("center = TRUE"), ".")
   }
-
+  
   # tidy up workspace 
   rm(B.s, B.t, ind0, X1des, X1, L)
-
+  
   return(list(X = X, K = K))
 }
 
@@ -964,7 +965,7 @@ bhist <- function(..., index = NULL, #by = NULL,
 ){
   
   #  if (!is.null(lambda)) df <- NULL
-    
+  
   cll <- match.call()
   cll[[1]] <- as.name("bhist")
   #print(cll)
@@ -975,18 +976,18 @@ bhist <- function(..., index = NULL, #by = NULL,
   if(!mboost:::isMATRIX(mfL[[1]])) stop("signal has to be a matrix")
   
   varnames <- all.vars(cll)
-
+  
   ### not necessary as user has to specify three arguments
-#   # if no index is specified use an equidistant index in 0,1
-#   if(length(mfL)==1){ 
-#     mfL[[2]] <- 1:ncol(mfL[[1]]); cll[[3]] <- "xind" 
-#     varnames <- c(all.vars(cll), "xindDefault")
-#   }
-#   # if no index for the response variable is specified use the index of the signal
-#   if(length(mfL)==2){ 
-#     mfL[[3]] <- mfL[[2]]; cll[[4]] <- cll[[3]]
-#     varnames <- c(all.vars(cll), cll[[3]])
-#   }
+  #   # if no index is specified use an equidistant index in 0,1
+  #   if(length(mfL)==1){ 
+  #     mfL[[2]] <- 1:ncol(mfL[[1]]); cll[[3]] <- "xind" 
+  #     varnames <- c(all.vars(cll), "xindDefault")
+  #   }
+  #   # if no index for the response variable is specified use the index of the signal
+  #   if(length(mfL)==2){ 
+  #     mfL[[3]] <- mfL[[2]]; cll[[4]] <- cll[[3]]
+  #     varnames <- c(all.vars(cll), cll[[3]])
+  #   }
   
   if(!is.atomic(mfL[[2]])) stop("index of signal has to be a vector")
   if(!is.atomic(mfL[[3]])) stop("index of response has to be a vector")
@@ -1011,7 +1012,7 @@ bhist <- function(..., index = NULL, #by = NULL,
   
   mf <- data.frame("z"=I(mf))
   names(mf) <- as.character(cll[[2]]) 
-    
+  
   #   if(all(round(colSums(mf, na.rm = TRUE), 4)!=0)){
   #     warning(xname, " is not centered. 
   #     Functional covariates should be mean-centered in each measurement point.")
@@ -1032,7 +1033,7 @@ bhist <- function(..., index = NULL, #by = NULL,
   
   #index <- NULL 
   #browser()
-    
+  
   ret <- list(model.frame = function() 
     if (is.null(index)) return(mf) else{
       mftemp <- mf
@@ -1044,32 +1045,32 @@ bhist <- function(..., index = NULL, #by = NULL,
       attr(mf[,xname], "id") <- attr(mftemp[,xname], "id")
       return(mf)
     } ,
-              get_call = function(){
-                cll <- deparse(cll, width.cutoff=500L)
-                if (length(cll) > 1)
-                  cll <- paste(cll, collapse="")
-                cll
-              },
-              get_data = function() mf,
-              ## set index to NULL, as the index is treated within X_hist()
-              ##get_index = function() index, 
-              get_index = function() NULL,
-              get_vary = function() vary,
-              get_names = function(){
-                attr(xname, "indname") <- indname 
-                attr(xname, "indnameY") <- indnameY
-                xname 
-              }, #colnames(mf),
-              set_names = function(value) {
-                #if(length(value) != length(colnames(mf)))
-                if(length(value) != names(mf[1]))
-                  stop(sQuote("value"), " must have same length as ",
-                       sQuote("names(mf[1])"))
-                for (i in 1:length(value)){
-                  cll[[i+1]] <<- as.name(value[i])
-                }
-                attr(mf, "names") <<- value
-              })
+    get_call = function(){
+      cll <- deparse(cll, width.cutoff=500L)
+      if (length(cll) > 1)
+        cll <- paste(cll, collapse="")
+      cll
+    },
+    get_data = function() mf,
+    ## set index to NULL, as the index is treated within X_hist()
+    ##get_index = function() index, 
+    get_index = function() NULL,
+    get_vary = function() vary,
+    get_names = function(){
+      attr(xname, "indname") <- indname 
+      attr(xname, "indnameY") <- indnameY
+      xname 
+    }, #colnames(mf),
+    set_names = function(value) {
+      #if(length(value) != length(colnames(mf)))
+      if(length(value) != names(mf[1]))
+        stop(sQuote("value"), " must have same length as ",
+             sQuote("names(mf[1])"))
+      for (i in 1:length(value)){
+        cll[[i+1]] <<- as.name(value[i])
+      }
+      attr(mf, "names") <<- value
+    })
   class(ret) <- "blg"
   
   if(is.null(index)){
@@ -1117,14 +1118,14 @@ X_bbsc <- function(mf, vary, args) {
   stopifnot(is.data.frame(mf))
   mm <- lapply(which(colnames(mf) != vary), function(i) {
     X <- mboost:::bsplines(mf[[i]],
-                  knots = args$knots[[i]]$knots,
-                  boundary.knots = args$knots[[i]]$boundary.knots,
-                  degree = args$degree)
+                           knots = args$knots[[i]]$knots,
+                           boundary.knots = args$knots[[i]]$boundary.knots,
+                           degree = args$degree)
     if (args$cyclic) {
       X <- mboost:::cbs(mf[[i]],
-               knots = args$knots[[i]]$knots,
-               boundary.knots = args$knots[[i]]$boundary.knots,
-               degree = args$degree)
+                        knots = args$knots[[i]]$knots,
+                        boundary.knots = args$knots[[i]]$boundary.knots,
+                        degree = args$degree)
     }
     class(X) <- "matrix"
     return(X)
@@ -1258,10 +1259,10 @@ X_bbsc <- function(mf, vary, args) {
   if (length(mm) > 2)
     stop("not possible to specify more than two variables in ",
          sQuote("..."), " argument of smooth base-learners")
-    
+  
   #----------------------------------
   ### <SB> Calculate constraints
-
+  
   # If the argument Z is not NULL use the given Z (important for prediction!)
   if(is.null(args$Z)){
     C <- t(X) %*% rep(1, nrow(X))
@@ -1275,7 +1276,7 @@ X_bbsc <- function(mf, vary, args) {
   
   attr(X, "Z") <- Z # attribute is not used at the moment
   #----------------------------------
-    
+  
   ## compare specified degrees of freedom to dimension of null space
   if (!is.null(args$df)){
     rns <- ncol(K) - qr(as.matrix(K))$rank # compute rank of null space
@@ -1367,8 +1368,8 @@ X_bbsc <- function(mf, vary, args) {
 #' @aliases brandomc
 #' @export
 bbsc <- function(..., by = NULL, index = NULL, knots = 10, boundary.knots = NULL,
-                degree = 3, differences = 2, df = 4, lambda = NULL, center = FALSE,
-                cyclic = FALSE) {
+                 degree = 3, differences = 2, df = 4, lambda = NULL, center = FALSE,
+                 cyclic = FALSE) {
   
   if (!is.null(lambda)) df <- NULL
   
@@ -1377,7 +1378,7 @@ bbsc <- function(..., by = NULL, index = NULL, knots = 10, boundary.knots = NULL
   
   mf <- list(...)
   if (length(mf) == 1 && ((is.matrix(mf[[1]]) || is.data.frame(mf[[1]])) &&
-    ncol(mf[[1]]) > 1 )) {
+                            ncol(mf[[1]]) > 1 )) {
     mf <- as.data.frame(mf[[1]])
   } else {
     mf <- as.data.frame(mf)
@@ -1418,31 +1419,31 @@ bbsc <- function(..., by = NULL, index = NULL, knots = 10, boundary.knots = NULL
   
   ret <- list(model.frame = function()
     if (is.null(index)) return(mf) else return(mf[index,,drop = FALSE]),
-              get_call = function(){
-                cll <- deparse(cll, width.cutoff=500L)
-                if (length(cll) > 1)
-                  cll <- paste(cll, collapse="")
-                cll
-              },
-              get_data = function() mf,
-              get_index = function() index,
-              get_vary = function() vary,
-              get_names = function() colnames(mf),
-              set_names = function(value) {
-                if(length(value) != length(colnames(mf)))
-                  stop(sQuote("value"), " must have same length as ",
-                       sQuote("colnames(mf)"))
-                for (i in 1:length(value)){
-                  cll[[i+1]] <<- as.name(value[i])
-                }
-                attr(mf, "names") <<- value
-              })
+    get_call = function(){
+      cll <- deparse(cll, width.cutoff=500L)
+      if (length(cll) > 1)
+        cll <- paste(cll, collapse="")
+      cll
+    },
+    get_data = function() mf,
+    get_index = function() index,
+    get_vary = function() vary,
+    get_names = function() colnames(mf),
+    set_names = function(value) {
+      if(length(value) != length(colnames(mf)))
+        stop(sQuote("value"), " must have same length as ",
+             sQuote("colnames(mf)"))
+      for (i in 1:length(value)){
+        cll[[i+1]] <<- as.name(value[i])
+      }
+      attr(mf, "names") <<- value
+    })
   class(ret) <- "blg"
   
   ret$dpp <- mboost:::bl_lin(ret, Xfun = X_bbsc,
-                    args = mboost:::hyper_bbs(mf, vary, knots = knots, boundary.knots =
-                      boundary.knots, degree = degree, differences = differences,
-                      df = df, lambda = lambda, center = center, cyclic = cyclic))
+                             args = mboost:::hyper_bbs(mf, vary, knots = knots, boundary.knots =
+                                                         boundary.knots, degree = degree, differences = differences,
+                                                       df = df, lambda = lambda, center = center, cyclic = cyclic))
   return(ret)
 }
 
@@ -1576,7 +1577,7 @@ X_olsc <- function(mf, vary, args) {
 ### one can specify the penalty matrix K
 ### with sum-to-zero constraint over index of response
 bolsc <- function(..., by = NULL, index = NULL, intercept = TRUE, df = NULL,
-                 lambda = 0, K=NULL, contrasts.arg = "contr.treatment") {
+                  lambda = 0, K=NULL, contrasts.arg = "contr.treatment") {
   
   if (!is.null(df)) lambda <- NULL
   
@@ -1633,25 +1634,25 @@ bolsc <- function(..., by = NULL, index = NULL, intercept = TRUE, df = NULL,
   
   ret <- list(model.frame = function()
     if (is.null(index)) return(mf) else return(mf[index,,drop = FALSE]),
-              get_call = function(){
-                cll <- deparse(cll, width.cutoff=500L)
-                if (length(cll) > 1)
-                  cll <- paste(cll, collapse="")
-                cll
-              },
-              get_data = function() mf,
-              get_index = function() index,
-              get_names = function() colnames(mf),
-              get_vary = function() vary,
-              set_names = function(value) {
-                if(length(value) != length(colnames(mf)))
-                  stop(sQuote("value"), " must have same length as ",
-                       sQuote("colnames(mf)"))
-                for (i in 1:length(value)){
-                  cll[[i+1]] <<- as.name(value[i])
-                }
-                attr(mf, "names") <<- value
-              })
+    get_call = function(){
+      cll <- deparse(cll, width.cutoff=500L)
+      if (length(cll) > 1)
+        cll <- paste(cll, collapse="")
+      cll
+    },
+    get_data = function() mf,
+    get_index = function() index,
+    get_names = function() colnames(mf),
+    get_vary = function() vary,
+    set_names = function(value) {
+      if(length(value) != length(colnames(mf)))
+        stop(sQuote("value"), " must have same length as ",
+             sQuote("colnames(mf)"))
+      for (i in 1:length(value)){
+        cll[[i+1]] <<- as.name(value[i])
+      }
+      attr(mf, "names") <<- value
+    })
   class(ret) <- "blg"
   
   ret$dpp <- mboost:::bl_lin(ret, Xfun = X_olsc, args = hyper_olsc(
@@ -1664,7 +1665,7 @@ bolsc <- function(..., by = NULL, index = NULL, intercept = TRUE, df = NULL,
 ### hyper parameters for olsc base-learner
 # add the parameters Z and K
 hyper_olsc <- function(df = NULL, lambda = 0, K=NULL, intercept = TRUE,
-                      contrasts.arg = "contr.treatment", Z=NULL)
+                       contrasts.arg = "contr.treatment", Z=NULL)
   list(df = df, lambda = lambda, K=K,
        intercept = intercept,
        contrasts.arg = contrasts.arg,
@@ -1702,7 +1703,7 @@ names.blg <- function(x)
 ### extract data from base-learner
 model.frame.blg <- function(formula, ...)
   formula$model.frame(...)
- 
+
 # ### extract coefficients
 # coef.bm_lin <- function(object, ...) {
 #   ret <- as.vector(object$model)
@@ -1731,6 +1732,5 @@ model.frame.blg <- function(formula, ...)
 # 
 # fit.bl <- function(object, y)
 #   object$fit(y)
-
 
 
