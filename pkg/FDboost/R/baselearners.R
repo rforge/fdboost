@@ -391,7 +391,7 @@ bsignal <- function(x, s, index = NULL, #by = NULL,
   cll[[1]] <- as.name("bsignal")
   #print(cll)
   
-  if(!mboost:::isMATRIX(x)) stop("signal has to be a matrix")
+  if(!isMATRIX(x)) stop("signal has to be a matrix")
   
   varnames <- all.vars(cll)
   #   if(length(mfL)==1){ 
@@ -420,8 +420,8 @@ bsignal <- function(x, s, index = NULL, #by = NULL,
   
   vary <- ""
   
-  CC <- all(mboost:::Complete.cases(mf))
-  #  CC <- all(mboost:::Complete.cases(mf[1]))
+  CC <- all(Complete.cases(mf))
+  #  CC <- all(Complete.cases(mf[1]))
   if (!CC)
     warning("base-learner contains missing values;\n",
             "missing values are excluded per base-learner, ",
@@ -575,7 +575,7 @@ bconcurrent <- function(x, s, #by = NULL, index = NULL,
   cll[[1]] <- as.name("bconcurrent")
   #print(cll)
   
-  if(!mboost:::isMATRIX(x)) stop("signal has to be a matrix")
+  if(!isMATRIX(x)) stop("signal has to be a matrix")
   if(ncol(x)!=length(s)) stop("Dimension of x and s do not match.")
   
   varnames <- all.vars(cll)
@@ -603,7 +603,7 @@ bconcurrent <- function(x, s, #by = NULL, index = NULL,
   
   vary <- ""
   
-  CC <- all(mboost:::Complete.cases(mf))
+  CC <- all(Complete.cases(mf))
   #  CC <- all(mboost:::Complete.cases(mf[1]))
   if (!CC)
     warning("base-learner contains missing values;\n",
@@ -1067,7 +1067,7 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
   cll[[1]] <- as.name("bhist")
   #print(cll)
   
-  if(!mboost:::isMATRIX(x)) stop("signal has to be a matrix")
+  if(!isMATRIX(x)) stop("signal has to be a matrix")
   if(ncol(x)!=length(s)) stop("Dimension of x and s do not match.")
   
   varnames <- all.vars(cll)
@@ -1105,7 +1105,7 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
   
   vary <- ""
   
-  CC <- all(mboost:::Complete.cases(mf))
+  CC <- all(Complete.cases(mf))
   #  CC <- all(mboost:::Complete.cases(mf[1]))
   if (!CC)
     warning("base-learner contains missing values;\n",
@@ -1511,7 +1511,7 @@ bbsc <- function(..., by = NULL, index = NULL, knots = 10, boundary.knots = NULL
     colnames(mf)[ncol(mf)] <- vary <- deparse(substitute(by))
   }
   
-  CC <- all(mboost:::Complete.cases(mf))
+  CC <- all(Complete.cases(mf))
   if (!CC)
     warning("base-learner contains missing values;\n",
             "missing values are excluded per base-learner, ",
@@ -1521,7 +1521,7 @@ bbsc <- function(..., by = NULL, index = NULL, knots = 10, boundary.knots = NULL
   DOINDEX <- (nrow(mf) > options("mboost_indexmin")[[1]])
   if (is.null(index)) {
     if (!CC || DOINDEX) {
-      index <- mboost:::get_index(mf)
+      index <- get_index(mf)
       mf <- mf[index[[1]],,drop = FALSE]
       index <- index[[2]]
     }
@@ -1551,7 +1551,7 @@ bbsc <- function(..., by = NULL, index = NULL, knots = 10, boundary.knots = NULL
   class(ret) <- "blg"
   
   ret$dpp <- mboost:::bl_lin(ret, Xfun = X_bbsc,
-                             args = mboost:::hyper_bbs(mf, vary, knots = knots, boundary.knots =
+                             args = hyper_bbs(mf, vary, knots = knots, boundary.knots =
                              boundary.knots, degree = degree, differences = differences,
                              df = df, lambda = lambda, center = center, cyclic = cyclic, 
                              constraint = constraint, deriv = deriv))
@@ -1569,7 +1569,7 @@ bbsc <- function(..., by = NULL, index = NULL, knots = 10, boundary.knots = NULL
 ### model.matrix for constrained ols base-learner with penalty matrix K
 X_olsc <- function(mf, vary, args) {
   
-  if (mboost:::isMATRIX(mf)) {
+  if (isMATRIX(mf)) {
     X <- mf
     contr <- NULL
   } else {
@@ -1696,11 +1696,11 @@ bolsc <- function(..., by = NULL, index = NULL, intercept = TRUE, df = NULL,
   cll[[1]] <- as.name("bolsc")
   
   mf <- list(...)
-  if (length(mf) == 1 && ((mboost:::isMATRIX(mf[[1]]) || is.data.frame(mf[[1]])) &&
+  if (length(mf) == 1 && ((isMATRIX(mf[[1]]) || is.data.frame(mf[[1]])) &&
                             ncol(mf[[1]]) > 1 )) {
     mf <- mf[[1]]
     ### spline bases should be matrices
-    if (mboost:::isMATRIX(mf) && !is(mf, "Matrix"))
+    if (isMATRIX(mf) && !is(mf, "Matrix"))
       class(mf) <- "matrix"
   } else {
     mf <- as.data.frame(mf)
@@ -1724,7 +1724,7 @@ bolsc <- function(..., by = NULL, index = NULL, intercept = TRUE, df = NULL,
     colnames(mf)[ncol(mf)] <- vary <- deparse(substitute(by))
   }
   
-  CC <- all(mboost:::Complete.cases(mf))
+  CC <- all(Complete.cases(mf))
   if (!CC)
     warning("base-learner contains missing values;\n",
             "missing values are excluded per base-learner, ",
@@ -1737,7 +1737,7 @@ bolsc <- function(..., by = NULL, index = NULL, intercept = TRUE, df = NULL,
     ### try to remove duplicated observations or
     ### observations with missings
     if (!CC || DOINDEX) {
-      index <- mboost:::get_index(mf)
+      index <- get_index(mf)
       mf <- mf[index[[1]],,drop = FALSE]
       index <- index[[2]]
     }

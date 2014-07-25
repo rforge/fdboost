@@ -8,7 +8,7 @@ Maintainer: Sarah Brockhaus <Sarah.Brockhaus@stat.uni-muenchen.de>
 Description: Boosting functional regression models
 Depends:
     R (>= 3.0.0),
-    mboost
+    mboost (>= 2.3-0)
 Imports:
     Matrix,
     mgcv,
@@ -28,3 +28,4 @@ Collate:
     'crossvalidation.R'
     'methods.R'
     'utilityFunctions.R'
+    'internalsMboost.R'
