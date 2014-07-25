@@ -674,6 +674,7 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
       return(P)
     } # end of function getCoefs()
       
+
     ## Function to obtain nice short names for labeling of plots
     shortnames <- function(x){
       if(substr(x,1,1)=="\"") x <- substr(x, 2, nchar(x)-1)
@@ -682,16 +683,27 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
       if( !grepl(sign, x) ) sign <- "%X%"
       
       xpart <- unlist(strsplit(x, sign)) 
+      
       for(i in 1:length(xpart)){
         xpart[i] <- gsub("\\\"", "'", xpart[i], fixed=TRUE)
         nvar <- length(all.vars(formula(paste("Y~", xpart[i])))[-1])
-        commaSep <- unlist(strsplit(xpart[i], ","))
-        xpart[i] <- if(length(commaSep)==1){
-          paste(paste(commaSep[1:nvar], collapse=","), sep="")
-        }else paste(paste(commaSep[1:nvar], collapse=","), ")", sep="") 
-        if(substr(xpart[i], nchar(xpart[i])-2, nchar(xpart[i])-1)==") "){
-          xpart[i] <- substr(xpart[i], 1, nchar(xpart[i])-2)
+        commaSep <- unlist(strsplit(xpart[i], ","))  
+        
+        # shorten the name to first variable and delte x= if present
+        if(grepl("=", commaSep[1])){
+          temp <- unlist(strsplit(commaSep[1], "="))
+          temp[1] <- unlist(strsplit(temp[1], "(", fixed=TRUE))[1]
+          if(substr(temp[2], 1, 1)==" ") temp[2] <- substr(temp[2], 2, nchar(temp[2]))
+          xpart[i] <- paste(temp[1], "(", temp[2], ")", sep="")
+        }else{
+          xpart[i] <- paste(commaSep[1], ")", sep="")
         }
+        #xpart[i] <- if(length(commaSep)==1){
+        #  paste(paste(commaSep[1:nvar], collapse=","), sep="")
+        #}else paste(paste(commaSep[1:nvar], collapse=","), ")", sep="") 
+        #if(substr(xpart[i], nchar(xpart[i])-2, nchar(xpart[i])-1)==") "){
+        #  xpart[i] <- substr(xpart[i], 1, nchar(xpart[i])-2)
+        #}
       }
       ret <- xpart
       if(length(xpart)>1) ret <- paste(xpart, collapse=paste("", sign))
