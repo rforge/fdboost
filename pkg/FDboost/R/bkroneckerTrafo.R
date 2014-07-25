@@ -7,6 +7,7 @@
 ### Y = kronecker(X2, X1)
 ### see Currie, Durban, Eilers (2006, JRSS B)
 bl_lin_matrix <- function(blg, Xfun, args) {
+  
     
     mf <- blg$get_data()
     index <- blg$get_index()

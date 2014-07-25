@@ -118,8 +118,7 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
     # save time-variable (index over response)
     nameyind <- attr(object$yind, "nameyind")
     lengthYind <- length(newdata[[nameyind]])
-    if(lengthYind==0) stop("Index of response, ", nameyind, ", 
-                           must be specified and have length >0.")
+    if(lengthYind==0) stop("Index of response, ", nameyind, ", must be specified and have length >0.")
     assign(nameyind, newdata[[nameyind]])
     newdata$ONEtime <- rep(1.0, lengthYind)
     
@@ -150,9 +149,9 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
           indnameY <- NULL
         }
         
-        if(length(newdata[[indname]])!=ncol(newdata[[xname]])){
-          stop(paste("Dimensions of index", indname, "and signal", xname, "do not match."))
-        } 
+        #if(length(newdata[[indname]])!=ncol(newdata[[xname]])){
+        #  stop(paste("Dimensions of index", indname, "and signal", xname, "do not match."))
+        #} 
         
         attr(newdata[[xname]], "indname") <- indname
         attr(newdata[[xname]], "xname") <- xname
@@ -544,15 +543,15 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
         
         ## add dummy signal to data
         if(grepl("bsignal", trm$get_call()) ){
-          d[[attr(trm$model.frame()[[1]], "xname")]] <- I(diag(ng)/integrationWeights(diag(ng), d[[varnms[1]]] ))
+          d[[ trm$get_names()[1] ]] <- I(diag(ng)/integrationWeights(diag(ng), d[[varnms[1]]] ))
         }
         ### <FIXME> is dummy-signal for bhist() correct?
         if(grepl("bhist", trm$get_call()) ){
           d[[attr(trm$model.frame()[[1]], "xname")]] <- I(diag(ng)/integrationWeightsLeft(diag(ng), d[[varnms[1]]]))
         }
-        ## add dummy signal to data
+        ## add dummy signal to data 
         if(grepl("bconcurrent", trm$get_call())){
-          d[[attr(trm$model.frame()[[1]], "xname")]] <- I(matrix(rep(1.0, ng^2), ncol=ng))
+          d[[ trm$get_names()[1] ]] <- I(matrix(rep(1.0, ng^2), ncol=ng))
         }
         
         if(trm$get_vary() != ""){
@@ -957,8 +956,9 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
                  ylab="coef")
           }else{  
             plotWithArgs(persp, args=argsPersp,
-                         myargs=list(x=trm$x, y=trm$y, z=trm$value, xlab=trm$xlab, 
-                                     ylab=trm$ylab, zlab="coef", main=trm$main, theta=30, 
+                         myargs=list(x=trm$x, y=trm$y, z=trm$value, xlab=paste("\n", trm$xlab), 
+                                     ylab=paste("\n", trm$ylab), zlab=paste("\n", "coef"), 
+                                     main=trm$main, theta=30, 
                                      phi=30, ticktype="detailed",
                                      col=getColPersp(trm$value)))
           } 
@@ -991,8 +991,9 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
       if(trm$dim==3 & pers){
         for(j in 1:length(trm$z)){
           plotWithArgs(persp, args=argsPersp,
-                       myargs=list(x=trm$x, y=trm$y, z=trm$value[[j]], xlab=trm$xlab, ylab=trm$ylab, 
-                                   zlab="coef", theta=30, phi=30, ticktype="detailed", 
+                       myargs=list(x=trm$x, y=trm$y, z=trm$value[[j]], xlab=paste("\n", trm$xlab), 
+                                   ylab=paste("\n", trm$ylab), zlab=paste("\n", "coef"), 
+                                   theta=30, phi=30, ticktype="detailed", 
                                    zlim=range(trm$value), col=getColPersp(trm$value[[j]]), 
                                    main= paste(trm$zlab ,"=", round(trm$z[j],2), ": ", trm$main, sep=""))
             )         

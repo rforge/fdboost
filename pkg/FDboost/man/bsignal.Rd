@@ -4,16 +4,17 @@
 \alias{bsignal}
 \title{Base-learners for Functional Covarites}
 \usage{
-  bsignal(..., index = NULL, knots = 10,
+  bsignal(x, s, index = NULL, knots = 10,
     boundary.knots = NULL, degree = 3, differences = 2,
     df = 4, lambda = NULL, cyclic = FALSE, Z = NULL)
 
-  bconcurrent(..., knots = 10, boundary.knots = NULL,
-    degree = 3, differences = 2, df = 4)
+  bconcurrent(x, s, knots = 10, boundary.knots = NULL,
+    degree = 3, differences = 2, df = 4, lambda = NULL,
+    cyclic = FALSE)
 
-  bhist(..., index = NULL, knots = 10,
+  bhist(x, s, time, index = NULL, knots = 10,
     boundary.knots = NULL, degree = 3, differences = 2,
-    df = 4, limits = "s<=t")
+    df = 4, lambda = NULL, limits = "s<=t")
 }
 \arguments{
   \item{...}{matrix of functional data and the vector of
@@ -23,6 +24,17 @@
   \code{bhist} expects three arguments: functional
   covariate, index of functional covariate, index of
   functional response \eqn{[0,1]} is assumed.}
+
+  \item{x}{matrix of functional variable x(s). The
+  functional covariate has to be supplied as n by <no. of
+  evaluations> matrix, i.e. each row is one functional
+  observation.}
+
+  \item{s}{vector for the index of the functional variable
+  x(s) giving measurment points.}
+
+  \item{time}{vector for the index of the functional
+  response y(time) giving the measurement points.}
 
   \item{index}{a vector of integers for expanding the
   signal variable in \code{....} For example, bsignal(X, s,

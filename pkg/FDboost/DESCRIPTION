@@ -1,7 +1,7 @@
 Package: FDboost
 Type: Package
 Title: Boosting functional regression models
-Version: 0.0-6
+Version: 0.0-7
 Date: 2013-04-29
 Author: Sarah Brockhaus
 Maintainer: Sarah Brockhaus <Sarah.Brockhaus@stat.uni-muenchen.de>
@@ -21,3 +21,10 @@ Suggests:
     mapdata
 License: GPL-2
 Packaged: 2013-04-30 08:41:28 UTC; brockhaus
+Collate:
+    'FDboost.R'
+    'baselearners.R'
+    'bkroneckerTrafo.R'
+    'crossvalidation.R'
+    'methods.R'
+    'utilityFunctions.R'
