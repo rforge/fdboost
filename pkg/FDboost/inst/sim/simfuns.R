@@ -344,11 +344,13 @@ fitModelPffr <- function(data,
   t <- data$t
   
   time <- system.time(
-     m <- try(pffr(eval(formula), yind=t, data=data, bs.yindex=bs.yindex, bs.int=bs.int))
+    mem <- mem_change(m <- try(pffr(eval(formula), yind=t, data=data, 
+                   bs.yindex=bs.yindex, bs.int=bs.int)))
   )[3]
 
   if(any(class(m) != "try-error")){
     m$runTime <- time 
+    m$memory <- mem 
     return(m)
   }else return(NULL)
 }
@@ -365,17 +367,28 @@ fitModelMboost <- function(data,
                            control=boost_control(mstop=100, nu=0.1), # settings of mboost
                            grid=seq(10, 100, by=10),
                            m_max=2500, 
+                           optimizeMstop=TRUE,
+                           useArray=TRUE,
                            ...){ 
   
   #scenario <- attr(data, "call")$scenario    
   formula <- attr(data, "formulaFDboost")
   timeformula <- attr(data, "timeformula")
   
-  time <- system.time({
-    m <- try(FDboost(eval(formula), data=data, control=control,
-                     timeformula = timeformula))  
+  ## do not use the array structure -> fit the model in long format
+  if(!useArray){
+    data$Y <- as.vector(t(data$Y)) 
+    myid <- rep(1:nrow(data$X1), each=length(data$t))
+    data$t <- rep(data$t, times=nrow(data$X1))
+  }else{
+    myid <- NULL
+  }
+  
+  time <- system.time({ 
+    mem <- mem_change(m <- try(FDboost(eval(formula), data=data, control=control,
+                     timeformula = timeformula, id=myid)))  
     # plot(m$risk())
-    if(any(class(m)=="FDboost")){
+    if(any(class(m)=="FDboost") & optimizeMstop){
       
       # set up two different splittings of the data
       if(attr(data, "call")$scenario!=5){ id <- data$id        
@@ -419,11 +432,18 @@ fitModelMboost <- function(data,
     }else cvm <- NULL 
   })[3]
   
+  if(!optimizeMstop){
+    m$runTime <- time
+    m$memory <- mem
+    return(m)
+  } 
+  
   if(any(class(m)=="FDboost") & class(cvm)=="cvrisk"){
     #if(mstop(cvm)==max(grid)) warning("mstop is maximal number in grid.")
     #if(mstop(cvm)==min(grid)) warning("mstop is minimal number in grid.")
     m <- m[mstop(cvm)]
     m$runTime <- time 
+    m$memory <- mem 
     return(m)
   }else return(NULL)    
 }
@@ -1060,6 +1080,51 @@ oneRepPffr <- function(theseSettings){
 
 
 
+### one replication of simulation: fit model with FDboost without optimizing mstop!
+### to compare time with and without array model 
+# theseSettings=settings[[4]]
+# theseSettings=settingsSplit[[9]][[1]]
+oneRepTime <- function(theseSettings){
+  #browser()
+  #print(data.frame(theseSettings))
+  
+  # Generate data
+  set.seed(theseSettings$seed)
+  data <- do.call(makeData, theseSettings)
+  args <- theseSettings
+  args$data <- data
+  
+  print(unlist(theseSettings)[c(1,3,5,8,10,13)])
+  
+  # Fit models
+  modPffr <- NULL
+  ###  modPffr <- suppressMessages(do.call(fitModelPffr, args))
+  
+  # do 1000 boosting iterations for model with array structure
+  args$control <- boost_control(mstop = 1000, nu = 0.1)
+  # no further search for the optimal mstop
+  args$optimizeMstop <- FALSE
+  modMboost <- suppressMessages(do.call(fitModelMboost, args)) 
+  
+  # do 1000 boosting iterations for model with array structure
+  args$useArray <- FALSE
+  modMboost2 <- suppressMessages(do.call(fitModelMboost, args))  
+  
+  if(is.null(modMboost)) print(paste("modMboost, set " , theseSettings$set, ", is NULL", sep=""))
+  
+  # Calculate errors for both models 
+  resMboost <- try(c(model=2, time=modMboost$runTime, memory=modMboost$memory))
+  resMboost2 <- try(c(model=3, time=modMboost2$runTime, memory=modMboost2$memory))
+  # cbind(resMboost, resMboost2)
+  
+  rm(modMboost); rm(modMboost2); rm(data); rm(args)
+  
+  res <- rbind(do.call(data.frame, c(theseSettings, resMboost)), 
+               do.call(data.frame, c(theseSettings, resMboost2)))
+  
+  return(res)
+}
+
 ###########################################################################################
 
 #################################
@@ -1103,11 +1168,11 @@ alpha <- function(x, alpha=25){
 #################################
 # Do the iterations over oneRep()
 doSim <- function(settings, cores=40){
-  library(plyr)
-  
-  # only works on Linux -> with try() no error on windows
-  try(library(doMC))
-  try(registerDoMC(cores=cores))
+#   library(plyr)
+#   
+#   # only works on Linux -> with try() no error on windows
+#   try(library(doMC))
+#   try(registerDoMC(cores=cores))
   
   split <- sample(rep(1:cores, length=length(settings)))
   
@@ -1144,16 +1209,16 @@ doSimPffr <- function(settings, cores=40){
   return(ret)    
 }
 
-# Do the iterations over oneRepFDboost() 
+# Do the iterations over fun(), use e.g. oneRepFDboost() or oneRepTime()
 # slightly modified doSafeSim() 
-doSimFDboost <- function(settings){  #, savefile
+doSimFDboost <- function(settings, fun){  #, savefile
   library(plyr)
   
   ret <- data.frame()
   failed <- list()
   
   for(s in 1:length(settings)){
-    res <- try(do.call(oneRepFDboost, settings[s]), silent = TRUE)
+    res <- try(do.call(fun, settings[s]), silent = TRUE)
     if(any(class(res)=="try-error")){
       cat("\n some of ", s, "failed:\n")
       print(do.call(rbind, settings[s]))

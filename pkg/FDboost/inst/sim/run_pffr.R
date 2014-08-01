@@ -8,7 +8,10 @@ print(R.Version()$version.string)
 
 library(refund)
 library(FDboost)
+library(splines)
 pathResults <- NULL
+
+library(pryr)
 
 source("simfuns.R")
 

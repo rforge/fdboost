@@ -317,13 +317,16 @@ FDboost <- function(formula,          ### response ~ xvars
       for(i in 1:nc){
         try(meanY[i] <- offsetFun(responseInter[,i], 1*!is.na(responseInter[,i]) ), silent=TRUE)
       }
+      # meanY <- sapply(1:nc, function(i) offsetFun(responseInter[,i], 1*!is.na(responseInter[,i])))
+      
       if( is.null(meanY) ||  any(is.na(meanY)) ){
         warning("Mean offset cannot be computed by family@offset(). Use a weighted mean instead.")
         meanY <- c()
         for(i in 1:nc){
           meanY[i] <- Gaussian()@offset(responseInter[,i], 1*!is.na(responseInter[,i]) )
         }
-      }   
+      }
+      rm(responseInter, meanNA)
       ### <FixMe> is the computation of k ok? 
       if(!offset_control$cyclic){
         modOffset <- try( gam(meanY ~ s(time, bs="ad", 

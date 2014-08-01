@@ -8,7 +8,10 @@ print(R.Version()$version.string)
 
 #library(refund)
 library(FDboost)
+library(splines)
 pathResults <- NULL
+
+library(pryr)
 
 source("simfuns.R")
 
@@ -33,7 +36,7 @@ length(settingsM50N1G30)
 
 usecores <- 10
 options(cores=usecores)
-M50N1G30FDboost <- try(doSimFDboost(settings=settingsM50N1G30))
+M50N1G30FDboost <- try(doSimFDboost(settings=settingsM50N1G30, oneRepFDboost))
 
 save(M50N1G30FDboost, file=paste(pathResults, "M50N1G30FDboost.Rdata", sep=""))
 
@@ -57,7 +60,7 @@ length(settingsM50N1G100)
 
 usecores <- 10
 options(cores=usecores)
-M50N1G100FDboost <- try(doSimFDboost(settings=settingsM50N1G100))
+M50N1G100FDboost <- try(doSimFDboost(settings=settingsM50N1G100, oneRepFDboost))
 
 save(M50N1G100FDboost, file=paste(pathResults, "M50N1G100FDboost.Rdata", sep=""))
 
@@ -85,7 +88,7 @@ length(settingsM100N1G30)
 
 usecores <- 10
 options(cores=usecores)
-M100N1G30FDboost <- try(doSimFDboost(settings=settingsM100N1G30))
+M100N1G30FDboost <- try(doSimFDboost(settings=settingsM100N1G30, oneRepFDboost))
 
 save(M100N1G30FDboost, file=paste(pathResults, "M100N1G30FDboost.Rdata", sep=""))
 
@@ -109,7 +112,7 @@ length(settingsM100N1G100)
 
 usecores <- 10
 options(cores=usecores)
-M100N1G100FDboost <- try(doSimFDboost(settings=settingsM100N1G100))
+M100N1G100FDboost <- try(doSimFDboost(settings=settingsM100N1G100, oneRepFDboost))
 
 save(M100N1G100FDboost, file=paste(pathResults, "M100N1G100FDboost.Rdata", sep=""))
 
@@ -136,7 +139,7 @@ length(settingsM200N1G30)
 
 usecores <- 10
 options(cores=usecores)
-M200N1G30FDboost <- try(doSimFDboost(settings=settingsM200N1G30))
+M200N1G30FDboost <- try(doSimFDboost(settings=settingsM200N1G30, oneRepFDboost))
 
 save(M200N1G30FDboost, file=paste(pathResults, "M200N1G30FDboost.Rdata", sep=""))
 
@@ -160,7 +163,7 @@ length(settingsM200N1G100)
 
 usecores <- 10
 options(cores=usecores)
-M200N1G100FDboost <- try(doSimFDboost(settings=settingsM200N1G100))
+M200N1G100FDboost <- try(doSimFDboost(settings=settingsM200N1G100, oneRepFDboost))
 
 save(M200N1G100FDboost, file=paste(pathResults, "M200N1G100FDboost.Rdata", sep=""))
 

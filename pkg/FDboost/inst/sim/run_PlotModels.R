@@ -8,8 +8,17 @@ print(R.Version()$version.string)
 
 library(refund)
 library(FDboost)
+library(splines)
 pathResults <- NULL
 pathModels <- NULL
+
+library(pryr) # to test for memory consumption
+
+library(plyr)
+
+# only works on Linux -> with try() no error on windows
+try(library(doMC))
+try(registerDoMC(cores=cores))
 
 source("simfuns.R")
 

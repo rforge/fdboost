@@ -99,12 +99,12 @@ library(ggplot2)
 
 pdf("ComputationTime.pdf", width=9, height=7)
 ggplot(subset(res, !is.na(time.elapsed)), aes(y=time.elapsed, x=snrEps, fill=mod)) + 
-  geom_boxplot(outlier.size=.6) + 
+  geom_boxplot(aes(colour = mod), outlier.size=.6) + 
   facet_grid(N~G , labeller="label_both") +
   #theme_clear(base_size=14)   + 
-  theme(legend.position="top", legend.direction="horizontal") +
+  theme(legend.position="top", legend.direction="horizontal", text=element_text(size = 25)) +
   scale_fill_manual(name = "", values=c("white", "grey80")) +                    
-  scale_colour_manual(name = "", values=c("grey40", "black")) +
+  scale_colour_manual(name = "", values=c("PFFR"= "grey40", "FLAM"="black")) +
   labs(x="snrEps", y="time") +
   scale_y_continuous(breaks=c(1, 2, 5, 10, 20, 60, 120, 300, 600, 1200, 2700, 
                               5400, 10800, 21600, 43200), 
@@ -112,63 +112,58 @@ ggplot(subset(res, !is.na(time.elapsed)), aes(y=time.elapsed, x=snrEps, fill=mod
                      labels=c("1s", "2s", "5s", "10s", "20s", "1 min", "2 min", "5 min", 
                               "10 min", "20 min", "45 min", "90 min", "3h", "6h", "12h")) +
   #labs(title="Computation time") + 
-  xlab(bquote(SNR[epsilon]))  +
-  theme(text=element_text(size = 30)) + theme_bw()
+  xlab(bquote(SNR[epsilon]))
 dev.off()
 
 
 
 pdf("reliMSEy.pdf", width=9, height=7)
 ggplot(subset(res, !is.na(relmsey)), aes(y=relmsey, fill=mod, colour=mod, x=snrEps)) +
-  geom_boxplot(outlier.size=.6) +
+  geom_boxplot(aes(colour = mod), outlier.size=.6) +
   facet_grid( N  ~  G, labeller="label_both") + #G
   scale_y_log10() + 
-  theme(legend.position="top", legend.direction="horizontal") +
+  theme(legend.position="top", legend.direction="horizontal", text=element_text(size = 30)) +
   scale_fill_manual(name = "", values=c("white", "grey80")) +              
   scale_colour_manual(name = "", values=c("grey40", "black")) + 
   #labs(title="riMSEy")
   #labs(title="reliMSE(Y(t))") + 
-  ylab("reliMSE(Y(t))") + xlab(bquote(SNR[epsilon])) +
-  theme(text=element_text(size = 30)) + theme_bw()
+  ylab("reliMSE(Y(t))") + xlab(bquote(SNR[epsilon]))
 dev.off()
 
 
 pdf("reliMSEg0.pdf", width=9, height=7)
 ggplot(subset(res, !is.na(relmseg0)), aes(y=relmseg0, fill=mod, colour=mod, x=snrEps)) +
-  geom_boxplot(outlier.size=.6) +
+  geom_boxplot(aes(colour = mod), outlier.size=.6) +
   facet_grid( N  ~  G, labeller="label_both") + #G
   scale_y_log10() + 
-  theme(legend.position="top", legend.direction="horizontal") +
+  theme(legend.position="top", legend.direction="horizontal", text=element_text(size = 30)) +
   scale_fill_manual(name = "", values=c("white", "grey80")) +              
   scale_colour_manual(name = "", values=c("grey40", "black")) + 
-  ylab(bquote(reliMSE(beta[0](t)))) + xlab(bquote(SNR[epsilon])) +
-  theme(text=element_text(size = 30)) + theme_bw()
+  ylab(bquote(reliMSE(beta[0](t)))) + xlab(bquote(SNR[epsilon]))
 dev.off()
 
 pdf("reliMSEfx1.pdf", width=9, height=7)
 ggplot(subset(res, !is.na(relmsefx1)), aes(y=relmsefx1, fill=mod, colour=mod, x=snrEps)) +
-  geom_boxplot(outlier.size=.6) +
+  geom_boxplot(aes(colour = mod), outlier.size=.6) +
   facet_grid( N  ~  G, labeller="label_both") + #G
   scale_y_log10() + 
-  theme(legend.position="top", legend.direction="horizontal") +
+  theme(legend.position="top", legend.direction="horizontal", text=element_text(size = 30)) +
   scale_fill_manual(name = "", values=c("white", "grey80")) +              
   scale_colour_manual(name = "", values=c("grey40", "black")) + 
   #labs(title=bquote(reliMSE(beta[1](s,t)))) +
-  ylab(bquote(reliMSE(beta[1](s,t)))) + xlab(bquote(SNR[epsilon])) +
-  theme(text=element_text(size = 30)) + theme_bw()
+  ylab(bquote(reliMSE(beta[1](s,t)))) + xlab(bquote(SNR[epsilon])) 
 dev.off()
 
 pdf("reliMSEfx2.pdf", width=9, height=7)
 ggplot(subset(res, !is.na(relmsefx2)), aes(y=relmsefx2, fill=mod, colour=mod, x=snrEps)) +
-  geom_boxplot(outlier.size=.6) +
+  geom_boxplot(aes(colour = mod), outlier.size=.6) +
   facet_grid( N  ~  G, labeller="label_both") + #G
   scale_y_log10() + 
-  theme(legend.position="top", legend.direction="horizontal") +
+  theme(legend.position="top", legend.direction="horizontal", text=element_text(size = 30)) +
   scale_fill_manual(name = "", values=c("white", "grey80")) +              
   scale_colour_manual(name = "", values=c("grey40", "black")) + 
   #labs(title=bquote(reliMSE(beta[2](s,t)))) +
-  ylab(bquote(reliMSE(beta[2](s,t)))) + xlab(bquote(SNR[epsilon])) +
-  theme(text=element_text(size = 30)) + theme_bw()
+  ylab(bquote(reliMSE(beta[2](s,t)))) + xlab(bquote(SNR[epsilon]))
 dev.off()
 
 
