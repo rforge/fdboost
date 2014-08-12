@@ -967,10 +967,14 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
             plot(y=trm$value[1,], x=trm$x, main=trm$main, type="l", xlab=trm$ylab, 
                  ylab="coef")
           }else{  
+            range <- range(trm$value, na.rm = TRUE)
+            if(range[1]==range[2]) range <- range(0, range)
+            zlim <- c(range[1] - 0.05*(range[2] - range[1]), 
+                      range[2] + 0.05*(range[2] - range[1]))
             plotWithArgs(persp, args=argsPersp,
                          myargs=list(x=trm$x, y=trm$y, z=trm$value, xlab=paste("\n", trm$xlab), 
                                      ylab=paste("\n", trm$ylab), zlab=paste("\n", "coef"), 
-                                     main=trm$main, theta=30, 
+                                     main=trm$main, theta=30, zlim=zlim,
                                      phi=30, ticktype="detailed",
                                      col=getColPersp(trm$value)))
           } 

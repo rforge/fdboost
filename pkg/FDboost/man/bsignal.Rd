@@ -2,7 +2,7 @@
 \alias{bconcurrent}
 \alias{bhist}
 \alias{bsignal}
-\title{Base-learners for Functional Covarites}
+\title{Base-learners for Functional Covariates}
 \usage{
   bsignal(x, s, index = NULL, knots = 10,
     boundary.knots = NULL, degree = 3, differences = 2,
@@ -12,7 +12,9 @@
     degree = 3, differences = 2, df = 4, lambda = NULL,
     cyclic = FALSE)
 
-  bhist(x, s, time, index = NULL, knots = 10,
+  bhist(x, s, time, index = NULL,
+    inS = c("smooth", "linear", "constant"),
+    inTime = c("smooth", "linear", "constant"), knots = 10,
     boundary.knots = NULL, degree = 3, differences = 2,
     df = 4, lambda = NULL, limits = "s<=t")
 }
@@ -74,6 +76,14 @@
   the transformation matrix for a sum-to-zero constraint in
   the case that all trajectories have the same mean (then a
   shift in the coefficient function is not identifiable).}
+
+  \item{inS}{historical effect can be smooth, linear or
+  constant in s, which is the index of the functional
+  covariates x(s).}
+
+  \item{inTime}{historical effect can be smooth, linear or
+  constant in time, which is the index of the functional
+  response y(time).}
 
   \item{limits}{defaults to "s<=t" for an historical effect
   with s<=t, otherwise specifies the integration limits

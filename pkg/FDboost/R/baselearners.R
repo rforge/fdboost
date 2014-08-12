@@ -290,7 +290,7 @@ X_bsignal <- function(mf, vary, args) {
 
 ###############################################################################
 
-#' Base-learners for Functional Covarites
+#' Base-learners for Functional Covariates
 #' 
 #' Base-learners that fit effects of functional covariates 
 #' 
@@ -328,6 +328,10 @@ X_bsignal <- function(mf, vary, args) {
 #' Z can be calculated as the transformation matrix for a sum-to-zero constraint in the case
 #' that all trajectories have the same mean 
 #' (then a shift in the coefficient function is not identifiable).
+#' @param inS historical effect can be smooth, linear or constant in s, 
+#' which is the index of the functional covariates x(s). 
+#' @param inTime historical effect can be smooth, linear or constant in time, 
+#' which is the index of the functional response y(time). 
 #' @param limits defaults to "s<=t" for an historical effect with s<=t, 
 #' otherwise specifies the integration limits s_{hi, i}, s_{lo, i}: 
 #' either one of "s<t" or "s<=t" for (s_{hi, i}, s_{lo, i}) = (0, t) or a 
@@ -676,7 +680,7 @@ bconcurrent <- function(x, s, #by = NULL, index = NULL,
 hyper_hist <- function(mf, vary, knots = 10, boundary.knots = NULL, degree = 3,
                          differences = 2, df = 4, lambda = NULL, center = FALSE,
                          cyclic = FALSE, constraint = "none", deriv = 0L, 
-                         Z=NULL, s=NULL, time=NULL, limits=NULL) {
+                         Z=NULL, s=NULL, time=NULL, limits=NULL, inS="smooth", inTime="smooth") {
   
   knotf <- function(x, knots, boundary.knots) {
     if (is.null(boundary.knots))
@@ -720,7 +724,7 @@ hyper_hist <- function(mf, vary, knots = 10, boundary.knots = NULL, degree = 3,
   list(knots = ret, degree = degree, differences = differences,
        df = df, lambda = lambda, center = center, cyclic = cyclic,
        Ts_constraint = constraint, deriv = deriv, 
-       Z=Z, s=s, time=time, limits=limits)
+       Z=Z, s=s, time=time, limits=limits, inS=inS, inTime=inTime)
 }
 
 
@@ -751,10 +755,14 @@ X_hist <- function(mf, vary, args) {
   
   if(ncol(X1)!=length(xind)) stop(xname, ": Dimension of signal matrix and its index do not match.")
   
-  # B-spline basis of specified degree     
-  B.s <- mboost:::bsplines(xind, knots=args$knots$s$knots, 
-                           boundary.knots=args$knots$s$boundary.knots, 
-                           degree=args$degree) 
+  # compute design-matrix in s-direction
+  B.s <- switch(args$inS, 
+                # B-spline basis of specified degree 
+                "smooth" = mboost:::bsplines(xind, knots=args$knots$s$knots, 
+                                                boundary.knots=args$knots$s$boundary.knots, 
+                                                degree=args$degree),
+                "linear" = matrix(c(rep(1, length(xind)), xind), ncol=2),
+                "constant"=  matrix(c(rep(1, length(xind))), ncol=1))
   
   colnames(B.s) <- paste(xname, 1:ncol(B.s), sep="")
   
@@ -828,31 +836,42 @@ X_hist <- function(mf, vary, args) {
   # Design matrix is product of expanded X1 and basis expansion over xind 
   X1des <- X1des %*% B.s
   
-  # if xind and yind are equal B.t and B.s are equal as well
-  if(length(xind)==length(yind) && all(xind==yind) ){
-    # design matrix over index of response for one response
-    B.t <- B.s
-  } else{
-    # design matrix over index of response for one response 
-    B.t <- mboost:::bsplines(yind, knots=args$knots$time$knots, 
-                             boundary.knots=args$knots$time$boundary.knots, 
-                             degree=args$degree) 
-  }
-  
+  # design matrix over index of response for one response
+  B.t <- switch(args$inTime, 
+                # B-spline basis of specified degree 
+                "smooth" = mboost:::bsplines(yind, knots=args$knots$time$knots, 
+                                             boundary.knots=args$knots$time$boundary.knots, 
+                                             degree=args$degree),
+                "linear" = matrix(c(rep(1, length(yind)), yind), ncol=2),
+                "constant"=  matrix(c(rep(1, length(yind))), ncol=1))
+    
   # stack design-matrix of response nobs times
   B.t <- B.t[rep(1:length(yind), each=nobs), ]
   
-  
+  if(!isMATRIX(B.t)) B.t <- matrix(B.t, ncol=1)
+    
   # calculate row-tensor
   # X <- (X1 %x% t(rep(1, ncol(X2))) ) * ( t(rep(1, ncol(X1))) %x% X2  )
   dimnames(B.t) <- NULL # otherwise warning "dimnames [2] mismatch..."
-  X <- X1des[,rep(1:ncol(X1des), each=ncol(B.t))] * B.t[,rep(1:ncol(B.t), times=ncol(X1des))] 
+  X <- X1des[,rep(1:ncol(X1des), each=ncol(B.t))] * B.t[,rep(1:ncol(B.t), times=ncol(X1des))]
   
-  ### Penalty matrix: product differences matrix
-  K1 <- diff(diag(ncol(X1des)), differences = args$differences)
-  K1 <- crossprod(K1)
-  K2 <- diff(diag(ncol(B.t)), differences = args$differences)
-  K2 <- crossprod(K2)  
+  if(!isMATRIX(X)) X <- matrix(X, ncol=1)
+  
+  ### Penalty matrix: product differences matrix for smooth effect
+  if(args$inS == "smooth"){
+    K1 <- diff(diag(ncol(X1des)), differences = args$differences)
+    K1 <- crossprod(K1)
+  }else{ # Ridge-penatly
+    K1 <- diag(ncol(X1des))
+  }
+
+  if(args$inTime == "smooth"){
+    K2 <- diff(diag(ncol(B.t)), differences = args$differences)
+    K2 <- crossprod(K2)  
+  }else{
+    K2 <- diag(ncol(B.t))
+  }
+
   suppressMessages(K <- kronecker(K2, diag(ncol(X1des))) +
                      kronecker(diag(ncol(B.t)), K1))
   
@@ -917,10 +936,15 @@ X_hist2 <- function(mf, vary, args) {
   
   if(ncol(X1)!=length(xind)) stop(xname, ": Dimension of signal matrix and its index do not match.")
   
-  # B-spline basis of specified degree     
-  B.s <- mboost:::bsplines(xind, knots=args$knots$s$knots, 
-                           boundary.knots=args$knots$s$boundary.knots, 
-                           degree=args$degree) 
+  # compute design-matrix in s-direction
+  B.s <- switch(args$inS, 
+                # B-spline basis of specified degree 
+                "smooth" = mboost:::bsplines(xind, knots=args$knots$s$knots, 
+                                             boundary.knots=args$knots$s$boundary.knots, 
+                                             degree=args$degree),
+                "linear" = matrix(c(rep(1, length(xind)), xind), ncol=2),
+                "constant"=  matrix(c(rep(1, length(xind))), ncol=1))
+  
   
   colnames(B.s) <- paste(xname, 1:ncol(B.s), sep="")
   
@@ -1004,21 +1028,40 @@ X_hist2 <- function(mf, vary, args) {
   X1des <- X1des %*% B.s
   
   # design matrix over index of response (yind has long format!)
-  B.t <- mboost:::bsplines(yind, knots=args$knots$time$knots, 
-                           boundary.knots=args$knots$time$boundary.knots, 
-                           degree=args$degree) 
+  B.t <- switch(args$inTime, 
+                # B-spline basis of specified degree 
+                "smooth" = mboost:::bsplines(yind, knots=args$knots$time$knots, 
+                                             boundary.knots=args$knots$time$boundary.knots, 
+                                             degree=args$degree),
+                "linear" = matrix(c(rep(1, length(yind)), yind), ncol=2),
+                "constant"=  matrix(c(rep(1, length(yind))), ncol=1))
   
+  if(!isMATRIX(B.t)) B.t <- matrix(B.t, ncol=1)
   
   # calculate row-tensor
   # X <- (X1 %x% t(rep(1, ncol(X2))) ) * ( t(rep(1, ncol(X1))) %x% X2  )
   dimnames(B.t) <- NULL # otherwise warning "dimnames [2] mismatch..."
   X <- X1des[,rep(1:ncol(X1des), each=ncol(B.t))] * B.t[,rep(1:ncol(B.t), times=ncol(X1des))] 
   
-  ### Penalty matrix: product differences matrix
-  K1 <- diff(diag(ncol(X1des)), differences = args$differences)
-  K1 <- crossprod(K1) 
-  K2 <- diff(diag(ncol(B.t)), differences = args$differences)
-  K2 <- crossprod(K2) 
+  if(!isMATRIX(X)) X <- matrix(X, ncol=1)
+  
+  #browser()
+  
+  ### Penalty matrix: product differences matrix for smooth effect
+  if(args$inS == "smooth"){
+    K1 <- diff(diag(ncol(X1des)), differences = args$differences)
+    K1 <- crossprod(K1)
+  }else{ # Ridge-penatly
+    K1 <- diag(ncol(X1des))
+  }
+  
+  if(args$inTime == "smooth"){
+    K2 <- diff(diag(ncol(B.t)), differences = args$differences)
+    K2 <- crossprod(K2)  
+  }else{
+    K2 <- diag(ncol(B.t))
+  }
+    
   suppressMessages(K <- kronecker(K2, diag(ncol(X1des))) +
                      kronecker(diag(ncol(B.t)), K1))
   
@@ -1056,6 +1099,7 @@ X_hist2 <- function(mf, vary, args) {
 #' @rdname bsignal
 #' @export
 bhist <- function(x, s, time, index = NULL, #by = NULL, 
+                  inS=c("smooth","linear","constant"), inTime=c("smooth","linear","constant"),
                   knots = 10, boundary.knots = NULL, degree = 3, differences = 2, df = 4,
                   lambda = NULL, #center = FALSE, cyclic = FALSE
                   limits="s<=t"
@@ -1066,6 +1110,9 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
   cll <- match.call()
   cll[[1]] <- as.name("bhist")
   #print(cll)
+  
+  inS <- match.arg(inS)
+  inTime <- match.arg(inTime)
   
   if(!isMATRIX(x)) stop("signal has to be a matrix")
   if(ncol(x)!=length(s)) stop("Dimension of x and s do not match.")
@@ -1163,14 +1210,16 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
                                args = hyper_hist(mf, vary, knots = knots, boundary.knots = boundary.knots, 
                                   degree = degree, differences = differences,
                                   df = df, lambda = NULL, center = FALSE, cyclic = FALSE,
-                                  s=s, time=time, limits = limits)) # extra feature limit!
+                                  s=s, time=time, limits = limits, 
+                                  inS=inS, inTime=inTime)) # extra feature limit!
   }else{
     ### X_hist2 is for data in long format: sets id 1:n
     ret$dpp <- mboost:::bl_lin(ret, Xfun = X_hist2,
                                args = hyper_hist(mf, vary, knots = knots, boundary.knots = boundary.knots, 
                                   degree = degree, differences = differences,
                                   df = df, lambda = NULL, center = FALSE, cyclic = FALSE,
-                                  s=s, time=time, limits = limits)) # extra feature limit! 
+                                  s=s, time=time, limits = limits,
+                                  inS=inS, inTime=inTime)) # extra feature limit! 
   }
   #browser()
   return(ret)

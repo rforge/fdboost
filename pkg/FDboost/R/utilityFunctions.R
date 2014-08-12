@@ -168,7 +168,7 @@ funplot <- function(x, y, id=NULL, rug=TRUE, ...){
     }
     
     # there should be no mising values in long format
-    temp <- data.frame(id, y, x, col) # dim(temp)
+    temp <- data.frame(id, y, x, col, stringsAsFactors=FALSE) # dim(temp)
     temp <- na.omit(temp)   
     # order values of temp
     temp <- temp[order(temp$id, temp$x),] 
@@ -190,7 +190,7 @@ funplot <- function(x, y, id=NULL, rug=TRUE, ...){
       if(is.null(argsPlot$ylim)) argsPlot$ylim <- range(y, na.rm=TRUE) 
       plotWithArgs(plot, args=argsPlot, 
                    myargs=list(x=x[id==1], y=y[id==1], xlab=xlabel, ylab=ylabel, type="p", pch=3,
-                               ylim=range(y, na.rm=TRUE), xlim=range(x, na.rm=TRUE)) )
+                               ylim=range(y, na.rm=TRUE), xlim=range(x, na.rm=TRUE),  col=col[id==1] ) )
     }
     
     for(i in unique(id)){
