@@ -628,6 +628,7 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
       # If a by-variable was specified, reduce number of dimensions
       # as smooth linear effect in several groups can be plotted in one plot 
       if( grepl("by", trm$get_call()) && grepl("bols", trm$get_call())) trm$dim <- trm$dim - 1
+      if( grepl("by", trm$get_call()) && grepl("bbs", trm$get_call())) trm$dim <- trm$dim - 1
       
       # <FIXME> what to do with bbs(..., by=factor)?
       
