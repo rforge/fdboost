@@ -4,7 +4,7 @@
 \usage{
   FDboost(formula, timeformula, id = NULL,
     numInt = "equal", data, weights = NULL, offset = NULL,
-    offset_control = o_control(), ...)
+    offset_control = o_control(), check0 = TRUE, ...)
 }
 \arguments{
   \item{formula}{a symbolic description of the model to be
@@ -50,6 +50,11 @@
   specified, per default a smooth time-specific offset is
   calculated and used within the model fit. If you do not
   want to use an offset you can set \code{offset=0}.}
+
+  \item{check0}{logical, for response observed on a common
+  grid, check the fitted effects for the sum-to-zero
+  constraint \eqn{h_j(x_i)(t) = 0} for all \eqn{t} and give
+  warning if it is not fulfilled. Defaults to TRUE.}
 
   \item{...}{additional arguments passed to
   \code{\link[mboost]{mboost}}, including \code{offset},

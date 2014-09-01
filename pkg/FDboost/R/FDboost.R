@@ -42,6 +42,9 @@
 #' @param offset a numeric vector to be used as offset over the index of the response (optional).
 #' If no offset is specified, per default a smooth time-specific offset is calculated and used 
 #' within the model fit. If you do not want to use an offset you can set \code{offset=0}.
+#' @param check0 logical, for response observed on a common grid, 
+#' check the fitted effects for the sum-to-zero constraint 
+#' \eqn{h_j(x_i)(t) = 0} for all \eqn{t} and give warning if it is not fulfilled. Defaults to TRUE. 
 #' @param ... additional arguments passed to \code{\link[mboost]{mboost}}, 
 #' including \code{offset}, \code{family} and \code{control}.
 #' 
@@ -105,7 +108,8 @@ FDboost <- function(formula,          ### response ~ xvars
                     data,             ### list of response, time, xvars
                     weights = NULL,   ### optional
                     offset = NULL,    ### optional
-                    offset_control = o_control(),
+                    offset_control = o_control(), ### optional specification of offset model
+                    check0 = TRUE,    ### check sum-to-zero-constraint of the fitted effects?
                     #offset_control = list(k_min=20, silent=TRUE),
                     ...)              ### goes directly to mboost
 {
@@ -201,9 +205,9 @@ FDboost <- function(formula,          ### response ~ xvars
   ### variable to fit smooth intercept
   assign("ONEx", rep(1.0, nobs))
   
-#   ### FIXME: plausibility check: 
-#   # for constrained effects in the formula the model should include an intercept
-#   grep("bbsc", trmstrings) + grep("brandomc", trmstrings)
+  #   ### FIXME: plausibility check: 
+  #   # for constrained effects in the formula the model should include an intercept
+  #   grep("bbsc", trmstrings) + grep("brandomc", trmstrings)
   
   ### compose mboost formula
   cfm <- paste(deparse(formula), collapse = "") 
@@ -441,6 +445,29 @@ FDboost <- function(formula,          ### response ~ xvars
     ret <- mboost(fm, data = data, weights = w, offset=offset, ...) 
   } else {
     ret <- mboost(fm, weights = w, offset=offset, ...)
+  }
+
+  # check sum-to-zero constraints for the fitted effects
+  # for models with more than one effect and a regular response
+  if(check0 && length(ret$baselearner)>1 && is.null(id)){
+    
+    # do not check the smooth intercept
+    if(any( gsub(" ", "", strsplit(cfm[2], "\\+")[[1]]) ==  "1")){
+      effectsToCheck <- 2:length(ret$baselearner)
+    }else{
+      effectsToCheck <- 1:length(ret$baselearner)
+    }
+    # predict each effect separately
+    pred <- predict(ret, which=effectsToCheck)
+    
+    # check weather each effect is zero per time-point
+    meanPerTime <- apply(pred, 2, function(x){
+      tapply(x, rep(1:nc, each=nobs), mean) # compute mean per time-point
+    })
+    if(!all(meanPerTime < .Machine$double.eps *10^10)){
+      temp <- colSums(meanPerTime > .Machine$double.eps *10^10)!=0
+      warning("The effects ", names(temp)[temp], " do not sum to zero per time-point.")
+    }
   }
   
   ### assign new class (e.g. for specialized predictions)

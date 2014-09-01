@@ -208,7 +208,7 @@ X_bsignal <- function(mf, vary, args) {
   useZ <- FALSE
   ### Check whether integral over trajectories is different then centering is advisable
   if(is.null(args$Z) && all(rowMeans(X1)-mean(rowMeans(X1)) < .Machine$double.eps *10^10)){
-    message(paste("All trajectories in ", xname, " have the same mean. Coefficient function is centered.", sep=""))
+    #message(paste("All trajectories in ", xname, " have the same mean. Coefficient function is centered.", sep=""))
     useZ <- TRUE
   }
   
@@ -414,10 +414,13 @@ bsignal <- function(x, s, index = NULL, #by = NULL,
   mf <- data.frame("z"=I(x))
   names(mf) <- xname
   
-  #   if(all(round(colSums(mf), 4)!=0)){
-  #     warning(xname, " is not centered. 
-  #     Functional covariates should be mean-centered in each measurement point.")
-  #   }
+  if(!all( colMeans(x) < .Machine$double.eps*10^10)){
+    warning(xname, " is not centered per column, leading to a non-centered effect.")
+  }
+  
+  if(is.null(Z) && all(rowMeans(x)-mean(rowMeans(x)) < .Machine$double.eps *10^10)){
+    message(paste("All trajectories in ", xname, " have the same mean. Coefficient function is centered.", sep=""))
+  }
   
   #   mf <- mfL
   #   names(mf) <- varnames
@@ -1712,7 +1715,7 @@ X_olsc <- function(mf, vary, args) {
   if(is.null(args$Z)){
     C <- t(X) %*% rep(1, nrow(X))
     Q <- qr.Q(qr(C), complete=TRUE) # orthonormal matrix of QR decompositon
-    Z <- Q[  , 2:ncol(Q)] # only keep last columns    
+    Z <- Q[  , 2:ncol(Q), drop=FALSE] # only keep last columns    
   }else Z <- args$Z
   
   ### Transform design and penalty matrix
@@ -1745,6 +1748,9 @@ bolsc <- function(..., by = NULL, index = NULL, intercept = TRUE, df = NULL,
   cll[[1]] <- as.name("bolsc")
   
   mf <- list(...)
+
+  if(!intercept && length(mf)==1) stop("Intercept has to be TRUE for bolsc with one covariate.")
+  
   if (length(mf) == 1 && ((isMATRIX(mf[[1]]) || is.data.frame(mf[[1]])) &&
                             ncol(mf[[1]]) > 1 )) {
     mf <- mf[[1]]
