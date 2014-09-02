@@ -80,7 +80,8 @@ library(FDboost)
 
 Load data and compute the first derivative.
 <<load-data, echo = TRUE>>=
-data(fuel)
+data(fuelSubset)
+fuel <- fuelSubset
 str(fuel)
 
 # # normalize the wavelength to 0-1

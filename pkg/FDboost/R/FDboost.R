@@ -449,7 +449,8 @@ FDboost <- function(formula,          ### response ~ xvars
 
   # check sum-to-zero constraints for the fitted effects
   # for models with more than one effect and a regular response
-  if(check0 && length(ret$baselearner)>1 && is.null(id)){
+  # not for scalar response
+  if(check0 && length(ret$baselearner)>1 && is.null(id) && dim(response)[2]!=1){
     
     # do not check the smooth intercept
     if(any( gsub(" ", "", strsplit(cfm[2], "\\+")[[1]]) ==  "1")){

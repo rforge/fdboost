@@ -129,7 +129,6 @@ getCol2 <- function(x, cols = rainbow(18)[1:length(table(x))]){
 
 Load data and choose the time-interval.
 <<load-data, echo = TRUE>>=
-# setwd("Z:/mboostFD")
 # load("viscosity.RData")
 data(viscosity)
 str(viscosity)
@@ -204,7 +203,7 @@ modAll <- FDboost(vis ~ 1
                   timeformula=~bbs(time, lambda=100), 
                   numInt="Riemann", family=QuantReg(), 
                   offset=NULL, offset_control = o_control(k_min = 10),
-                  data=viscosity, 
+                  data=viscosity, check0=FALSE, 
                   control=boost_control(mstop = 100, nu = 0.2))
 @
 
@@ -234,7 +233,6 @@ mstop(cvmAll) # 180
 
 Do model selection using stability selection.
 <<stabsel1, echo = TRUE, eval=FALSE>>=
-source("mboostDevel-inference.R")
 set.seed(1911)
 folds <- cvMa(ydim=modAll$ydim, weights=model.weights(modAll), 
               type = "subsampling", B = 50)
@@ -272,7 +270,7 @@ Estimate the model containig only the selected effects $T_C$, $T_A$, and their i
 set.seed(1911)
 mod1 <- FDboost(vis ~ 1 + bols(T_C) + bols(T_A) + bols(T_C_T_A),
                 timeformula=~bbs(time, lambda=100),  
-                numInt="Riemann", family=QuantReg(), 
+                numInt="Riemann", family=QuantReg(), check0=FALSE, 
                 offset=NULL, offset_control = o_control(k_min = 10),
                 data=viscosity, control=boost_control(mstop = 200, nu = 0.2))
 @

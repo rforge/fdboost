@@ -1,4 +1,4 @@
-\name{fuel}
+\name{fuelSubset}
 \alias{fuel}
 \docType{data}
 \title{ Spectral data of fossil fuels}
@@ -9,9 +9,12 @@ determined together with two spectra.
 One spectrum is ultraviolet-visible (UV-VIS), measured at 1335 wavelengths in
 the range of 250.4 to 878.4 nanometer (nm), the other a near infrared  spectrum
 (NIR) measured at 2307 wavelengths in the range of 800.4 to 2779.0 nm.
+\code{fuelSubset} is a subset of the original dataset containing only 10\% of
+the original measures of the spectra, resulting in 231 measures of the
+NIR spectrum and 134 measures of the UVVIS spectrum.
 
 }
-\usage{data("fuel")}
+\usage{data("fuelSubset")}
 \format{
   A data list with 129 observations on the following 7 variables.
   \describe{
@@ -39,7 +42,7 @@ both spectra and their derivatives as predictors.
 }
 \examples{
 
-    data("fuel", package = "FDboost")
+    data("fuelSubset", package = "FDboost")
 
     ### fit mean regression model with 100 boosting iterations,
     ### step-length 0.1 and

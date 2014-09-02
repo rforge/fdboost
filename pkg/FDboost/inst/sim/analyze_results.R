@@ -3,12 +3,12 @@
 # Author: Sarah Brockhaus
 ###############################################################################
 
-# M=50
-load("M50N1G30pffr.Rdata")
-M50N1G30 <- M50N1G30[,-1]
-
-load("M50N1G100pffr.Rdata") 
-M50N1G100 <- M50N1G100[,-1]
+# # M=50
+# load("M50N1G30pffr.Rdata")
+# M50N1G30 <- M50N1G30[,-1]
+# 
+# load("M50N1G100pffr.Rdata") 
+# M50N1G100 <- M50N1G100[,-1]
 
 # M=100
 load("M100N1G30pffr.Rdata")
@@ -17,33 +17,49 @@ M100N1G30 <- M100N1G30[,-1]
 load("M100N1G100pffr.Rdata")
 M100N1G100 <- M100N1G100[,-1]
 
-# M=200
-load("M200N1G30pffr.Rdata")
-M200N1G30 <- M200N1G30[,-1]
+# # M=200
+# load("M200N1G30pffr.Rdata")
+# M200N1G30 <- M200N1G30[,-1]
+# 
+# load("M200N1G100pffr.Rdata")
+# M200N1G100 <- M200N1G100[,-1]
 
-load("M200N1G100pffr.Rdata")
-M200N1G100 <- M200N1G100[,-1]
+# M=500
+load("M500N1G30pffr.Rdata")
+M500N1G30 <- M500N1G30[,-1]
 
-# M=50
-load("M50N1G30FDboost.Rdata")
-M50N1G30FDboost <- M50N1G30FDboost[,1:ncol(M50N1G30)]
+load("M500N1G100pffr.Rdata") 
+M500N1G100 <- M500N1G100[,-1]
 
-load("M50N1G100FDboost.Rdata")
-M50N1G100FDboost <- M50N1G100FDboost[,1:ncol(M50N1G30)]
+
+# # M=50
+# load("M50N1G30FDboost.Rdata")
+# M50N1G30FDboost <- M50N1G30FDboost[,1:ncol(M100N1G30)]
+# 
+# load("M50N1G100FDboost.Rdata")
+# M50N1G100FDboost <- M50N1G100FDboost[,1:ncol(M100N1G30)]
 
 # M=100
 load("M100N1G30FDboost.Rdata")
-M100N1G30FDboost <- M100N1G30FDboost[,1:ncol(M50N1G30)]
+M100N1G30FDboost <- M100N1G30FDboost[,1:ncol(M100N1G30)]
 
 load("M100N1G100FDboost.Rdata")
-M100N1G100FDboost <- M100N1G100FDboost[,1:ncol(M50N1G30)]
+M100N1G100FDboost <- M100N1G100FDboost[,1:ncol(M100N1G30)]
 
-# M=200
-load("M200N1G30FDboost.Rdata")
-M200N1G30FDboost <- M200N1G30FDboost[,1:ncol(M50N1G30)]
+# # M=200
+# load("M200N1G30FDboost.Rdata")
+# M200N1G30FDboost <- M200N1G30FDboost[,1:ncol(M100N1G30)]
+# 
+# load("M200N1G100FDboost.Rdata")
+# M200N1G100FDboost <- M200N1G100FDboost[,1:ncol(M100N1G30)]
 
-load("M200N1G100FDboost.Rdata")
-M200N1G100FDboost <- M200N1G100FDboost[,1:ncol(M50N1G30)]
+# M=500
+load("M500N1G30FDboost.Rdata")
+M500N1G30FDboost <- M500N1G30FDboost[,1:ncol(M100N1G30)]
+
+load("M500N1G100FDboost.Rdata")
+M500N1G100FDboost <- M500N1G100FDboost[,1:ncol(M100N1G30)]
+
 
 ## merge the resulta of pffr and FDboost    
 resNames <- ls()[grep("^M", ls())]

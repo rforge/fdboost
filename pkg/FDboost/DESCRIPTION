@@ -20,7 +20,7 @@ Suggests:
     maps,
     mapdata
 License: GPL-2
-Packaged: 2013-04-30 08:41:28 UTC; brockhaus
+Packaged: 2014-09-02 07:44:03 UTC; brockhaus
 Collate:
     'FDboost.R'
     'baselearners.R'

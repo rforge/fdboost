@@ -627,8 +627,8 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
       
       # If a by-variable was specified, reduce number of dimensions
       # as smooth linear effect in several groups can be plotted in one plot 
-      if( grepl("by", trm$get_call()) && grepl("bols", trm$get_call())) trm$dim <- trm$dim - 1
-      if( grepl("by", trm$get_call()) && grepl("bbs", trm$get_call())) trm$dim <- trm$dim - 1
+      if( grepl("by =", trm$get_call()) && grepl("bols", trm$get_call()) || 
+            grepl("by =", trm$get_call()) && grepl("bbs", trm$get_call()) ) trm$dim <- trm$dim - 1
       
       # <FIXME> what to do with bbs(..., by=factor)?
       
@@ -1081,7 +1081,11 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
     for(i in 1:length(terms)){
       # set values of predicted effect to missing if response is missing
       if(sum(is.na(x$response))>0) terms[[i]][is.na(x$response)] <- NA
-      range <- range(terms[[i]], na.rm=TRUE)
+      if(is.null(dots$ylim)){
+        range <- range(terms[[i]], na.rm=TRUE)
+      }else{
+        range <- dots$ylim
+      }
       
       if(length(time)>1){
         
