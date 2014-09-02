@@ -1,5 +1,5 @@
 \name{fuelSubset}
-\alias{fuel}
+\alias{fuelSubset}
 \docType{data}
 \title{ Spectral data of fossil fuels}
 \description{
@@ -48,6 +48,6 @@ both spectra and their derivatives as predictors.
     ### step-length 0.1 and
     mod <- FDboost(heatan ~ bsignal(UVVIS, uvvis.lambda, knots=40, df=4)
                    + bsignal(NIR, nir.lambda, knots=40, df=4),
-                   timeformula=~bols(1), data=fuel)
+                   timeformula=~bols(1), data=fuelSubset)
 }
 \keyword{datasets}
