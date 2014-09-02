@@ -120,9 +120,11 @@ viscosity$vis <- log(viscosity$visAll[,1:end])
 viscosity$time <- viscosity$timeAll[1:end]
 # with(viscosity, funplot(time, vis, pch=16, cex=0.2))
 
-## fit median regression model with 200 boosting iterations,
-## step-length 0.2 and smooth time-specific offset
-mod <- FDboost(vis ~ 1 + bols(T_C) + bols(T_A),
+## fit median regression model with 100 boosting iterations,
+## step-length 0.4 and smooth time-specific offset
+## the factors are in effect coding -1, 1 for the levels
+mod <- FDboost(vis ~ 1 + bols(T_C, contrasts.arg = "contr.sum", intercept=FALSE)
+               + bols(T_A, contrasts.arg = "contr.sum", intercept=FALSE),
                timeformula=~bbs(time, lambda=100),
                numInt="Riemann", family=QuantReg(),
                offset=NULL, offset_control = o_control(k_min = 9),

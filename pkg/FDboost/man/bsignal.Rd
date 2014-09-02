@@ -133,10 +133,10 @@
 }
 \examples{
 ### example for scalar response and two functional covariates
-data(fuel)
+data(fuelSubset, package = "FDboost")
 modFuel <- FDboost(heatan ~ bsignal(UVVIS, uvvis.lambda, knots=40, df=4)
            + bsignal(NIR, nir.lambda, knots=40, df=4),
-           timeformula=~bols(1), data=fuel)
+           timeformula=~bols(1), check0=FALSE, data=fuelSubset)
 summary(modFuel)
 ## plot(modFuel, rug=FALSE)
 }

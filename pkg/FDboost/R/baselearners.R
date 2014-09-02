@@ -375,10 +375,10 @@ X_bsignal <- function(mf, vary, args) {
 #' \url{http://arxiv.org/abs/1207.5947} 
 #' @examples 
 #' ### example for scalar response and two functional covariates 
-#' data(fuel)
+#' data(fuelSubset, package = "FDboost")
 #' modFuel <- FDboost(heatan ~ bsignal(UVVIS, uvvis.lambda, knots=40, df=4) 
 #'            + bsignal(NIR, nir.lambda, knots=40, df=4), 
-#'            timeformula=~bols(1), data=fuel)
+#'            timeformula=~bols(1), check0=FALSE, data=fuelSubset)
 #' summary(modFuel)
 #' ## plot(modFuel, rug=FALSE)
 #' @export
@@ -415,7 +415,7 @@ bsignal <- function(x, s, index = NULL, #by = NULL,
   names(mf) <- xname
   
   if(!all( colMeans(x) < .Machine$double.eps*10^10)){
-    warning(xname, " is not centered per column, leading to a non-centered effect.")
+    message(xname, " is not centered per column, inducing a non-centered effect.")
   }
   
   if(is.null(Z) && all(rowMeans(x)-mean(rowMeans(x)) < .Machine$double.eps *10^10)){
