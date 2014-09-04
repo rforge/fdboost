@@ -67,54 +67,54 @@ source("simfuns.R")
 
 
 
-# ###################################### M=100
-# 
-# set.seed(18102012)
-# 
-# settingsM100N1G30 <- makeSettings(
-#   M=c(100),
-#   ni=c(1),
-#   Gy=c(30),
-#   Gx=c(30),
-#   snrEps=c(1, 2),
-#   snrE=c(0),
-#   snrB=c(2),
-#   scenario=3,
-#   balanced=c(TRUE),
-#   nuisance=c(0),
-#   rep=1:10)
-# 
-# length(settingsM100N1G30)
-# 
-# usecores <- 10
-# options(cores=usecores)
-# M100N1G30FDboost <- try(doSimFDboost(settings=settingsM100N1G30, oneRepFDboost))
-# 
-# save(M100N1G30FDboost, file=paste(pathResults, "M100N1G30FDboost.Rdata", sep=""))
-# 
-# 
-# set.seed(18102012)
-# 
-# settingsM100N1G100 <- makeSettings(
-#   M=c(100),
-#   ni=c(1),
-#   Gy=c(100),
-#   Gx=c(100),
-#   snrEps=c(1, 2),
-#   snrE=c(0),
-#   snrB=c(2),
-#   scenario=3,
-#   balanced=c(TRUE),
-#   nuisance=c(0),
-#   rep=1:10)
-# 
-# length(settingsM100N1G100)
-# 
-# usecores <- 10
-# options(cores=usecores)
-# M100N1G100FDboost <- try(doSimFDboost(settings=settingsM100N1G100, oneRepFDboost))
-# 
-# save(M100N1G100FDboost, file=paste(pathResults, "M100N1G100FDboost.Rdata", sep=""))
+###################################### M=100
+
+set.seed(18102012)
+
+settingsM100N1G30 <- makeSettings(
+  M=c(100),
+  ni=c(1),
+  Gy=c(30),
+  Gx=c(30),
+  snrEps=c(1, 2),
+  snrE=c(0),
+  snrB=c(2),
+  scenario=3,
+  balanced=c(TRUE),
+  nuisance=c(0),
+  rep=1:10)
+
+length(settingsM100N1G30)
+
+usecores <- 10
+options(cores=usecores)
+M100N1G30FDboost <- try(doSimFDboost(settings=settingsM100N1G30, oneRepFDboost))
+
+save(M100N1G30FDboost, file=paste(pathResults, "M100N1G30FDboost.Rdata", sep=""))
+
+
+set.seed(18102012)
+
+settingsM100N1G100 <- makeSettings(
+  M=c(100),
+  ni=c(1),
+  Gy=c(100),
+  Gx=c(100),
+  snrEps=c(1, 2),
+  snrE=c(0),
+  snrB=c(2),
+  scenario=3,
+  balanced=c(TRUE),
+  nuisance=c(0),
+  rep=1:10)
+
+length(settingsM100N1G100)
+
+usecores <- 10
+options(cores=usecores)
+M100N1G100FDboost <- try(doSimFDboost(settings=settingsM100N1G100, oneRepFDboost))
+
+save(M100N1G100FDboost, file=paste(pathResults, "M100N1G100FDboost.Rdata", sep=""))
 
 
 

@@ -365,8 +365,8 @@ if(FALSE){
 ### Fit model using FDboost() that is based on package mboost
 fitModelMboost <- function(data, 
                            control=boost_control(mstop=100, nu=0.1), # settings of mboost
-                           grid=seq(10, 100, by=10),
-                           m_max=2500, 
+                           grid=seq(10, 200, by=10),
+                           m_max=1000, 
                            optimizeMstop=TRUE,
                            useArray=TRUE,
                            ...){ 
@@ -1019,7 +1019,12 @@ oneRepFDboost <- function(theseSettings){
   
   # Fit models
   modPffr <- NULL
-###  modPffr <- suppressMessages(do.call(fitModelPffr, args))
+  ###  modPffr <- suppressMessages(do.call(fitModelPffr, args))
+  
+  args$control <- boost_control(mstop=2000, nu=0.1)
+  args$grid <- seq(10, 2000, by = 10)
+  args$m_max <- 2000
+  
   modMboost <- suppressMessages(do.call(fitModelMboost, args)) # args$m_max=100
     
   if(is.null(modMboost)) print(paste("modMboost, set " , theseSettings$set, ", is NULL", sep=""))
