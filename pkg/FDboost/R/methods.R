@@ -98,6 +98,7 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
   stopifnot(any(class(object)=="FDboost")) 
   # print("Prediction FDboost") 
   
+  classObject <- class(object)
   class(object) <- "mboost"
   
   ### Prepare data so that the function predict.mboost() can be used
@@ -133,7 +134,8 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
     posBconc <- whichHelp[whichHelp %in% posBconc]
     posBhist <- whichHelp[whichHelp %in% posBhist]
     newdataConc <- list() # data to predict concurrent effect
-    newdataHist <- list() # data to predict historic effect
+    newdataHist <- list() # data to predict historic effect 
+    indname_all <- c() # save the names of all indices
     if(length(c(posBsignal, posBconc, posBhist))>0){
       #if(!is.list(newdata)) newdata <- list(newdata)
       for(i in c(posBsignal, posBconc, posBhist)){
@@ -143,6 +145,7 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
         formula_help <- formula(paste("resHelp ~", form))
         xname <- all.vars(formula_help)[2]
         indname <- if(length(all.vars(formula_help))>=3) all.vars(formula_help)[3] else "xindDefault" 
+        indname_all <- c(indname_all, indname)
         if(i %in% posBhist){
           indnameY <- if(length(all.vars(formula_help))>=4) all.vars(formula_help)[4] else indname
         } else{
@@ -160,9 +163,11 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
         if(i %in% posBhist){
           attr(newdata[[indnameY]], "indnameY") <-  indnameY
           attr(newdata[[xname]], "indexY") <-  if(indnameY!="xindDefault") newdata[[indnameY]] else seq(0,1,l=ncol(newdata[[xname]]))
+          if(any(classObject=="FDboostLong")){
+            id <- newdata[[ attr(object$id, "nameid") ]]
+            attr(newdata[[xname]], "id") <-  id
+          } 
         } 
-        
-        
         
         # save data of concurrent effects
         if(i %in% posBconc) newdataConc[[xname]] <- newdata[[xname]]
@@ -202,8 +207,9 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
     if(length(posBhist) > 0){ 
       if(length(unique(sapply(newdataHist, NROW))) != 1) stop(paste("Dimensions of newdata do not match:", 
                                                                     paste(names(newdataHist), sapply(newdataHist, NROW), sep=": ", collapse=", ")))
-      predMboostHist <- rowSums(predict(object=object, newdata=as.data.frame(newdataHist), 
-                                        which=posBhist, ...))
+      predMboostHist <- predict(object=object, newdata=as.data.frame(newdataHist), 
+                                        which=posBhist, ...)
+      predMboostHist <- rowSums(predMboostHist)
       whichHelp <- whichHelp[-which(whichHelp %in% posBhist)]
     }
     
@@ -223,10 +229,32 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
     predMboost0 <- 0
     
     if(length(whichHelp) > 0){
-      if(!is.null(object$ydim)){ # regualr grid
-        predMboost0 <- rowSums(predict(object=object, newdata=newdata, which=whichHelp, ...))
+      if(!is.null(object$ydim)){ # regular grid
+        # for for models containing %O%, mboost$predict allows to give newdata as a list
+        predMboost0 <- predict(object=object, newdata=newdata, which=whichHelp, ...)
+        predMboost0 <- rowSums(predMboost0)
       }else{ # long format
-        predMboost0 <- rowSums(predict(object=object, newdata=data.frame(newdata), which=whichHelp, ...))
+        # for models WITHOUT %O%, mboost$predict expects a data.frame;
+        # a list is NOT possible
+        ## only keep the necessary variables in the dataframe
+        vars <- all.vars(formula(object$formulaMboost)[[3]])
+        vars <- vars[!vars %in% c(attr(object$id, "nameid"),  
+                                  indname_all)]
+        vars <- vars[vars %in% names(newdata)]
+        
+        ## check whether t has the same length as the variables
+        if(length(vars) > 2 &"ONEx" %in% vars){ newdata[["ONEx"]] <- rep(1L, NROW(newdata[[vars[2]]])) }
+        if(length(unique(lapply(newdata[vars], NROW)))!=1){
+          stop("Only can predict with newdata for irregular response for equal NROW of all variables and the index of the response.")  
+        } 
+        newdata0 <- as.data.frame(newdata[vars])
+        # add a variable t, for y(t) to avoid error that the variable is not in dataframe
+        # newdata0[,attr(object$yind, "nameyind")] <- seq(min(object$yind), max(object$yind), 
+        #                                                l=nrow(newdata0))
+        
+        # predict(object=object, newdata=data.frame(newdata[vars]), which=whichHelp)
+        predMboost0 <- predict(object=object, newdata=newdata0, which=whichHelp, ...)
+        predMboost0 <- rowSums(predMboost0)
       }
     }
     

@@ -6,7 +6,8 @@
 \usage{
   bsignal(x, s, index = NULL, knots = 10,
     boundary.knots = NULL, degree = 3, differences = 2,
-    df = 4, lambda = NULL, cyclic = FALSE, Z = NULL)
+    df = 4, lambda = NULL, cyclic = FALSE, Z = NULL,
+    penalty = c("ps", "pps"), check.ident = TRUE)
 
   bconcurrent(x, s, knots = 10, boundary.knots = NULL,
     degree = 3, differences = 2, df = 4, lambda = NULL,
@@ -16,7 +17,8 @@
     inS = c("smooth", "linear", "constant"),
     inTime = c("smooth", "linear", "constant"), knots = 10,
     boundary.knots = NULL, degree = 3, differences = 2,
-    df = 4, lambda = NULL, limits = "s<=t")
+    df = 4, lambda = NULL, limits = "s<=t",
+    penalty = c("ps", "pps"), check.ident = TRUE)
 }
 \arguments{
   \item{...}{matrix of functional data and the vector of
@@ -77,6 +79,14 @@
   the case that all trajectories have the same mean (then a
   shift in the coefficient function is not identifiable).}
 
+  \item{penalty}{by default, penalty="ps", the difference
+  penalty for P-splines is used, for penalty="pps" the
+  penalty matrix is transformed to have full rank, so
+  called shrinkage approach by Marra and Wood (2011)}
+
+  \item{check.ident}{use checks for identifiability of the
+  effect, based on Scheipl and Greven (2012)}
+
   \item{inS}{historical effect can be smooth, linear or
   constant in s, which is the index of the functional
   covariates x(s).}
@@ -134,18 +144,23 @@
 \examples{
 ### example for scalar response and two functional covariates
 data(fuelSubset, package = "FDboost")
-modFuel <- FDboost(heatan ~ bsignal(UVVIS, uvvis.lambda, knots=40, df=4)
-           + bsignal(NIR, nir.lambda, knots=40, df=4),
+modFuel <- FDboost(heatan ~ bsignal(UVVIS, uvvis.lambda, knots=40, df=4, check.ident=FALSE)
+           + bsignal(NIR, nir.lambda, knots=40, df=4, check.ident=FALSE),
            timeformula=~bols(1), check0=FALSE, data=fuelSubset)
 summary(modFuel)
-## plot(modFuel, rug=FALSE)
+## plot(modFuel)
 }
 \references{
-  Scheipl, F., Staicu, A.-M., and Greven, S. (2014),
-  Functional Additive Mixed Models, Journal of
-  Computational and Graphical Statistics, in press, DOI
-  10.1080/10618600.2014.901914.
-  \url{http://arxiv.org/abs/1207.5947}
+  Marra, G., and Wood, S.N., (2011) Practical variable
+  selection for generalized additive models. Computational
+  Statistics & Data Analysis, 55, 2372-2387. Scheipl, F.,
+  Staicu, A.-M., and Greven, S. (2014), Functional Additive
+  Mixed Models, Journal of Computational and Graphical
+  Statistics, in press, DOI 10.1080/10618600.2014.901914.
+  \url{http://arxiv.org/abs/1207.5947} Scheipl, F., Greven,
+  S. (2012): Identifiability in penalized
+  function-on-function regression models. Technical Report
+  125, Department of Statistics, LMU Muenchen.
 }
 \seealso{
   \code{\link{FDboost}} for the model fit.

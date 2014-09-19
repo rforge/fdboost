@@ -46,8 +46,10 @@ both spectra and their derivatives as predictors.
 
     ### fit mean regression model with 100 boosting iterations,
     ### step-length 0.1 and
-    mod <- FDboost(heatan ~ bsignal(UVVIS, uvvis.lambda, knots=40, df=4)
-                   + bsignal(NIR, nir.lambda, knots=40, df=4),
+    mod <- FDboost(heatan ~ bsignal(UVVIS, uvvis.lambda, knots=40, df=4, check.ident=FALSE)
+                   + bsignal(NIR, nir.lambda, knots=40, df=4, check.ident=FALSE),
                    timeformula=~bols(1), data=fuelSubset)
+    summary(mod)
+    ## plot(mod)
 }
 \keyword{datasets}

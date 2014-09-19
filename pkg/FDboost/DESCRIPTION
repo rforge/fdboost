@@ -1,7 +1,7 @@
 Package: FDboost
 Type: Package
 Title: Boosting functional regression models
-Version: 0.0-7
+Version: 0.0-8
 Date: 2013-04-29
 Author: Sarah Brockhaus
 Maintainer: Sarah Brockhaus <Sarah.Brockhaus@stat.uni-muenchen.de>
@@ -13,7 +13,7 @@ Imports:
     Matrix,
     mgcv,
     zoo,
-    nnls
+    MASS
 Suggests:
     fda,
     fields,
@@ -24,7 +24,6 @@ Packaged: 2014-09-02 07:44:03 UTC; brockhaus
 Collate:
     'FDboost.R'
     'baselearners.R'
-    'bkroneckerTrafo.R'
     'crossvalidation.R'
     'internalsMboost.R'
     'methods.R'

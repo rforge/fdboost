@@ -4,7 +4,7 @@
 \usage{
   FDboost(formula, timeformula, id = NULL,
     numInt = "equal", data, weights = NULL, offset = NULL,
-    offset_control = o_control(), check0 = TRUE, ...)
+    offset_control = o_control(), check0 = FALSE, ...)
 }
 \arguments{
   \item{formula}{a symbolic description of the model to be
@@ -110,6 +110,7 @@
   format, the argument \code{id} has to be specified.
 }
 \examples{
+## Example for function-on-scalar-regression
 data("viscosity", package = "FDboost")
 ## set time-interval that should be modeled
 interval <- "101"
@@ -123,13 +124,43 @@ viscosity$time <- viscosity$timeAll[1:end]
 ## fit median regression model with 100 boosting iterations,
 ## step-length 0.4 and smooth time-specific offset
 ## the factors are in effect coding -1, 1 for the levels
-mod <- FDboost(vis ~ 1 + bols(T_C, contrasts.arg = "contr.sum", intercept=FALSE)
+mod1 <- FDboost(vis ~ 1 + bols(T_C, contrasts.arg = "contr.sum", intercept=FALSE)
                + bols(T_A, contrasts.arg = "contr.sum", intercept=FALSE),
                timeformula=~bbs(time, lambda=100),
                numInt="Riemann", family=QuantReg(),
                offset=NULL, offset_control = o_control(k_min = 9),
                data=viscosity, control=boost_control(mstop = 100, nu = 0.4))
-summary(mod)
+summary(mod1)
+## plot(mod1)
+
+## Example for scalar-on-function-regression
+data("fuelSubset", package = "FDboost")
+
+mod2 <- FDboost(heatan ~ bsignal(UVVIS, uvvis.lambda, knots=40, df=4, check.ident=FALSE)
+               + bsignal(NIR, nir.lambda, knots=40, df=4, check.ident=FALSE),
+               timeformula=~bols(1), data=fuelSubset)
+summary(mod2)
+## plot(mod2)
+
+## Example for function-on-function-regression
+if(require(fda)){
+  data("CanadianWeather", package="fda")
+  CanadianWeather$l10precip <- t(log(CanadianWeather$monthlyPrecip))
+  CanadianWeather$temp <- t(CanadianWeather$monthlyTemp)
+  CanadianWeather$region <- factor(CanadianWeather$region)
+  CanadianWeather$month.s <- CanadianWeather$month.t <- 1:12
+
+  ## fit model with cyclic splines over the year
+  mod3 <- FDboost(l10precip ~ bols(region, df=2.5, contrasts.arg = "contr.dummy")
+                 + bsignal(temp, month.s, knots=11, cyclic=TRUE,
+                           df=2.5, boundary.knots=c(0.5,12.5), check.ident=FALSE),
+                 timeformula=~bbs(month.t, knots=11, cyclic=TRUE,
+                                  df=3, boundary.knots=c(0.5,12.5)),
+                                  offset=0, offset_control = o_control(k_min=5),
+                  data=CanadianWeather)
+ summary(mod3)
+ ## plot(mod3, pers=TRUE)
+}
 }
 \author{
   Sarah Brockhaus, Torsten Hothorn

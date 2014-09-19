@@ -75,7 +75,8 @@
 #' for possible base-learners
 #' 
 #' @keywords models, nonlinear 
-#' @examples  
+#' @examples 
+#' ## Example for function-on-scalar-regression 
 #' data("viscosity", package = "FDboost") 
 #' ## set time-interval that should be modeled
 #' interval <- "101"
@@ -89,20 +90,52 @@
 #' ## fit median regression model with 100 boosting iterations,
 #' ## step-length 0.4 and smooth time-specific offset
 #' ## the factors are in effect coding -1, 1 for the levels
-#' mod <- FDboost(vis ~ 1 + bols(T_C, contrasts.arg = "contr.sum", intercept=FALSE) 
+#' mod1 <- FDboost(vis ~ 1 + bols(T_C, contrasts.arg = "contr.sum", intercept=FALSE) 
 #'                + bols(T_A, contrasts.arg = "contr.sum", intercept=FALSE),
 #'                timeformula=~bbs(time, lambda=100),
 #'                numInt="Riemann", family=QuantReg(),
 #'                offset=NULL, offset_control = o_control(k_min = 9),
 #'                data=viscosity, control=boost_control(mstop = 100, nu = 0.4))
-#' summary(mod)
+#' summary(mod1)
+#' ## plot(mod1)
+#' 
+#' ## Example for scalar-on-function-regression 
+#' data("fuelSubset", package = "FDboost")
+#' 
+#' mod2 <- FDboost(heatan ~ bsignal(UVVIS, uvvis.lambda, knots=40, df=4, check.ident=FALSE) 
+#'                + bsignal(NIR, nir.lambda, knots=40, df=4, check.ident=FALSE), 
+#'                timeformula=~bols(1), data=fuelSubset) 
+#' summary(mod2) 
+#' ## plot(mod2)
+#' 
+#' ## Example for function-on-function-regression 
+#' if(require(fda)){
+#'   data("CanadianWeather", package="fda")
+#'   CanadianWeather$l10precip <- t(log(CanadianWeather$monthlyPrecip))
+#'   CanadianWeather$temp <- t(CanadianWeather$monthlyTemp)
+#'   CanadianWeather$region <- factor(CanadianWeather$region)
+#'   CanadianWeather$month.s <- CanadianWeather$month.t <- 1:12
+#'   
+#'   ## fit model with cyclic splines over the year
+#'   mod3 <- FDboost(l10precip ~ bols(region, df=2.5, contrasts.arg = "contr.dummy") 
+#'                  + bsignal(temp, month.s, knots=11, cyclic=TRUE, 
+#'                            df=2.5, boundary.knots=c(0.5,12.5), check.ident=FALSE), 
+#'                  timeformula=~bbs(month.t, knots=11, cyclic=TRUE, 
+#'                                   df=3, boundary.knots=c(0.5,12.5)), 
+#'                                   offset=0, offset_control = o_control(k_min=5), 
+#'                   data=CanadianWeather)   
+#'  summary(mod3)
+#'  ## plot(mod3, pers=TRUE)
+#' }
+#' 
+#' 
 #'                 
 #' @export
 #' @import mboost Matrix 
 #' @importFrom splines bs splineDesign
 #' @importFrom mgcv gam s
 #' @importFrom zoo na.locf
-#' @importFrom nnls nnls
+#' @importFrom MASS Null
 FDboost <- function(formula,          ### response ~ xvars
                     timeformula,      ### time
                     id=NULL,          ### id variable if response in long format
@@ -111,12 +144,28 @@ FDboost <- function(formula,          ### response ~ xvars
                     weights = NULL,   ### optional
                     offset = NULL,    ### optional
                     offset_control = o_control(), ### optional specification of offset model
-                    check0 = TRUE,    ### check sum-to-zero-constraint of the fitted effects?
+                    check0 = FALSE,    ### check sum-to-zero-constraint of the fitted effects?
                     #offset_control = list(k_min=20, silent=TRUE),
                     ...)              ### goes directly to mboost
 {
   dots <- list(...)
 
+  ## insert the id variable into the formula, to treat is like the other variables
+  if(!is.null(id)){
+    stopifnot(class(id)=="formula")
+    tf <- terms.formula(formula, specials=c("c"))
+    trmstrings <- attr(tf, "term.labels")
+    trmstrings <- paste(substr(trmstrings, 1 , nchar(trmstrings)-1), ", index=", id[2],")", sep="")
+    xpart <- paste(as.vector(trmstrings), collapse = " + ")
+    if(any(substr(tf[[3]], 1, 1)=="1")) xpart <- paste0("1 + ", xpart)
+    formula <- as.formula(paste(tf[[2]], " ~ ", xpart))
+    #print(formula)
+    nameid <- paste(id[2])
+    id <- data[[nameid]]
+  }else{
+    nameid <- NULL
+  }
+  
   ### save formula of FDboost
   formulaFDboost <- formula
   
@@ -155,7 +204,7 @@ FDboost <- function(formula,          ### response ~ xvars
   ### extract covariates
   # data <- as.data.frame(data)
   if(length(all.vars(formula)) > 1){
-    data <- data[all.vars(formula)[-1]]    
+    data <- data[ all.vars(formula)[!all.vars(formula) %in% c(yname, nameyind)] ]    
   }else data <- list(NULL)  # <SB> intercept-model without covariates
       
   ### get covariates that are modeled constant over time
@@ -246,13 +295,14 @@ FDboost <- function(formula,          ### response ~ xvars
       cfm <- paste("bols(ONEtime, intercept = FALSE, df = ", c_df ,")")
     }
   }
-  
+
   # expand formula as Kronecker or tensor product 
   if(is.null(id)){
     tmp <- outer(xfm, tfm, function(x, y) paste(x, y, sep = "%O%"))
   }else{
     # expand the bl accoridng to id
-    xfm <- paste(substr(xfm, 1 , nchar(xfm)-1), ", index=id)", sep="")
+    if(grepl("ONEx", xfm[[1]])) xfm[[1]] <- paste(substr(xfm[[1]], 1 , nchar(xfm[[1]])-1), ", index=",nameid,")", sep="")
+    xfm <- paste(substr(xfm, 1 , nchar(xfm)-1), ")", sep="") # , index=id is done in the beginning
     tmp <- outer(xfm, tfm, function(x, y) paste(x, y, sep = "%X%"))
   }
 
@@ -294,7 +344,8 @@ FDboost <- function(formula,          ### response ~ xvars
   if(is.null(id)){
     
     ## per default add smooth time-specific offset 
-    if(is.null(offset) & dim(response)[2]>1){
+    if(is.null(offset) && dim(response)[2] > 1 && 
+         any(colMeans(response) > .Machine$double.eps *10^10)){
       message("Use a smooth offset.") 
       ### <FixMe> is the use of family@offset correct?
       #meanY <- colMeans(response, na.rm=TRUE)
@@ -359,8 +410,10 @@ FDboost <- function(formula,          ### response ~ xvars
         ret      
       } 
       offset <- as.vector(matrix(offsetVec, ncol=ncol(response), nrow = nrow(response), byrow=TRUE))    
-    }else{    
-      if(dim(response)[2]==1){ ### scalar response
+    }else{ 
+      ### scalar response or mean-centered response -> one constant offset value is used
+      if(dim(response)[2]==1 | 
+           all(colMeans(response) < .Machine$double.eps *10^10)){ 
         offsetVec <- offset
         offset <- offset # use one constant offset in mboost()
         predictOffset <- function(time) if(is.null(offset)) 0 else offset
@@ -440,15 +493,13 @@ FDboost <- function(formula,          ### response ~ xvars
 
   }
   
-  #browser()
-  
   if (length(data) > 0) {
     ### mboost isn't happy with nrow(data) == 0
     ret <- mboost(fm, data = data, weights = w, offset=offset, ...) 
   } else {
     ret <- mboost(fm, weights = w, offset=offset, ...)
   }
-
+  
   # check sum-to-zero constraints for the fitted effects
   # for models with more than one effect and a regular response
   # not for scalar response
@@ -486,7 +537,8 @@ FDboost <- function(formula,          ### response ~ xvars
   ret$yind <- time
   ret$data <- data
   ret$id <- id
-    
+  attr(ret$id, "nameid") <- nameid
+  
   # if the offset is just an integer the prediction gives back this integer
   ret$predictOffset <- predictOffset
   if(is.null(offsetVec)) ret$predictOffset <- function(time) ret$offset

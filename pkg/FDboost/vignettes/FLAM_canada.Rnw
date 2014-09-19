@@ -202,7 +202,7 @@ Fit the model.
 set.seed(210114)
 mod3 <- FDboost(l10precip ~ bols(region, df=2.5, contrasts.arg = "contr.dummy") 
                 + bsignal(temp, month.s, knots=11, cyclic=TRUE, 
-                          df=2.5, boundary.knots=c(0.5,12.5))
+                          df=2.5, boundary.knots=c(0.5,12.5), check.ident=FALSE)
                 + bolsc(place, df=2.5, K=P_nu.5, contrasts.arg = "contr.dummy"), 
                 timeformula=~bbs(month.t, knots=11, cyclic=TRUE, 
                                  df=3, boundary.knots=c(0.5,12.5)),
