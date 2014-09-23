@@ -263,9 +263,9 @@ X_bsignal <- function(mf, vary, args) {
     args$penalty <- check_ident(X1=X1, L=L, Bs=Bs, K=K, xname=xname, penalty=args$penalty)
   }
   
-  if(args$penalty=="pps"){
+  if(args$penalty=="pss"){
     shrink <- 0.1 # <FIXME> allow for variable shrinkage parameter?
-    K <- penalty_pps(K=K, difference=args$difference, shrink=0.1)
+    K <- penalty_pss(K=K, difference=args$difference, shrink=0.1)
   }
   
   ## compare specified degrees of freedom to dimension of null space
@@ -326,7 +326,7 @@ X_bsignal <- function(mf, vary, args) {
 #' that all trajectories have the same mean 
 #' (then a shift in the coefficient function is not identifiable).
 #' @param penalty by default, penalty="ps", the difference penalty for P-splines is used, 
-#' for penalty="pps" the penalty matrix is transformed to have full rank, so called shrinkage approach by 
+#' for penalty="pss" the penalty matrix is transformed to have full rank, so called shrinkage approach by 
 #' Marra and Wood (2011)
 #' @param check.ident use checks for identifiability of the effect, based on Scheipl and Greven (2012)
 #' @param inS historical effect can be smooth, linear or constant in s, 
@@ -393,7 +393,7 @@ bsignal <- function(x, s, index = NULL, #by = NULL,
                     knots = 10, boundary.knots = NULL, degree = 3, differences = 2, df = 4, 
                     lambda = NULL, #center = FALSE, 
                     cyclic = FALSE, Z = NULL, 
-                    penalty=c("ps","pps"), check.ident = TRUE
+                    penalty=c("ps","pss"), check.ident = TRUE
 ){
   
   if (!is.null(lambda)) df <- NULL
@@ -921,9 +921,9 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   if(args$inS == "smooth"){
     K1 <- diff(diag(ncol(Bs)), differences = args$differences)
     K1 <- crossprod(K1)    
-    if(args$penalty=="pps"){
+    if(args$penalty=="pss"){
       shrink <- 0.1 # <FIXME> allow for variable shrinkage parameter?
-      K1 <- penalty_pps(K=K1, difference=args$difference, shrink=0.1)
+      K1 <- penalty_pss(K=K1, difference=args$difference, shrink=0.1)
     }    
   }else{ # Ridge-penatly
     K1 <- diag(ncol(Bs))
@@ -1163,7 +1163,7 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
                   knots = 10, boundary.knots = NULL, degree = 3, differences = 2, df = 4,
                   lambda = NULL, #center = FALSE, cyclic = FALSE
                   limits="s<=t", # norm=FALSE
-                  penalty = c("ps", "pps"), check.ident = TRUE
+                  penalty = c("ps", "pss"), check.ident = TRUE
 ){
   
   if (!is.null(lambda)) df <- NULL

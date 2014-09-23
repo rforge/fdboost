@@ -7,7 +7,7 @@
   bsignal(x, s, index = NULL, knots = 10,
     boundary.knots = NULL, degree = 3, differences = 2,
     df = 4, lambda = NULL, cyclic = FALSE, Z = NULL,
-    penalty = c("ps", "pps"), check.ident = TRUE)
+    penalty = c("ps", "pss"), check.ident = TRUE)
 
   bconcurrent(x, s, knots = 10, boundary.knots = NULL,
     degree = 3, differences = 2, df = 4, lambda = NULL,
@@ -18,7 +18,7 @@
     inTime = c("smooth", "linear", "constant"), knots = 10,
     boundary.knots = NULL, degree = 3, differences = 2,
     df = 4, lambda = NULL, limits = "s<=t",
-    penalty = c("ps", "pps"), check.ident = TRUE)
+    penalty = c("ps", "pss"), check.ident = TRUE)
 }
 \arguments{
   \item{...}{matrix of functional data and the vector of
@@ -80,7 +80,7 @@
   shift in the coefficient function is not identifiable).}
 
   \item{penalty}{by default, penalty="ps", the difference
-  penalty for P-splines is used, for penalty="pps" the
+  penalty for P-splines is used, for penalty="pss" the
   penalty matrix is transformed to have full rank, so
   called shrinkage approach by Marra and Wood (2011)}
 

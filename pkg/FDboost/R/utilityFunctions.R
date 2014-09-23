@@ -658,7 +658,7 @@ check_ident <- function(X1, L, Bs, K, xname, penalty){
     warning("Kernel overlap for <", xname, "> and the specified basis and penalty detected. ",
             "Changing basis for X-direction to <penalty='pss'> to make model identifiable through penalty. ", 
             "Coefficient surface estimate will be inherently unreliable.") 
-    penalty <- "pps"
+    penalty <- "pss"
   }
   return(penalty)
 }
@@ -693,7 +693,7 @@ trace_lv <- function(A, B, tol=1e-10){
 # K sqaured differences penalty matrix
 # difference degree of difference
 # shrink shrinkage parameter 
-penalty_pps <- function(K, difference, shrink){
+penalty_pss <- function(K, difference, shrink){
   
   stopifnot(shrink > 0, shrink < 1)
   
