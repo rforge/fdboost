@@ -155,9 +155,13 @@ FDboost <- function(formula,          ### response ~ xvars
     stopifnot(class(id)=="formula")
     tf <- terms.formula(formula, specials=c("c"))
     trmstrings <- attr(tf, "term.labels")
-    trmstrings <- paste(substr(trmstrings, 1 , nchar(trmstrings)-1), ", index=", id[2],")", sep="")
+    if(length(trmstrings)>0) trmstrings <- paste(substr(trmstrings, 1 , nchar(trmstrings)-1), ", index=", id[2],")", sep="")
     xpart <- paste(as.vector(trmstrings), collapse = " + ")
-    if(any(substr(tf[[3]], 1, 1)=="1")) xpart <- paste0("1 + ", xpart)
+    if(xpart!=""){
+      if(any(substr(tf[[3]], 1, 1)=="1")) xpart <- paste0("1 + ", xpart)
+    }else{
+      xpart <- 1
+    }
     formula <- as.formula(paste(tf[[2]], " ~ ", xpart))
     #print(formula)
     nameid <- paste(id[2])

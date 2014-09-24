@@ -1172,9 +1172,11 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
   cll[[1]] <- as.name("bhist")
   #print(cll)
   penalty <- match.arg(penalty)
+  #print(penalty)
   
   inS <- match.arg(inS)
   inTime <- match.arg(inTime)
+  #print(inS)
   
   if(!isMATRIX(x)) stop("signal has to be a matrix")
   if(ncol(x)!=length(s)) stop("Dimension of x and s do not match.")
