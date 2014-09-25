@@ -1188,7 +1188,7 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
   
   # compare range of index signal and index response
   # minimal value of the signal-index has to be smaller than the response-index
-  if(min(s) < min(time) ) stop("Index of response has values before index of signal.")
+  if(limits=="s<=t" & min(s) > min(time) ) stop("Index of response has values before index of signal.")
   
   # Reshape mfL so that it is the dataframe of the signal with 
   # the index of the signal and the index of the response as attributes
