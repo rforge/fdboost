@@ -260,7 +260,11 @@ X_bsignal <- function(mf, vary, args) {
  
   ## see Scheipl and Greven: Identifiability in penalized function-on-function regression models  
   if(args$check.ident){
-    args$penalty <- check_ident(X1=X1, L=L, Bs=Bs, K=K, xname=xname, penalty=args$penalty)
+    res_check <- check_ident(X1=X1, L=L, Bs=Bs, K=K, xname=xname, penalty=args$penalty)
+    args$penalty <- res_check$penalty
+    args$logCondDs <- res_check$logCondDs
+    args$overlapKe <- res_check$overlapKe
+    args$maxK <- res_check$maxK
   }
   
   if(args$penalty=="pss"){
@@ -802,11 +806,15 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   if(args$check.ident && args$inS=="smooth"){
     K1 <- diff(diag(ncol(Bs)), differences = args$differences)
     K1 <- crossprod(K1)
-    args$penalty <- check_ident(X1=X1, L=L, Bs=Bs, K=K1, xname=xname, penalty=args$penalty)
+    res_check <- check_ident(X1=X1, L=L, Bs=Bs, K=K1, xname=xname, penalty=args$penalty)
+    args$penalty <- res_check$penalty
+    args$logCondDs <- res_check$logCondDs
+    args$overlapKe <- res_check$overlapKe
+    args$maxK <- res_check$maxK
   }
   
   # X_hist was only run to check for identifiability
-  if(!getDesign) return(list(args=args))
+  #if(!getDesign) return(list(args=args))
   
   # Weighting with matrix of functional covariate
   X1 <- L*X1
@@ -913,7 +921,7 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   # calculate row-tensor
   # X <- (X1 %x% t(rep(1, ncol(X2))) ) * ( t(rep(1, ncol(X1))) %x% X2  )
   dimnames(Bt) <- NULL # otherwise warning "dimnames [2] mismatch..."
-  X <- X1des[,rep(1:ncol(X1des), each=ncol(Bt))] * Bt[,rep(1:ncol(Bt), times=ncol(X1des))]
+  X <- X1des[,rep(1:ncol(Bs), each=ncol(Bt))] * Bt[,rep(1:ncol(Bt), times=ncol(Bs))]
   
   if(!isMATRIX(X)) X <- matrix(X, ncol=1)
   
@@ -929,6 +937,7 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
     K1 <- diag(ncol(Bs))
   }
   #K1 <- matrix(0, ncol=ncol(Bs), nrow=ncol(Bs))
+  #print(args$penalty)
 
   if(args$inTime == "smooth"){
     K2 <- diff(diag(ncol(Bt)), differences = args$differences)
@@ -955,6 +964,12 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
            "(unpenalized part of P-spline). Use larger value for ",
            sQuote("df"), " or set ", sQuote("center = TRUE"), ".")
   }
+  
+  # save matrices to compute numbers for identifiability checks
+  args$Bs <- Bs
+  args$X1des <- X1des
+  args$K1 <- K1
+  args$L <- L
   
   # tidy up workspace 
   rm(Bs, Bt, ind0, X1des, X1, L)
@@ -1188,7 +1203,9 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
   
   # compare range of index signal and index response
   # minimal value of the signal-index has to be smaller than the response-index
-  if(limits=="s<=t" & min(s) > min(time) ) stop("Index of response has values before index of signal.")
+  if(!is.function(limits)){
+    if(limits=="s<=t" & min(s) > min(time) ) stop("Index of response has values before index of signal.")
+  }
   
   # Reshape mfL so that it is the dataframe of the signal with 
   # the index of the signal and the index of the response as attributes
@@ -1241,7 +1258,7 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
                                         format="wide"), 
                    getDesign=FALSE)
   }else{
-    ### X_hist for data in long format with irregualr response
+    ### X_hist for data in long format with irregular response
     temp <- X_hist(mf, vary, 
                    args = hyper_hist(mf, vary, knots = knots, boundary.knots = boundary.knots, 
                                      degree = degree, differences = differences,
@@ -1253,7 +1270,6 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
                    getDesign=FALSE)
   }
   temp$args$check.ident <- FALSE
-
   
   ret <- list(model.frame = function() 
     if (is.null(index)) return(mf) else{

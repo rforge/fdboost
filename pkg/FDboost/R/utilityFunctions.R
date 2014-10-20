@@ -633,23 +633,37 @@ funMRD <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,  ...
 # xname name of functional covariate
 # used type of penalty
 check_ident <- function(X1, L, Bs, K, xname, penalty){
+  
+  ## center X1 per column
+  X1 <- scale(X1, scale=FALSE)
+  
   #print("check.ident")
   ## check whether (number of basis functionsin Bs) < (number of relevant eigenfunctions of X1)
-  ## center X1 per column
-  evls <- svd(scale(X1, scale=FALSE), nu=0, nv=0)$d^2 # eigenvalues of centered fun. cov.
+  evls <- svd(X1, nu=0, nv=0)$d^2 # eigenvalues of centered fun. cov.
   evls[evls<0] <- 0
   maxK <- max(1, min(which((cumsum(evls)/sum(evls)) >= .995)))
   bsdim <- ncol(Bs) # number of basis functions in Bs
-  if(maxK < bsdim){
-    warning("<k> (" , bsdim , ") larger than effective rank of <", xname, "> (", maxK, "). ", 
-            "Effect identifiable only through penalty.")
-  }
+  #if(maxK < bsdim){
+  #  warning("<k> (" , bsdim , ") larger than effective rank of <", xname, "> (", maxK, "). ", 
+  #          "Effect identifiable only through penalty.")
+  #}
   ## <FIXME> automatically use less basis-functions in case of problems?
   ## you would have to change args$knots accordingly
   
+  ### compute condition number of Ds^t Ds
+  Ds <- (X1 * L) %*% Bs
+  DstDs <- crossprod(Ds)
+  e_DstDs <- try(eigen(DstDs))
+  e_DstDs$values <- pmax(0, e_DstDs$values) # set negative eigenvalues to 0
+  logCondDs <- log10(e_DstDs$values[1]) - log10(tail(e_DstDs$values, 1))
+  if(logCondDs > 10^6){
+    warning("condition number for <", xname, "> greater than 10^6.", 
+            "Effect identifiable only through penalty.")
+  }
+  
   ## measure degree of overlap between the spans of ker(t(X1)) and W%*%Bs%*%ker(K)
   ## overlap after Larsson and Villani 2001
-  KeX <- Null(t(scale(X1, scale=FALSE)))  # function Null of package MASS computes kernel
+  KeX <- Null(t(X1))  # function Null of package MASS computes kernel
   if(any(dim(KeX)==0)) return(penalty) # <FIXME> does it mean t(X1) has no kernel??
   KePen <- diag(L[1,]) %*% Bs %*% Null(K)
   overlapKe <- trace_lv(svd(KeX, nv=0)$u, svd(KePen, nv=0)$u)
@@ -660,8 +674,10 @@ check_ident <- function(X1, L, Bs, K, xname, penalty){
             "Coefficient surface estimate will be inherently unreliable.") 
     penalty <- "pss"
   }
-  return(penalty)
+  
+  return(list(logCondDs=logCondDs, overlapKe=overlapKe, maxK=maxK, penalty=penalty))
 }
+
 
 ## measure degree of overlap between the spans of X and Y using A=svd(X)$u, B=svd(Y)$u
 ## code written by Fabian Scheipl

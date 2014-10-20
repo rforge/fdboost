@@ -207,8 +207,9 @@ FDboost <- function(formula,          ### response ~ xvars
   
   ### extract covariates
   # data <- as.data.frame(data)
-  if(length(all.vars(formula)) > 1){
-    data <- data[ all.vars(formula)[!all.vars(formula) %in% c(yname, nameyind)] ]    
+  allCovs <- unique(c(nameid, all.vars(formula)))
+  if(length(allCovs) > 1){
+    data <- data[allCovs[!allCovs %in% c(yname, nameyind)] ]    
   }else data <- list(NULL)  # <SB> intercept-model without covariates
       
   ### get covariates that are modeled constant over time

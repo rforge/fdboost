@@ -165,6 +165,8 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
           attr(newdata[[xname]], "indexY") <-  if(indnameY!="xindDefault") newdata[[indnameY]] else seq(0,1,l=ncol(newdata[[xname]]))
           if(any(classObject=="FDboostLong")){
             id <- newdata[[ attr(object$id, "nameid") ]]
+            #if(is.null(id)) warning("There is no id-variable called,", attr(object$id, "nameid"),  "in newdata.")
+            
             attr(newdata[[xname]], "id") <-  id
           } 
         } 
@@ -243,7 +245,7 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
         vars <- vars[vars %in% names(newdata)]
         
         ## check whether t has the same length as the variables
-        if(length(vars) > 2 &"ONEx" %in% vars){ newdata[["ONEx"]] <- rep(1L, NROW(newdata[[vars[2]]])) }
+        if(length(vars) > 2 & "ONEx" %in% vars){ newdata[["ONEx"]] <- rep(1L, NROW(newdata[[vars[2]]])) }
         if(length(unique(lapply(newdata[vars], NROW)))!=1){
           stop("Only can predict with newdata for irregular response for equal NROW of all variables and the index of the response.")  
         } 
