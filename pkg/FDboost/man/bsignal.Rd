@@ -9,9 +9,9 @@
     df = 4, lambda = NULL, cyclic = FALSE, Z = NULL,
     penalty = c("ps", "pss"), check.ident = TRUE)
 
-  bconcurrent(x, s, knots = 10, boundary.knots = NULL,
-    degree = 3, differences = 2, df = 4, lambda = NULL,
-    cyclic = FALSE)
+  bconcurrent(x, s, time, index = NULL, knots = 10,
+    boundary.knots = NULL, degree = 3, differences = 2,
+    df = 4, lambda = NULL, cyclic = FALSE)
 
   bhist(x, s, time, index = NULL,
     inS = c("smooth", "linear", "constant"),

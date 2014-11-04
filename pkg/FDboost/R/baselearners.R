@@ -524,44 +524,54 @@ X_conc <- function(mf, vary, args) {
   stopifnot(is.data.frame(mf))
   xname <- names(mf)
   X1 <- as.matrix(mf)
+  class(X1) <- "matrix"
   xind <- attr(mf[[1]], "signalIndex")
-  if(is.null(xind)) xind <- args$s # if the attribute is NULL use the s of the model fit
+  yind <- attr(mf[[1]], "indexY")
+  if(is.null(xind)) xind <- args$s # if the attribute is NULL use the s of the model fit 
+  if(is.null(yind)) yind <- args$time # if the attribute is NULL use the time of the model fit  
+  
+  nobs <- nrow(X1)
+  
+  # get id-variable
+  id <- attr(mf[,xname], "id") # for data in long format
+  # id is NULL for regular response
+  # id has values 1, 2, 3, ... for response in long format
+  
+  ## <FIXME> is that line still necessary? 
+  ## important for prediction, otherwise id=NULL and yind is multiplied accordingly
+  if(is.null(id)) id <- 1:nrow(X1)
+  
+  ## check yind 
+  if(args$format=="long" && length(yind)!=length(id)) stop(xname, ": Index of response and id do not have the same length")
+  ## check dimensions of s and x(s)
+  if(args$format=="wide" && ncol(X1)!=length(xind)) stop(xname, ": Dimension of signal matrix and its index do not match.")
+  if(args$format=="long" && nrow(X1)!=length(xind)) stop(xname, ": Dimension of signal matrix and its index do not match.")
+  
+  # compute design-matrix in s-direction
+  Bs <- switch(args$inS, 
+               # B-spline basis of specified degree 
+               "smooth" = mboost:::bsplines(xind, knots=args$knots$s$knots, 
+                                            boundary.knots=args$knots$s$boundary.knots, 
+                                            degree=args$degree),
+               "linear" = matrix(c(rep(1, length(xind)), xind), ncol=2),
+               "constant"=  matrix(c(rep(1, length(xind))), ncol=1))
+  
+  colnames(Bs) <- paste(xname, 1:ncol(Bs), sep="")
     
-  #   stopifnot(is.list(mf))
-  #   xname <- names(mf)[1]
-  #   X1 <- mf[[1]]
-  #   xind <- mf[[2]]
-  
-  if(ncol(X1)!=length(xind)) stop(xname, ": Dimension of signal matrix and its index do not match.")
-  
-  ### Construct spline basis over index xind of X1 
-  if(is.null(args$boundary.knots))  args$boundary.knots <- range(xind, na.rm = TRUE)
-  knots <- seq(from = args$boundary.knots[1], to = args$boundary.knots[2], length = args$knots + 2)
-  knots <- knots[2:(length(knots) - 1)]
-  
-  # B-spline basis of specified degree     
-  X <- mboost:::bsplines(xind, knots=knots, boundary.knots=args$boundary.knots, 
-                         degree=args$degree) 
-  
-  # to do: extra feature: cyclic splines
-  if (args$cyclic) {
-    X <- mboost:::cbs(xind,
-                      knots = knots,
-                      boundary.knots = args$boundary.knots,
-                      degree = args$degree)
-  }
-  
-  colnames(X) <- paste(xname, 1:ncol(X), sep="")
-  
   # set up design matrix for concurrent model
-  listCol <- list()
-  for(i in 1:ncol(X1)){
-    listCol[[i]] <- X1[,i]
+  if(args$format=="wide"){
+    listCol <- list()
+    for(i in 1:ncol(X1)){
+      listCol[[i]] <- X1[,i]
+    }
+    X1des <- as.matrix(bdiag(listCol))
+    # Design matrix is product of expanded X1 and basis expansion over xind 
+    X <- (X1des) %*% Bs
+    rm(X1des, listCol)
+  }else{
+    # Design matrix contains rows x_i(t_{ig_i})*Bs[at row t_{ig_i},]
+    X <- X1[,1]*Bs
   }
-  X1des <- as.matrix(bdiag(listCol)) 
-  
-  # Design matrix is product of expanded X1 and basis expansion over xind 
-  X <- (X1des) %*% X
   
   ### Penalty matrix: product differences matrix
   differenceMatrix <- diff(diag(ncol(X)), differences = args$differences)
@@ -583,15 +593,15 @@ X_conc <- function(mf, vary, args) {
   }
   
   # tidy up workspace 
-  rm(X1des, X1)
+  rm(X1)
   
-  return(list(X = X, K = K))
+  return(list(X = X, K = K, args = args))
 }
 
 #' @rdname bsignal
 #' @export
 ### P-spline base learner for signal matrix with index vector
-bconcurrent <- function(x, s, #by = NULL, index = NULL, 
+bconcurrent <- function(x, s, time, index = NULL, #by = NULL, 
                         knots = 10, boundary.knots = NULL, degree = 3, differences = 2, df = 4, 
                         lambda = NULL, #center = FALSE, 
                         cyclic = FALSE
@@ -603,17 +613,28 @@ bconcurrent <- function(x, s, #by = NULL, index = NULL,
   cll[[1]] <- as.name("bconcurrent")
   #print(cll)
   
-  if(!isMATRIX(x)) stop("signal has to be a matrix")
-  if(ncol(x)!=length(s)) stop("Dimension of x and s do not match.")
+  if(!isMATRIX(x) && is.null(index)) stop("signal has to be a matrix for regular response")
+  if(isMATRIX(x) && NCOL(x)!=length(s)) stop("Dimension of x and s do not match.")
+  if(!isMATRIX(x) && length(x)!=length(s)) stop("Dimension of x and s do not match.")
   
   varnames <- all.vars(cll)
   
   if(!is.atomic(s)) stop("index of signal has to be a vector")
+  if(!is.atomic(time)) stop("index of response has to be a vector")
+  
+  # compare range of index signal and index response
+  # the index of the signal s, has to contain all values of time
+  if( !all(s %in% time) ) stop("Index s of functional variable has to contain all values of time.")
   
   # Reshape mfL so that it is the dataframe of the signal with the index as attribute
   xname <- varnames[1]
   indname <- varnames[2]
-  if(is.null(colnames(x))) colnames(x) <- paste(xname, 1:ncol(x), sep="_")
+  indnameY <- varnames[3]
+  attr(x, "indexY") <- time
+  attr(x, "indnameY") <- indnameY
+  attr(x, "id") <- index
+  
+  if(isMATRIX(x) && is.null(colnames(x))) colnames(x) <- paste(xname, 1:ncol(x), sep="_")
   attr(x, "signalIndex") <- s
   attr(x, "xname") <- xname
   attr(x, "indname") <- indname 
@@ -639,7 +660,29 @@ bconcurrent <- function(x, s, #by = NULL, index = NULL,
             "i.e., base-learners may depend on different",
             " numbers of observations.")
   
-  index <- NULL  
+  #index <- NULL 
+  
+  if(is.null(index)){
+    ### X_conc for data in wide format with regular response
+    temp <- X_conc(mf, vary, 
+                   args = hyper_hist(mf, vary, knots = knots, boundary.knots = boundary.knots, 
+                                     degree = degree, differences = differences,
+                                     df = df, lambda = lambda, center = FALSE, cyclic = cyclic,
+                                     s = s, time=time, limits = NULL, 
+                                     inS = "smooth", inTime = "smooth", 
+                                     penalty = "ps", check.ident = FALSE, 
+                                     format="wide"))
+  }else{
+    ### X_conc for data in long format with irregular response
+    temp <- X_conc(mf, vary, 
+                   args = hyper_hist(mf, vary, knots = knots, boundary.knots = boundary.knots, 
+                                     degree = degree, differences = differences,
+                                     df = df, lambda = lambda, center = FALSE, cyclic = cyclic,
+                                     s = s, time=time, limits = NULL, 
+                                     inS = "smooth", inTime = "smooth", 
+                                     penalty = "ps", check.ident = FALSE, 
+                                     format="long"))
+  }
   
   ret <- list(model.frame = function() 
     if (is.null(index)) return(mf) else{
@@ -649,6 +692,9 @@ bconcurrent <- function(x, s, #by = NULL, index = NULL,
       attr(mf[,xname], "signalIndex") <- attr(mftemp[,xname], "signalIndex")
       attr(mf[,xname], "xname") <- attr(mftemp[,xname], "xname")
       attr(mf[,xname], "indname") <- attr(mftemp[,xname], "indname")
+      attr(mf[,xname], "indexY") <- attr(mftemp[,xname], "indexY")
+      attr(mf[,xname], "indnameY") <- attr(mftemp[,xname], "indnameY")
+      attr(mf[,xname], "id") <- attr(mftemp[,xname], "id")
       return(mf)
     },
     get_call = function(){
@@ -658,10 +704,13 @@ bconcurrent <- function(x, s, #by = NULL, index = NULL,
       cll
     },
     get_data = function() mf,
-    get_index = function() index,
+    ## set index to NULL, as the index is treated within X_conc()
+    ##get_index = function() index, 
+    get_index = function() NULL,
     get_vary = function() vary,
     get_names = function(){
       attr(xname, "indname") <- indname 
+      attr(xname, "indnameY") <- indnameY
       xname 
     }, #colnames(mf),
     set_names = function(value) {
@@ -677,10 +726,7 @@ bconcurrent <- function(x, s, #by = NULL, index = NULL,
   class(ret) <- "blg"
   
   ret$dpp <- mboost:::bl_lin(ret, Xfun = X_conc,
-                             args = list(mf, vary, knots = knots, boundary.knots = boundary.knots, 
-                                         degree = degree, differences = differences,
-                                         df = df, lambda = lambda, center = FALSE, cyclic = cyclic, 
-                                         s=s))
+                             args = temp$args)
   return(ret)
 }
 
@@ -1251,7 +1297,7 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
     temp <- X_hist(mf, vary, 
                       args = hyper_hist(mf, vary, knots = knots, boundary.knots = boundary.knots, 
                                         degree = degree, differences = differences,
-                                        df = df, lambda = NULL, center = FALSE, cyclic = FALSE,
+                                        df = df, lambda = lambda, center = FALSE, cyclic = FALSE,
                                         s = s, time=time, limits = limits, 
                                         inS = inS, inTime = inTime, 
                                         penalty = penalty, check.ident = check.ident, 
@@ -1262,7 +1308,7 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
     temp <- X_hist(mf, vary, 
                    args = hyper_hist(mf, vary, knots = knots, boundary.knots = boundary.knots, 
                                      degree = degree, differences = differences,
-                                     df = df, lambda = NULL, center = FALSE, cyclic = FALSE,
+                                     df = df, lambda = lambda, center = FALSE, cyclic = FALSE,
                                      s = s, time=time, limits = limits, 
                                      inS = inS, inTime = inTime, 
                                      penalty = penalty, check.ident = check.ident, 

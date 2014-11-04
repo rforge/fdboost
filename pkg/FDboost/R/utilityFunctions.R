@@ -664,7 +664,10 @@ check_ident <- function(X1, L, Bs, K, xname, penalty){
   ## measure degree of overlap between the spans of ker(t(X1)) and W%*%Bs%*%ker(K)
   ## overlap after Larsson and Villani 2001
   KeX <- Null(t(X1))  # function Null of package MASS computes kernel
-  if(any(dim(KeX)==0)) return(penalty) # <FIXME> does it mean t(X1) has no kernel??
+  if(any(dim(KeX)==0)){ # <FIXME> does it mean t(X1) has no kernel??
+    return(list(logCondDs = logCondDs, overlapKe = 0, 
+                maxK = maxK, penalty = penalty))
+  }  
   KePen <- diag(L[1,]) %*% Bs %*% Null(K)
   overlapKe <- trace_lv(svd(KeX, nv=0)$u, svd(KePen, nv=0)$u)
   

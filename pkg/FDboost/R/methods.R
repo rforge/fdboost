@@ -1,3 +1,4 @@
+
 #' Summary of a boosted functional regression model 
 #' 
 #'  Takes a fitted \code{FDboost}-object and produces a summary.
@@ -146,8 +147,8 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
         xname <- all.vars(formula_help)[2]
         indname <- if(length(all.vars(formula_help))>=3) all.vars(formula_help)[3] else "xindDefault" 
         indname_all <- c(indname_all, indname)
-        if(i %in% posBhist){
-          indnameY <- if(length(all.vars(formula_help))>=4) all.vars(formula_help)[4] else indname
+        if(i %in% c(posBhist, posBconc)){
+          indnameY <- attr(object$yind, "nameyind")
         } else{
           indnameY <- NULL
         }
@@ -160,7 +161,7 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
         attr(newdata[[xname]], "xname") <- xname
         attr(newdata[[xname]], "signalIndex") <-  if(indname!="xindDefault") newdata[[indname]] else seq(0,1,l=ncol(newdata[[xname]]))
         
-        if(i %in% posBhist){
+        if(i %in% c(posBhist, posBconc)){
           attr(newdata[[indnameY]], "indnameY") <-  indnameY
           attr(newdata[[xname]], "indexY") <-  if(indnameY!="xindDefault") newdata[[indnameY]] else seq(0,1,l=ncol(newdata[[xname]]))
           if(any(classObject=="FDboostLong")){
@@ -240,8 +241,9 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
         # a list is NOT possible
         ## only keep the necessary variables in the dataframe
         vars <- all.vars(formula(object$formulaMboost)[[3]])
-        vars <- vars[!vars %in% c(attr(object$id, "nameid"),  
-                                  indname_all)]
+        if(is.null(object$id)){ # get rid of id and index of Y in the case of regular data 
+          vars <- vars[!vars %in% c(attr(object$id, "nameid"), indname_all)]
+        }
         vars <- vars[vars %in% names(newdata)]
         
         ## check whether t has the same length as the variables
@@ -549,10 +551,10 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
               if(grepl("by", trm$get_call())){ 1 }else{ seq(min(z), max(z), length=n4) }
             } 
             d <- list(xg, yg, zg)  # data.frame
-#             # special case of factor by-variable 
-#             if(grepl("by", trm$get_call()) && grepl("bols", trm$get_call()) && is.factor(z)){
-#               d <- list(rep(xg, length(yg)), rep(yg, each=length(xg)), zg)
-#             }
+            ## special case of factor by-variable 
+            #if(grepl("by", trm$get_call()) && grepl("bols", trm$get_call()) && is.factor(z)){
+            #  d <- list(rep(xg, length(yg)), rep(yg, each=length(xg)), zg)
+            #}
             # special case of factor by-variable 
             if(grepl("by", trm$get_call()) && grepl("bols", trm$get_call()) && is.factor(z)){
               d <- list(rep(xg, length(zg)), yg, rep(zg, each=length(zg)))
