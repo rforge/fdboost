@@ -675,7 +675,7 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
       if(!is.null(object$ydim) & any(grepl("%X%", trm$get_call()) ) ) trm$dim <- trm$dim - 1
       
       ## it is necessary to expand the dataframe!
-      if(is.null(object$ydim)){
+      if(is.null(object$ydim) && !grepl("bconcurrent", trm$get_call())){
         #browser()
         #print(attr(d, "varnms"))
         vari <- names(d)[1]
