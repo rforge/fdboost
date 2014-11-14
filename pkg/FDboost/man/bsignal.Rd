@@ -18,7 +18,8 @@
     inTime = c("smooth", "linear", "constant"), knots = 10,
     boundary.knots = NULL, degree = 3, differences = 2,
     df = 4, lambda = NULL, limits = "s<=t",
-    penalty = c("ps", "pss"), check.ident = TRUE)
+    penalty = c("ps", "pss"), check.ident = TRUE,
+    transbeta = FALSE)
 }
 \arguments{
   \item{...}{matrix of functional data and the vector of
@@ -104,6 +105,9 @@
   integration range for the given t. This is an
   experimental feature and not well tested yet; use at your
   own risk.}
+
+  \item{transbeta}{logical, should the historical effect be
+  transformed by 1/t? Defaults to FALSE.}
 }
 \value{
   Equally to the base-learners of the package mboost:

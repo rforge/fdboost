@@ -343,6 +343,7 @@ X_bsignal <- function(mf, vary, args) {
 #' function that takes s as the first and t as the second argument and returns 
 #' TRUE for combinations of values (s,t) if s falls into the integration range for the given t. 
 #' This is an experimental feature and not well tested yet; use at your own risk. 
+#' @param transbeta logical, should the historical effect be transformed by 1/t? Defaults to FALSE. 
 #' 
 #' @aliases bconcurrent 
 #' 
@@ -751,7 +752,8 @@ hyper_hist <- function(mf, vary, knots = 10, boundary.knots = NULL, degree = 3,
                          differences = 2, df = 4, lambda = NULL, center = FALSE,
                          cyclic = FALSE, constraint = "none", deriv = 0L, 
                          Z=NULL, s=NULL, time=NULL, limits=NULL, inS="smooth", inTime="smooth", 
-                         penalty = "ps", check.ident = TRUE, format="long") {
+                         penalty = "ps", check.ident = TRUE, transbeta = FALSE, 
+                       format="long") {
   
   knotf <- function(x, knots, boundary.knots) {
     if (is.null(boundary.knots))
@@ -796,7 +798,7 @@ hyper_hist <- function(mf, vary, knots = 10, boundary.knots = NULL, degree = 3,
        df = df, lambda = lambda, center = center, cyclic = cyclic,
        Ts_constraint = constraint, deriv = deriv, 
        Z = Z, s = s, time = time, limits = limits, inS = inS, inTime = inTime, 
-       penalty = penalty, check.ident = check.ident, format = format)
+       penalty = penalty, check.ident = check.ident, transbeta = transbeta, format = format)
 }
 
 
@@ -960,7 +962,11 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
                 "constant"=  matrix(c(rep(1, length(yind))), ncol=1))
     
   # stack design-matrix of response nobs times in wide format
-  if(args$format == "wide") Bt <- Bt[rep(1:length(yind), each=nobs), ]
+  if(args$format == "wide"){
+    Bt <- Bt[rep(1:length(yind), each=nobs), ]
+  }
+  
+  #browser()
   
   if(!isMATRIX(Bt)) Bt <- matrix(Bt, ncol=1)
     
@@ -968,6 +974,20 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   # X <- (X1 %x% t(rep(1, ncol(X2))) ) * ( t(rep(1, ncol(X1))) %x% X2  )
   dimnames(Bt) <- NULL # otherwise warning "dimnames [2] mismatch..."
   X <- X1des[,rep(1:ncol(Bs), each=ncol(Bt))] * Bt[,rep(1:ncol(Bt), times=ncol(Bs))]
+  
+  ## is only meaningful for default historical effect!!!
+  if(args$transbeta){ # effect multiplied with 1/yind
+    if(args$format == "wide"){
+      yind <- yind[rep(1:length(yind), each=nobs)]
+    }
+    ##yindHelp <- yind ## divide by values of t
+    yindHelp <- yind - min(yind) ## divide by length of integration interval 
+    ## use fundamental theorem of calculus \lim t->0+ (1/t) \int_0^t f(s) ds = f(0)
+    ## -> integration weight in s-direction should be 1 
+    ## (as previously X*L, use now X*(1/L) for cases with one single point)
+    yindHelp[yindHelp==0] <- 1*L[1,1] 
+    X <- (1/yindHelp)*X
+  }
   
   if(!isMATRIX(X)) X <- matrix(X, ncol=1)
   
@@ -979,7 +999,7 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
       shrink <- 0.1 # <FIXME> allow for variable shrinkage parameter?
       K1 <- penalty_pss(K=K1, difference=args$difference, shrink=0.1)
     }    
-  }else{ # Ridge-penatly
+  }else{ # Ridge-penalty
     K1 <- diag(ncol(Bs))
   }
   #K1 <- matrix(0, ncol=ncol(Bs), nrow=ncol(Bs))
@@ -1023,196 +1043,6 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   return(list(X = X, K = K, args = args))
 }
 
-# ### 
-# ### model.matrix for P-splines base-learner of signal matrix mf
-# ### for irregular response
-# X_hist2 <- function(mf, vary, args) {
-#   
-#   stopifnot(is.data.frame(mf)) 
-#   xname <- names(mf)
-#   X1 <- as.matrix(mf)
-#   class(X1) <- "matrix"
-#   xind <- attr(mf[[1]], "signalIndex")
-#   yind <- attr(mf[[1]], "indexY")
-#   
-#   if(is.null(xind)) xind <- args$s # if the attribute is NULL use the s of the model fit
-#   if(is.null(yind)) yind <- args$time # if the attribute is NULL use the time of the model fit  
-#   
-#   nobs <- nrow(X1)
-#   
-#   # get id-variable
-#   id <- attr(mf[,xname], "id") # for data in long format
-#     
-#   ###### EXTRA LINE in comparison to X_hist
-#   ## important for prediction, otherwise id=NULL and yind is multiplied accordingly
-#   #if(is.null(id)) id <- 1:nrow(X1)
-#   
-#   ## check yind 
-#   if(length(yind)!=length(id)) stop(xname, ": The index of the response and id do not have the same length")
-#   
-#   #   stopifnot(is.list(mf))
-#   #   xname <- names(mf)[1]
-#   #   X1 <- mf[[1]]
-#   #   xind <- mf[[2]]
-#   
-#   if(ncol(X1)!=length(xind)) stop(xname, ": Dimension of signal matrix and its index do not match.")
-#   
-#   # compute design-matrix in s-direction
-#   Bs <- switch(args$inS, 
-#                 # B-spline basis of specified degree 
-#                 "smooth" = mboost:::bsplines(xind, knots=args$knots$s$knots, 
-#                                              boundary.knots=args$knots$s$boundary.knots, 
-#                                              degree=args$degree),
-#                 "linear" = matrix(c(rep(1, length(xind)), xind), ncol=2),
-#                 "constant"=  matrix(c(rep(1, length(xind))), ncol=1))
-#   
-#   
-#   colnames(Bs) <- paste(xname, 1:ncol(Bs), sep="")
-#   
-#   # Weighting with matrix of functional covariate
-#   L <- integrationWeightsLeft(X1=X1, xind=xind)
-#   X1 <- L*X1
-#   
-#   #   # set up design matrix for historical model and s<=t with s and t equal to xind
-#   #   # expand matrix of original observations to lower triangular matrix 
-#   #   X1des0 <- matrix(0, ncol=ncol(X1), nrow=ncol(X1)*nrow(X1))
-#   #   for(i in 1:ncol(X1des0)){
-#   #     #print(nrow(X1)*(i-1)+1)
-#   #     X1des0[(nrow(X1)*(i-1)+1):nrow(X1des0) ,i] <- X1[,i] # use fun. variable * integration weights
-#   #   }
-#   
-#   ## set up design matrix for historical model according to limit()
-#   # use the argument limits (Code taken of function ff(), package refund)
-#   limits <- args$limits
-#   if (!is.null(limits)) {
-#     if (!is.function(limits)) {
-#       if (!(limits %in% c("s<t", "s<=t"))) {
-#         stop("supplied <limits> argument unknown")
-#       }
-#       if (limits == "s<t") {
-#         limits <- function(s, t) {
-#           s < t
-#         }
-#       }
-#       else {
-#         if (limits == "s<=t") {
-#           limits <- function(s, t) {
-#             (s < t) | (s == t)
-#           }
-#         }
-#       }
-#     }
-#   }
-#   
-#   ### generate a matrix giving FALSE for non-zero-entries accoring to limits()
-#   if (!is.null(limits)) {
-#     # yind is over all observations in long format
-#     ind0 <- !t(outer( xind, yind, limits) )
-#   }else{
-#     warning("Function limits is NULL!")
-#     ind0 <- matrix(FALSE, ncol=length(xind), nrow=length(yind))
-#   }  
-#   
-#   ### Compute the design matrix as sparse or normal matrix 
-#   ### depending on dimensions of the final design matrix
-#   MATRIX <- any(c(length(id), ncol(Bs)) > c(500, 50)) #MATRIX <- any(dim(X) > c(500, 50))
-#   MATRIX <- MATRIX && options("mboost_useMatrix")$mboost_useMatrix
-#   if(MATRIX){
-#     #message("use sparse matrix in X_hist2")
-#     diag <- Diagonal
-#     cbind <- cBind
-#     ### compute the design matrix as sparse matrix
-#     tempj <- unlist(apply(!ind0, 1, which)) # in which columns are the values? 
-#     ## i: row numbers: one row number per observation of response, 
-#     #     repeat the row number for each entry
-#     ## index for the X1 matrix taking each value of original matrix
-#     tempIndex <- cbind(rep(unique(id), tapply(apply(!ind0, 1, sum), id, sum)), tempj )
-#     X1des <- sparseMatrix(i=rep(1:length(id), times=rowSums(!ind0)), j=tempj,
-#                           x=X1[ tempIndex], dims=dim(ind0))
-#     # object.size(X1des)
-#     rm(tempj, tempIndex)
-#   }else{
-#     ### expand the design matrix for all observations (yind is equal for all observations!)
-#     ### the response is a vector (y1(t1), y2(t1), ... , yn(t1), yn(tG))
-#     if(is.null(id)){
-#       id <- rep(1:nobs, times=length(yind))
-#       X1des <- X1[rep(1:nobs, times=length(yind)), ] 
-#     } else{ # yind is over all observations in long format
-#       X1des <- X1[id, ] 
-#     }
-#     ### use function limits to set up design matrix according to function limits 
-#     ### set 0 at the time-points that should not be used
-#     X1des[ind0] <- 0
-#   }
-#   
-#   # Design matrix is product of expanded X1 and basis expansion over xind 
-#   X1des <- X1des %*% Bs
-#   
-#   # design matrix over index of response (yind has long format!)
-#   Bt <- switch(args$inTime, 
-#                 # B-spline basis of specified degree 
-#                 "smooth" = mboost:::bsplines(yind, knots=args$knots$time$knots, 
-#                                              boundary.knots=args$knots$time$boundary.knots, 
-#                                              degree=args$degree),
-#                 "linear" = matrix(c(rep(1, length(yind)), yind), ncol=2),
-#                 "constant"=  matrix(c(rep(1, length(yind))), ncol=1))
-#   
-#   if(!isMATRIX(Bt)) Bt <- matrix(Bt, ncol=1)
-#   
-#   # calculate row-tensor
-#   # X <- (X1 %x% t(rep(1, ncol(X2))) ) * ( t(rep(1, ncol(X1))) %x% X2  )
-#   dimnames(Bt) <- NULL # otherwise warning "dimnames [2] mismatch..."
-#   X <- X1des[,rep(1:ncol(X1des), each=ncol(Bt))] * Bt[,rep(1:ncol(Bt), times=ncol(X1des))] 
-#   
-#   if(!isMATRIX(X)) X <- matrix(X, ncol=1)
-#   
-#   #browser()
-#   
-#   ### Penalty matrix: product differences matrix for smooth effect
-#   if(args$inS == "smooth"){
-#     K1 <- diff(diag(ncol(X1des)), differences = args$differences)
-#     K1 <- crossprod(K1)
-#   }else{ # Ridge-penatly
-#     K1 <- diag(ncol(X1des))
-#   }
-#   
-#   if(args$inTime == "smooth"){
-#     K2 <- diff(diag(ncol(Bt)), differences = args$differences)
-#     K2 <- crossprod(K2)  
-#   }else{
-#     K2 <- diag(ncol(Bt))
-#   }
-#     
-#   suppressMessages(K <- kronecker(K2, diag(ncol(X1des))) +
-#                      kronecker(diag(ncol(Bt)), K1))
-#   
-#   ### <FIXME> necessary if K1 and K2 are not the same anyway?
-#   # <FIXME> not possible to query using id, as id now never is NULL
-#   if(!is.null(id)){
-#     suppressMessages(K <- kronecker(K1, diag(ncol(Bt))) +
-#                        kronecker(diag(ncol(X1des)), K2))
-#   }
-#   
-#   ## compare specified degrees of freedom to dimension of null space
-#   if (!is.null(args$df)){
-#     rns <- ncol(K) - qr(as.matrix(K))$rank # compute rank of null space
-#     if (rns == args$df)
-#       warning( sQuote("df"), " equal to rank of null space ",
-#                "(unpenalized part of P-spline);\n  ",
-#                "Consider larger value for ", sQuote("df"),
-#                " or set ", sQuote("center = TRUE"), ".", immediate.=TRUE)
-#     if (rns > args$df)
-#       stop("not possible to specify ", sQuote("df"),
-#            " smaller than the rank of the null space\n  ",
-#            "(unpenalized part of P-spline). Use larger value for ",
-#            sQuote("df"), " or set ", sQuote("center = TRUE"), ".")
-#   }
-#   
-#   # tidy up workspace 
-#   rm(Bs, Bt, ind0, X1des, X1, L)
-#   
-#   return(list(X = X, K = K, args = args))
-# }
 
 
 ### P-spline base learner for signal matrix with index vector
@@ -1224,7 +1054,7 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
                   knots = 10, boundary.knots = NULL, degree = 3, differences = 2, df = 4,
                   lambda = NULL, #center = FALSE, cyclic = FALSE
                   limits="s<=t", # norm=FALSE
-                  penalty = c("ps", "pss"), check.ident = TRUE
+                  penalty = c("ps", "pss"), check.ident = TRUE, transbeta=FALSE
 ){
   
   if (!is.null(lambda)) df <- NULL
@@ -1301,6 +1131,7 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
                                         s = s, time=time, limits = limits, 
                                         inS = inS, inTime = inTime, 
                                         penalty = penalty, check.ident = check.ident, 
+                                        transbeta = transbeta,
                                         format="wide"), 
                    getDesign=FALSE)
   }else{
@@ -1312,6 +1143,7 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
                                      s = s, time=time, limits = limits, 
                                      inS = inS, inTime = inTime, 
                                      penalty = penalty, check.ident = check.ident, 
+                                     transbeta = transbeta,
                                      format="long"), 
                    getDesign=FALSE)
   }
