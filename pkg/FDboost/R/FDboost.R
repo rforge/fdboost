@@ -136,6 +136,7 @@
 #' @importFrom mgcv gam s
 #' @importFrom zoo na.locf
 #' @importFrom MASS Null
+#' @importFrom parallel mclapply
 FDboost <- function(formula,          ### response ~ xvars
                     timeformula,      ### time
                     id=NULL,          ### id variable if response in long format
