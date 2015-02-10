@@ -573,15 +573,29 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
         }
         
         
-        ## add dummy signal to data
+        ## add dummy signal to data for bsignal()
         if(grepl("bsignal", trm$get_call()) ){
           d[[ trm$get_names()[1] ]] <- I(diag(ng)/integrationWeights(diag(ng), d[[varnms[1]]] ))
         }
+        
+        ## add dummy signal to data for bhist()
         ### <FIXME> is dummy-signal for bhist() correct?
+        ## standardisation weights depending on t must be multiplied to the final \beta(s,t)
+        ## as they cannot be included into the variable x(s)
+        ## use intFun() to compute the integration weights
+        # ls(environment(trm$dpp))
         if(grepl("bhist", trm$get_call()) ){
-          d[[attr(trm$model.frame()[[1]], "xname")]] <- I(diag(ng)/integrationWeightsLeft(diag(ng), d[[varnms[1]]]))
+          ## temp <- I(diag(ng)/integrationWeightsLeft(diag(ng), d[[varnms[1]]]))
+          ## use intFun() of the bl to compute the integration weights
+          temp <- environment(trm$dpp)$args$intFun(diag(ng), d[[varnms[1]]])
+          ##if(environment(trm$dpp)$args$stand=="transform"){
+          ##  xindStand <- (d[[varnms[1]]] - min(d[[varnms[1]]])) / (max(d[[varnms[1]]]) - min(d[[varnms[1]]]))
+          ##  temp <- environment(trm$dpp)$args$intFun(diag(ng), xindStand)
+          ##}
+          d[[attr(trm$model.frame()[[1]], "xname")]] <- I(diag(ng)/temp)
         }
-        ## add dummy signal to data 
+        
+        ## add dummy signal to data for bconcurrent()
         if(grepl("bconcurrent", trm$get_call())){
           d[[ trm$get_names()[1] ]] <- I(matrix(rep(1.0, ng^2), ncol=ng))
         }
@@ -603,7 +617,7 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
       }
       
       getP <- function(trm, d){
-        #return an object similar to what plot.mgcv.smooth etc. return 
+        #return an object similar to what plot.mgcv.smooth etc. returns 
         if(trm$dim==1){
           predHelp <- predict(object, which=i, newdata=d)
           if(!is.matrix(predHelp)){ X <- predHelp
@@ -619,6 +633,28 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
           varnms <- attr(d, "varnms")
           if(trm$dim==2){
             X <- predict(object, newdata=d, which=i)
+            ## for bhist(), multiply with standardisation weights if necessary
+            ## you need the args$vecStand from the prediction of X, constructed here
+            if(grepl("bhist", trm$get_call()) && 
+                 environment(trm$dpp)$args$stand %in% c("length","time")){  
+              Lnew <- environment(trm$dpp)$args$intFun(d[[3]], d[[varnms[1]]])
+              ## Standardize with exact length of integration interval
+              ##  (1/t-t0) \int_{t0}^t f(s) ds
+              if(environment(trm$dpp)$args$stand == "length"){
+                ind0 <- !t(outer( d[[varnms[1]]], d[[varnms[2]]], environment(trm$dpp)$args$limits) )
+                Lnew[ind0] <- 0
+                ## integration weights in s-direction always sum exactly to 1, 
+                vecStand <- rowSums(Lnew)
+              }           
+              ## use time of current observation for standardization
+              ##  (1/t) \int_{t0}^t f(s) ds
+              if(environment(trm$dpp)$args$stand=="time"){
+                yindHelp <- d[[varnms[1]]]
+                yindHelp[yindHelp==0] <- Lnew[1,1] 
+                vecStand <- yindHelp
+              }
+              X <- t(t(X)*vecStand) 
+            }
             P <- list(x=attr(d, "xm"), y=attr(d, "ym"), xlab=varnms[1], ylab=varnms[2],
                       ylim=safeRange(attr(d, "ym")), xlim=safeRange(attr(d, "xm")),
                       z=attr(d, "zm"), zlab=varnms[3])
@@ -936,17 +972,10 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
         ## set 0 to NA so that beta only has values in its domain
         # get the limits- function
         limits <- get("args", (environment(x$baselearner[[which[i]]]$dpp)))$limits
-        if (!is.function(limits) && limits == "s<=t") {
-          limits <- function(s, t) {
-            (s < t) | (s == t)
-          }
-        }
-        if (!is.function(limits) && limits == "s<t") {
-          limits <- function(s, t) {
-            s < t
-          }
-        }
+        ## do not use it if stand  == "transform"
+        ## if(get("args", (environment(x$baselearner[[which[i]]]$dpp)))$stand != "transform"){
         trm$value[!outer(trm$x, trm$y, limits)] <- NA
+        # }        
       }
       
       # plot for 1-dim effects

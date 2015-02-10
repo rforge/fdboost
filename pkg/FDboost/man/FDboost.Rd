@@ -12,13 +12,14 @@ FDboost(formula, timeformula, id = NULL, numInt = "equal", data,
 \item{formula}{a symbolic description of the model to be fit.}
 
 \item{timeformula}{formula for the expansion over the index of the response.
-For a functional response \eqn{Y_i(t)} typically ~bbs(t) to obtain a smooth
-expansion of the effects along t. In the limiting case that \eqn{Y_i} is a scalar response
+For a functional response \eqn{Y_i(t)} typically \code{~bbs(t)} to obtain a smooth
+expansion of the effects along \code{t}. In the limiting case that \eqn{Y_i} is a scalar response
 use \code{~bols(1)}, which sets up a base-learner for the scalar 1.}
 
 \item{id}{defaults to NULL which means that the response is a matrix with a regular time.
 If the response is given in long format for irregular observations, \code{id}
-contains the information which observations belong together. id should contain numbers 1, 2, 3, ...}
+contains the information which observations belong together.
+\code{id} should contain numbers 1, 2, 3, ...}
 
 \item{numInt}{integration scheme for the integration of the loss function.
 One of \code{c("equal", "Riemann")} meaning equal weights of 1 or
@@ -39,14 +40,14 @@ If no offset is specified, per default a smooth time-specific offset is calculat
 within the model fit. If you do not want to use an offset you can set \code{offset=0}.}
 
 \item{offset_control}{parameters for the calculation of the offset,
-defaults to \code{offset_control(k_min=20, silent=TRUE)}.}
+defaults to \code{o_control(k_min=20, silent=TRUE)}, see \code{\link{o_control}}.}
 
 \item{check0}{logical, for response observed on a common grid,
 check the fitted effects for the sum-to-zero constraint
 \eqn{h_j(x_i)(t) = 0} for all \eqn{t} and give warning if it is not fulfilled. Defaults to TRUE.}
 
 \item{...}{additional arguments passed to \code{\link[mboost]{mboost}},
-including \code{offset}, \code{family} and \code{control}.}
+including, \code{family} and \code{control}.}
 }
 \value{
 on object of class \code{FDboost} that inherits from \code{mboost}.
@@ -72,21 +73,31 @@ otherwise the offset for all trajectories}
 \description{
 Gradient boosting for optimizing arbitrary loss functions, where component-wise models
 are utilized as base-learners in the case of functional response.
+Scalar responses are treated as the special case where each functional response has
+only one observation.
 This function is a wrapper for \code{mboost}'s \code{\link[mboost]{mboost}} and its
 siblings to fit models of the general form
-\cr \eqn{E(Y_i(t)) = g(\mu(t) + \int X_i(s)\beta(s,t)ds + f(z_{1i}, t) +
-f(z_{2i}) + z_{3i} \beta_3(t) + \dots }\cr
-with a functional (but not necessarily continuous) response \eqn{Y(t)}, response function \eqn{g},
-(optional) smooth intercept \eqn{\mu(t)}, (multiple) functional covariates \eqn{X(t)}
-and scalar covariates \eqn{z_1}, \eqn{z_2}, etc.
+\cr \eqn{xi(Y_i(t)) = \sum_j h_j(x_i, t)} \cr
+with a functional (but not necessarily continuous) response \eqn{Y(t)},
+transformation function \eqn{xi}, e.g. the expectation, the median or some quantile,
+and partial effects \eqn{h_j(x_i, t)} depending on covariates
+and the current index of the response.
+Possible effects are e.g. a smooth intercept \eqn{\mu(t)},
+effects of functional covariates \eqn{\int X_i(s)\beta(s,t)ds},
+smooth and linear effects of scalar covariates \eqn{f(z_{i})}, \eqn{z_{i} \beta_3(t)}.
 }
 \details{
 The functional response and functional covariates have to be
 supplied as n by <no. of evaluations> matrices, i.e. each row is one
 functional observation. For the model fit the matrix of the functional
 response evaluations \eqn{Y_i(t)} are stacked into one long vector.
-If the functional response is supplied as a vector in long format,
-the argument \code{id} has to be specified.
+If it is possible to write the model as a generalized linear array model,
+the array structure is used as efficient implementation,
+see \code{\link[mboost]{mboost}}.
+If the response is observed irregularly or sparse it can be supplied
+as a vector in long format. In that case the argument \code{id} has
+to be specified as integers 1, 2, 3, ... to define which observation
+belongs to which curve.
 }
 \examples{
 ## Example for function-on-scalar-regression
@@ -143,6 +154,10 @@ if(require(fda)){
 }
 \author{
 Sarah Brockhaus, Torsten Hothorn
+}
+\references{
+Brockhaus, S., Scheipl, F., Hothorn, T. and Greven, S. (2015).
+The Functional Linear Array Model. Statistical Modelling, in press.
 }
 \seealso{
 \code{\link[mboost]{mboost}} for the help of the wrapped function in

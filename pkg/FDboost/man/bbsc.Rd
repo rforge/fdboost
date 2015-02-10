@@ -91,6 +91,9 @@ from the global functional intercept.
 Cannot deal with any missing values in the covariates.
 }
 \references{
+Brockhaus, S., Scheipl, F., Hothorn, T. and Greven, S. (2015).
+The Functional Linear Array Model. Statistical Modelling, in press.
+
 Scheipl, F., Staicu, A.-M., and Greven, S. (2014),
 Functional Additive Mixed Models, Journal of Computational and Graphical Statistics,
 in press, DOI 10.1080/10618600.2014.901914.

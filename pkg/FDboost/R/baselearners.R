@@ -5,15 +5,58 @@
 #' @param X1 matrix of functional variable
 #' @param xind index of functional variable
 #' @param id defaults to NULL if X1 is a matrix. identity variable if X1 is in long format.
+#' @param leftWeight one of \code{c("mean", "first", "zero")}. With left Riemann sums 
+#' different assumptions for the weight of the first observation are possible. 
+#' The default is to use the mean over all integration weights, \code{"mean"}. 
+#' Alternative one can use the first integration weight, \code{"first"}, or 
+#' use distance to zero, \code{"zero"}. 
 #' 
 #' @aliases integrationWeightsLeft
 #' 
 #'  @details The function \code{integrationWeights()} computes trapezoidal integration weights, 
-#'  that are symmetric. The function \code{integrationWeightsLeft()} computes weights,
+#'  that are symmetric. Per default those weights are use in the \code{\link{bsignal}}-base-learner. 
+#'  The function \code{integrationWeightsLeft()} computes weights,
 #'  that take into account only the distance to the prior observation point. 
-#'  Those weights are adequate for historical effects.
-#'   
+#'  Thus one has to decide what to do with the first observation. 
+#'  Those left weights are adequate for historical effects like in \code{\link{bhist}}.
+#'  
+#' @seealso \code{\link{bsignal}} and \code{\link{bhist}} for the base-learners. 
+#'
+#' @examples 
+#' ## Example for trapezoidal integration weights
+#' xind0 <- seq(0,1,l=5)
+#' xind <- c(0, 0.1, 0.3, 0.7, 1)
+#' X1 <- matrix(xind^2, ncol=length(xind0), nrow=2)
 #' 
+#' # Regualar observation points
+#' integrationWeights(X1, xind0)
+#' # Irregular observation points
+#' integrationWeights(X1, xind)
+#' 
+#' # with missing value
+#' X1[1,2] <- NA
+#' integrationWeights(X1, xind0)
+#' integrationWeights(X1, xind)
+#' 
+#' ## Example for left integration weights
+#' xind0 <- seq(0,1,l=5)
+#' xind <- c(0, 0.1, 0.3, 0.7, 1)
+#' X1 <- matrix(xind^2, ncol=length(xind0), nrow=2)
+#' 
+#' # Regualar observation points
+#' integrationWeightsLeft(X1, xind0, leftWeight="mean") 
+#' integrationWeightsLeft(X1, xind0, leftWeight="first") 
+#' integrationWeightsLeft(X1, xind0, leftWeight="zero")
+#' 
+#' # Irregular observation points
+#' integrationWeightsLeft(X1, xind, leftWeight="mean") 
+#' integrationWeightsLeft(X1, xind, leftWeight="first") 
+#' integrationWeightsLeft(X1, xind, leftWeight="zero")
+#' 
+#' # obervation points that do not start with 0
+#' xind2 <- xind + 0.5
+#' integrationWeightsLeft(X1, xind2, leftWeight="zero")
+#'  
 #' @export
 ################################# 
 # Trapezoidal integration weights for a functional variable X1 on grid xind
@@ -109,20 +152,38 @@ integrationWeights <- function(X1, xind, id=NULL){
 #### Computes Riemann-weights that only take into account the distance to the previous 
 # observation point
 # important for bhist()
+#' @rdname integrationWeights
 #' @export
-integrationWeightsLeft <- function(X1, xind){
+## <TODO> implement weights for missing values in X1
+## does missing values affect the spline basis in s as well?
+integrationWeightsLeft <- function(X1, xind, leftWeight=c("first", "mean", "zero")){
   
   if( ncol(X1)!=length(xind) ) stop("Dimension of xind and X1 do not match")
+  # !is.unsorted(xind, strictly = FALSE) # is xind sorted?
   
-  # use lower Riemann sum
+  leftWeight <- match.arg(leftWeight)
+  
+  # use lower/left Riemann sum
   Li <- diff(xind)
-  Li <- c(Li[1], Li)
+  # assume  delta(xind_0) = avg. delta
+  Li <- switch(leftWeight,
+               mean = c(mean(Li), Li), 
+               first = c(Li[1], Li), 
+               zero = c(xind[1], Li)
+  )
+
   L <- matrix(Li, nrow=nrow(X1), ncol=ncol(X1), byrow=TRUE)
   
   return(L)
 }
 
-
+## test integrationWeightsLeft
+xind <- c(0.5, 0.7, 1, 2, 4)
+X1 <- matrix(xind^2, ncol=5)
+integrationWeightsLeft(X1, xind)
+integrationWeightsLeft(X1, xind, leftWeight="mean")
+integrationWeightsLeft(X1, xind, leftWeight="first")
+integrationWeightsLeft(X1, xind, leftWeight="zero")
 
 ################################################################################
 ### syntax for base learners is modified code of the package mboost, see bl.R
@@ -307,9 +368,9 @@ X_bsignal <- function(mf, vary, args) {
 #' measurment points. 
 #' @param time vector for the index of the functional response y(time) 
 #' giving the measurement points. 
-#' @param index a vector of integers for expanding the signal variable in \code{....} 
-#' For example, bsignal(X, s, index = index) is equal to bsignal(X[index,], s), 
-#' where index is an integer of length greater or equal to length(x).
+#' @param index a vector of integers for expanding the signal variable in \code{x} 
+#' For example, \code{bsignal(X, s, index = index)} is equal to \code{bsignal(X[index,], s)}, 
+#' where index is an integer of length greater or equal to \code{length(x)}.
 #' @param knots either the number of knots or a vector of the positions 
 #' of the interior knots (for more details see \code{\link[mboost]{bbs})}.
 #' @param boundary.knots boundary points at which to anchor the B-spline basis 
@@ -323,44 +384,57 @@ X_bsignal <- function(mf, vary, args) {
 #' base-learner complexity. Low values of \code{df} correspond to a 
 #' large amount of smoothing and thus to "weaker" base-learners.
 #' @param lambda smoothing penalty
-#' @param cyclic if cyclic = TRUE the fitted coefficient function coincides at the boundaries 
+#' @param cyclic if \code{cyclic = TRUE} the fitted coefficient function coincides at the boundaries 
 #' (useful for cyclic covariates such as day time etc.).
 #' @param Z a transformation matrix for the design-matrix over the index of the covariate.
-#' Z can be calculated as the transformation matrix for a sum-to-zero constraint in the case
+#' \code{Z} can be calculated as the transformation matrix for a sum-to-zero constraint in the case
 #' that all trajectories have the same mean 
 #' (then a shift in the coefficient function is not identifiable).
-#' @param penalty by default, penalty="ps", the difference penalty for P-splines is used, 
-#' for penalty="pss" the penalty matrix is transformed to have full rank, so called shrinkage approach by 
-#' Marra and Wood (2011)
+#' @param penalty by default, \code{penalty="ps"}, the difference penalty for P-splines is used, 
+#' for \code{penalty="pss"} the penalty matrix is transformed to have full rank, 
+#' so called shrinkage approach by Marra and Wood (2011)
 #' @param check.ident use checks for identifiability of the effect, based on Scheipl and Greven (2012)
+#' @param standard the historical effect can be standardized with a factor. 
+#' "no" means no standardization, "time" standardizes with the current value of time and 
+#' "lenght" standardizes with the lenght of the integral 
+#' @param intFun specify the function that is used to compute integration weights in \code{s} 
+#' over the functional covariate \eqn{x(s)}
 #' @param inS historical effect can be smooth, linear or constant in s, 
 #' which is the index of the functional covariates x(s). 
 #' @param inTime historical effect can be smooth, linear or constant in time, 
 #' which is the index of the functional response y(time). 
-#' @param limits defaults to "s<=t" for an historical effect with s<=t, 
+#' @param limits defaults to \code{"s<=t"} for an historical effect with s<=t, 
 #' otherwise specifies the integration limits s_{hi, i}, s_{lo, i}: 
-#' either one of "s<t" or "s<=t" for (s_{hi, i}, s_{lo, i}) = (0, t) or a 
-#' function that takes s as the first and t as the second argument and returns 
-#' TRUE for combinations of values (s,t) if s falls into the integration range for the given t. 
+#' either one of \code{"s<t"} or \code{"s<=t"} for (s_{hi, i}, s_{lo, i}) = (0, t) or a 
+#' function that takes \eqn{s} as the first and \code{t} as the second argument and returns 
+#' \code{TRUE} for combinations of values (s,t) if \eqn{s} falls into the integration range for 
+#' the given \eqn{t}. 
 #' This is an experimental feature and not well tested yet; use at your own risk. 
-#' @param transbeta logical, should the historical effect be transformed by 1/t? Defaults to FALSE. 
 #' 
-#' @aliases bconcurrent 
+#' @aliases bconcurrent bhist 
 #' 
 #' @details \code{bsignal} implements a base-learner for functional covariates to  
-#' estimate an effect of the form \eqn{X_i(s)\beta(t,s)ds}. Defaults to a cubic  
-#' B-spline basis with second difference penalties for \eqn{\beta(t,s)} in the direction 
+#' estimate an effect of the form \eqn{int X_i(s)\beta(t,s)ds}. Defaults to a cubic  
+#' B-spline basis with second difference penalties for \eqn{beta(t,s)} in the direction 
 #' of s and numerical integration over the entire range by using trapezoidal 
 #' Riemann weights. 
 #' 
 #' \code{bconcurrent} implements a concurrent effect for a functional covariate
-#' on a functional response, i.e. an effect of the form \eqn{X_i(t)\beta(t)} for
+#' on a functional response, i.e. an effect of the form \eqn{X_i(t)beta(t)} for
 #' a functional response \eqn{Y_i(t)}. 
 #' 
 #' It is recommended to use centered functional covariates with 
 #' \eqn{\sum_i X_i(s) = 0} for all \eqn{s} in \code{bconcurrent}- and 
 #' \code{bsignal}-terms so that the global functional intercept 
 #' can be interpreted as the global mean function. 
+#'
+#' \code{bhist} implements a base-learner for functional covariates with 
+#' flexible integration limits \code{l(t)}, \code{r(t)} and the possibility to
+#' standardize the effect by \code{1/t} or the length of the integration interval. 
+#' The effect is \code{stand * int_{l(t)}^{r_{t}} x(s)beta(t,s)ds}. 
+#' The base-learner defaults to a historical effect of the form 
+#' \eqn{\int_{t0}^{t} X_i(s)beta(t,s)ds}, 
+#' where \eqn{t0} is the minimal index of \eqn{t} of the response \eqn{Y(t)}. 
 #' 
 #' Cannot deal with any missing values in the covariates.
 #' 
@@ -375,15 +449,22 @@ X_bsignal <- function(mf, vary, args) {
 #' 
 #' @seealso \code{\link{FDboost}} for the model fit. 
 #' @keywords models
+#' 
 #' @references 
+#' Brockhaus, S., Scheipl, F., Hothorn, T. and Greven, S. (2015). 
+#' The Functional Linear Array Model. Statistical Modelling, in press.
+#' 
 #' Marra, G., and Wood, S.N., (2011) Practical variable selection for generalized additive models. 
 #' Computational Statistics & Data Analysis, 55, 2372-2387.
+#' 
 #' Scheipl, F., Staicu, A.-M., and Greven, S. (2014), 
 #' Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 
 #' in press, DOI 10.1080/10618600.2014.901914.
 #' \url{http://arxiv.org/abs/1207.5947} 
+#' 
 #' Scheipl, F., Greven, S. (2012): Identifiability in penalized function-on-function regression models. 
-#' Technical Report 125, Department of Statistics, LMU Muenchen. 
+#' Technical Report 125, Department of Statistics, LMU Muenchen.
+#'  
 #' @examples 
 #' ### example for scalar response and two functional covariates 
 #' data(fuelSubset, package = "FDboost")
@@ -751,9 +832,11 @@ bconcurrent <- function(x, s, time, index = NULL, #by = NULL,
 hyper_hist <- function(mf, vary, knots = 10, boundary.knots = NULL, degree = 3,
                          differences = 2, df = 4, lambda = NULL, center = FALSE,
                          cyclic = FALSE, constraint = "none", deriv = 0L, 
-                         Z=NULL, s=NULL, time=NULL, limits=NULL, inS="smooth", inTime="smooth", 
-                         penalty = "ps", check.ident = TRUE, transbeta = FALSE, 
-                       format="long") {
+                         Z=NULL, s=NULL, time=NULL, limits=NULL, 
+                         standard="no", intFun=integrationWeightsLeft,  
+                         inS="smooth", inTime="smooth", 
+                         penalty = "ps", check.ident = TRUE, 
+                         format="long") {
   
   knotf <- function(x, knots, boundary.knots) {
     if (is.null(boundary.knots))
@@ -797,8 +880,10 @@ hyper_hist <- function(mf, vary, knots = 10, boundary.knots = NULL, degree = 3,
   list(knots = ret, degree = degree, differences = differences,
        df = df, lambda = lambda, center = center, cyclic = cyclic,
        Ts_constraint = constraint, deriv = deriv, 
-       Z = Z, s = s, time = time, limits = limits, inS = inS, inTime = inTime, 
-       penalty = penalty, check.ident = check.ident, transbeta = transbeta, format = format)
+       Z = Z, s = s, time = time, limits = limits, 
+       standard = standard, intFun = intFun, 
+       inS = inS, inTime = inTime, 
+       penalty = penalty, check.ident = check.ident, format = format)
 }
 
 
@@ -846,7 +931,8 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   colnames(Bs) <- paste(xname, 1:ncol(Bs), sep="")
   
   # integration weights 
-  L <- integrationWeightsLeft(X1=X1, xind=xind)
+  L <- args$intFun(X1=X1, xind=xind)
+  # print(L[1,])
   
   ## see Scheipl and Greven: Identifiability in penalized function-on-function regression models  
   ## <FIXME> only check identifiability for smooth effects?
@@ -864,8 +950,8 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   # X_hist was only run to check for identifiability
   #if(!getDesign) return(list(args=args))
   
-  # Weighting with matrix of functional covariate
-  X1 <- L*X1
+  ## Weighting with matrix of functional covariate
+  #X1 <- L*X1 ## -> do the integration weights more sophisticated!!
   
   #   # set up design matrix for historical model and s<=t with s and t equal to xind
   #   # expand matrix of original observations to lower triangular matrix 
@@ -900,14 +986,19 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
     stop("<limits> argument cannot be NULL.")
   }
   
+  ## save the limits function in the arguments
+  args$limits <- limits
+  
   ### use function limits to set up design matrix according to function limits 
   ### by setting 0 at the time-points that should not be used
   if(args$format == "wide"){
     ## expand yind by replication to the yind of all observations together
     ind0 <- !t(outer( xind, rep(yind, each=nobs), limits) )
+    yindHelp <- rep(yind, each=nobs)
   }else{
     ## yind is over all observations in long format
     ind0 <- !t(outer( xind, yind, limits) )
+    yindHelp <- yind
   }  
   
   ### Compute the design matrix as sparse or normal matrix 
@@ -948,6 +1039,77 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
     X1des[ind0] <- 0
   }
   
+  ## set up matrix with adequate integration and standardization weights
+  ## start with a matrix of integratio weights
+  ## case of "no"n standardization
+  Lnew <- args$intFun(X1des, xind)
+  Lnew[ind0] <- 0
+  
+  ## Transform the design matrix to the square 
+  ## then s is always [0,1]
+  if(FALSE && args$stand == "transform" && is.null(args$xindStand)){
+    
+    X1desOld <- X1des
+    xindStand <- (xind - min(xind)) / (max(xind) - min(xind))
+    
+    X1des <- t(sapply(1:nrow(X1desOld), function(i){
+      if(sum(!ind0[i,])==1){
+        ret <- rep( X1desOld[i,!ind0[i,]], ncol(X1desOld))
+      }else{
+        xindHelp <- (xind[!ind0[i,]]-min(xind[!ind0[i,]])) / 
+          (max(xind[!ind0[i,]]) - min(xind[!ind0[i]]))
+        ret <- approx(xindHelp, X1desOld[i,!ind0[i,]], xout=xindStand)$y
+      }
+      return(ret)
+    } ))
+    rm(X1desOld)
+    
+    ## compute integration weights on standardized xind
+    Lnew <- args$intFun(X1des, xindStand)    
+    ## use standardized xind
+    xind <- xindStand 
+    ## <FIXME> use standardized xind? 
+    ## attr(mf[[1]], "signalIndex") <- xindStand
+    ## args$xind <- xindStand 
+    if(getDesign){
+      args$xindStand <- xindStand
+    } 
+    ## args$limits <- function(s,t){ return(FALSE) }
+  }
+  
+  ## Standardize with exact length of integration interval
+  ##  (1/t-t0) \int_{t0}^t f(s) ds
+  if(args$stand == "length"){
+    ## use fundamental theorem of calculus 
+    ## \lim t->t0- (1/t-t0) \int_{t0}^t f(s) ds = f(t0)
+    ## -> integration weight in s-direction should be 1
+    ## integration weights in s-direction always sum exactly to 1, 
+    ## good for small number of observations!
+    args$vecStand <- rowSums(Lnew)
+    Lnew <- Lnew * 1/rowSums(Lnew)
+  } 
+  
+  ## use time of current observation for standardization
+  ##  (1/t) \int_{t0}^t f(s) ds
+  if(args$stand=="time"){
+    if(any(yindHelp < 0)) stop("For standardization with time, time must be non-negative")
+    ## Lnew <- matrix(1, ncol=ncol(X1des), nrow=nrow(X1des))
+    ## Lnew[ind0] <- 0  
+    ## use fundamental theorem of calculus 
+    ## \lim t->0+ (1/t) \int_0^t f(s) ds = f(0), if necessary
+    ## (as previously X*L, use now X*(1/L) for cases with one single point)
+    yindHelp[yindHelp==0] <- L[1,1] 
+    # standFact <- 1/yindHelp 
+    args$vecStand <- yindHelp
+    Lnew <- Lnew * 1/yindHelp 
+  }
+  ## print(round(Lnew, 2))
+  ## print(rowSums(Lnew))
+  ## print(args$vecStand)
+  
+  # multiply design matrix with integration weights and standardization weights
+  X1des <- X1des * Lnew
+  
   # Design matrix is product of expanded X1 and basis expansion over xind 
   X1des <- X1des %*% Bs
   
@@ -974,20 +1136,6 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   # X <- (X1 %x% t(rep(1, ncol(X2))) ) * ( t(rep(1, ncol(X1))) %x% X2  )
   dimnames(Bt) <- NULL # otherwise warning "dimnames [2] mismatch..."
   X <- X1des[,rep(1:ncol(Bs), each=ncol(Bt))] * Bt[,rep(1:ncol(Bt), times=ncol(Bs))]
-  
-  ## is only meaningful for default historical effect!!!
-  if(args$transbeta){ # effect multiplied with 1/yind
-    if(args$format == "wide"){
-      yind <- yind[rep(1:length(yind), each=nobs)]
-    }
-    ##yindHelp <- yind ## divide by values of t
-    yindHelp <- yind - min(yind) ## divide by length of integration interval 
-    ## use fundamental theorem of calculus \lim t->0+ (1/t) \int_0^t f(s) ds = f(0)
-    ## -> integration weight in s-direction should be 1 
-    ## (as previously X*L, use now X*(1/L) for cases with one single point)
-    yindHelp[yindHelp==0] <- 1*L[1,1] 
-    X <- (1/yindHelp)*X
-  }
   
   if(!isMATRIX(X)) X <- matrix(X, ncol=1)
   
@@ -1050,11 +1198,12 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
 #' @rdname bsignal
 #' @export
 bhist <- function(x, s, time, index = NULL, #by = NULL, 
+                  limits="s<=t", standard=c("no", "time", "length"), ##, "transform"
+                  intFun=integrationWeightsLeft, 
                   inS=c("smooth","linear","constant"), inTime=c("smooth","linear","constant"),
                   knots = 10, boundary.knots = NULL, degree = 3, differences = 2, df = 4,
                   lambda = NULL, #center = FALSE, cyclic = FALSE
-                  limits="s<=t", # norm=FALSE
-                  penalty = c("ps", "pss"), check.ident = TRUE, transbeta=FALSE
+                  penalty = c("ps", "pss"), check.ident = TRUE
 ){
   
   if (!is.null(lambda)) df <- NULL
@@ -1064,6 +1213,8 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
   #print(cll)
   penalty <- match.arg(penalty)
   #print(penalty)
+  
+  standard <- match.arg(standard)
   
   inS <- match.arg(inS)
   inTime <- match.arg(inTime)
@@ -1129,9 +1280,9 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
                                         degree = degree, differences = differences,
                                         df = df, lambda = lambda, center = FALSE, cyclic = FALSE,
                                         s = s, time=time, limits = limits, 
+                                        standard = standard, intFun = intFun, 
                                         inS = inS, inTime = inTime, 
                                         penalty = penalty, check.ident = check.ident, 
-                                        transbeta = transbeta,
                                         format="wide"), 
                    getDesign=FALSE)
   }else{
@@ -1141,9 +1292,9 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
                                      degree = degree, differences = differences,
                                      df = df, lambda = lambda, center = FALSE, cyclic = FALSE,
                                      s = s, time=time, limits = limits, 
+                                     standard = standard, intFun = intFun, 
                                      inS = inS, inTime = inTime, 
                                      penalty = penalty, check.ident = check.ident, 
-                                     transbeta = transbeta,
                                      format="long"), 
                    getDesign=FALSE)
   }
@@ -1489,12 +1640,18 @@ hyper_bbsc <- function(Z, ...){
 #' @seealso \code{\link{FDboost}} for the model fit. 
 #' \code{\link[mboost]{bbs}}, \code{\link[mboost]{bols}} and \code{\link[mboost]{brandom}} for the 
 #' corresponding base-learners in mboost.
-#' @references Scheipl, F., Staicu, A.-M., and Greven, S. (2014), 
+#' 
+#' @references 
+#' Brockhaus, S., Scheipl, F., Hothorn, T. and Greven, S. (2015). 
+#' The Functional Linear Array Model. Statistical Modelling, in press.
+#' 
+#' Scheipl, F., Staicu, A.-M., and Greven, S. (2014), 
 #' Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 
 #' in press, DOI 10.1080/10618600.2014.901914.
 #' \url{http://arxiv.org/abs/1207.5947}
+#' 
 #' @keywords models
-#' @aliases brandomc
+#' @aliases brandomc bolsc
 #' @export
 bbsc <- function(..., by = NULL, index = NULL, knots = 10, boundary.knots = NULL,
                  degree = 3, differences = 2, df = 4, lambda = NULL, center = FALSE,

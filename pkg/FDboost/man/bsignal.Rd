@@ -13,11 +13,11 @@ bsignal(x, s, index = NULL, knots = 10, boundary.knots = NULL,
 bconcurrent(x, s, time, index = NULL, knots = 10, boundary.knots = NULL,
   degree = 3, differences = 2, df = 4, lambda = NULL, cyclic = FALSE)
 
-bhist(x, s, time, index = NULL, inS = c("smooth", "linear", "constant"),
-  inTime = c("smooth", "linear", "constant"), knots = 10,
-  boundary.knots = NULL, degree = 3, differences = 2, df = 4,
-  lambda = NULL, limits = "s<=t", penalty = c("ps", "pss"),
-  check.ident = TRUE, transbeta = FALSE)
+bhist(x, s, time, index = NULL, limits = "s<=t", standard = c("no",
+  "time", "length"), intFun = integrationWeightsLeft, inS = c("smooth",
+  "linear", "constant"), inTime = c("smooth", "linear", "constant"),
+  knots = 10, boundary.knots = NULL, degree = 3, differences = 2,
+  df = 4, lambda = NULL, penalty = c("ps", "pss"), check.ident = TRUE)
 }
 \arguments{
 \item{x}{matrix of functional variable x(s). The functional covariate has to be
@@ -26,9 +26,9 @@ supplied as n by <no. of evaluations> matrix, i.e. each row is one functional ob
 \item{s}{vector for the index of the functional variable x(s) giving
 measurment points.}
 
-\item{index}{a vector of integers for expanding the signal variable in \code{....}
-For example, bsignal(X, s, index = index) is equal to bsignal(X[index,], s),
-where index is an integer of length greater or equal to length(x).}
+\item{index}{a vector of integers for expanding the signal variable in \code{x}
+For example, \code{bsignal(X, s, index = index)} is equal to \code{bsignal(X[index,], s)},
+where index is an integer of length greater or equal to \code{length(x)}.}
 
 \item{knots}{either the number of knots or a vector of the positions
 of the interior knots (for more details see \code{\link[mboost]{bbs})}.}
@@ -49,37 +49,43 @@ large amount of smoothing and thus to "weaker" base-learners.}
 
 \item{lambda}{smoothing penalty}
 
-\item{cyclic}{if cyclic = TRUE the fitted coefficient function coincides at the boundaries
+\item{cyclic}{if \code{cyclic = TRUE} the fitted coefficient function coincides at the boundaries
 (useful for cyclic covariates such as day time etc.).}
 
 \item{Z}{a transformation matrix for the design-matrix over the index of the covariate.
-Z can be calculated as the transformation matrix for a sum-to-zero constraint in the case
+\code{Z} can be calculated as the transformation matrix for a sum-to-zero constraint in the case
 that all trajectories have the same mean
 (then a shift in the coefficient function is not identifiable).}
 
-\item{penalty}{by default, penalty="ps", the difference penalty for P-splines is used,
-for penalty="pss" the penalty matrix is transformed to have full rank, so called shrinkage approach by
-Marra and Wood (2011)}
+\item{penalty}{by default, \code{penalty="ps"}, the difference penalty for P-splines is used,
+for \code{penalty="pss"} the penalty matrix is transformed to have full rank,
+so called shrinkage approach by Marra and Wood (2011)}
 
 \item{check.ident}{use checks for identifiability of the effect, based on Scheipl and Greven (2012)}
 
 \item{time}{vector for the index of the functional response y(time)
 giving the measurement points.}
 
+\item{limits}{defaults to \code{"s<=t"} for an historical effect with s<=t,
+otherwise specifies the integration limits s_{hi, i}, s_{lo, i}:
+either one of \code{"s<t"} or \code{"s<=t"} for (s_{hi, i}, s_{lo, i}) = (0, t) or a
+function that takes \eqn{s} as the first and \code{t} as the second argument and returns
+\code{TRUE} for combinations of values (s,t) if \eqn{s} falls into the integration range for
+the given \eqn{t}.
+This is an experimental feature and not well tested yet; use at your own risk.}
+
+\item{standard}{the historical effect can be standardized with a factor.
+"no" means no standardization, "time" standardizes with the current value of time and
+"lenght" standardizes with the lenght of the integral}
+
+\item{intFun}{specify the function that is used to compute integration weights in \code{s}
+over the functional covariate \eqn{x(s)}}
+
 \item{inS}{historical effect can be smooth, linear or constant in s,
 which is the index of the functional covariates x(s).}
 
 \item{inTime}{historical effect can be smooth, linear or constant in time,
 which is the index of the functional response y(time).}
-
-\item{limits}{defaults to "s<=t" for an historical effect with s<=t,
-otherwise specifies the integration limits s_{hi, i}, s_{lo, i}:
-either one of "s<t" or "s<=t" for (s_{hi, i}, s_{lo, i}) = (0, t) or a
-function that takes s as the first and t as the second argument and returns
-TRUE for combinations of values (s,t) if s falls into the integration range for the given t.
-This is an experimental feature and not well tested yet; use at your own risk.}
-
-\item{transbeta}{logical, should the historical effect be transformed by 1/t? Defaults to FALSE.}
 
 \item{...}{matrix of functional data and the vector of observation points.
 The functional covariates have to be supplied as n by <no. of evaluations>
@@ -103,19 +109,27 @@ Base-learners that fit effects of functional covariates
 }
 \details{
 \code{bsignal} implements a base-learner for functional covariates to
-estimate an effect of the form \eqn{X_i(s)\beta(t,s)ds}. Defaults to a cubic
-B-spline basis with second difference penalties for \eqn{\beta(t,s)} in the direction
+estimate an effect of the form \eqn{int X_i(s)\beta(t,s)ds}. Defaults to a cubic
+B-spline basis with second difference penalties for \eqn{beta(t,s)} in the direction
 of s and numerical integration over the entire range by using trapezoidal
 Riemann weights.
 
 \code{bconcurrent} implements a concurrent effect for a functional covariate
-on a functional response, i.e. an effect of the form \eqn{X_i(t)\beta(t)} for
+on a functional response, i.e. an effect of the form \eqn{X_i(t)beta(t)} for
 a functional response \eqn{Y_i(t)}.
 
 It is recommended to use centered functional covariates with
 \eqn{\sum_i X_i(s) = 0} for all \eqn{s} in \code{bconcurrent}- and
 \code{bsignal}-terms so that the global functional intercept
 can be interpreted as the global mean function.
+
+\code{bhist} implements a base-learner for functional covariates with
+flexible integration limits \code{l(t)}, \code{r(t)} and the possibility to
+standardize the effect by \code{1/t} or the length of the integration interval.
+The effect is \code{stand * int_{l(t)}^{r_{t}} x(s)beta(t,s)ds}.
+The base-learner defaults to a historical effect of the form
+\eqn{\int_{t0}^{t} X_i(s)beta(t,s)ds},
+where \eqn{t0} is the minimal index of \eqn{t} of the response \eqn{Y(t)}.
 
 Cannot deal with any missing values in the covariates.
 }
@@ -129,12 +143,17 @@ summary(modFuel)
 ## plot(modFuel)
 }
 \references{
+Brockhaus, S., Scheipl, F., Hothorn, T. and Greven, S. (2015).
+The Functional Linear Array Model. Statistical Modelling, in press.
+
 Marra, G., and Wood, S.N., (2011) Practical variable selection for generalized additive models.
 Computational Statistics & Data Analysis, 55, 2372-2387.
+
 Scheipl, F., Staicu, A.-M., and Greven, S. (2014),
 Functional Additive Mixed Models, Journal of Computational and Graphical Statistics,
 in press, DOI 10.1080/10618600.2014.901914.
 \url{http://arxiv.org/abs/1207.5947}
+
 Scheipl, F., Greven, S. (2012): Identifiability in penalized function-on-function regression models.
 Technical Report 125, Department of Statistics, LMU Muenchen.
 }
