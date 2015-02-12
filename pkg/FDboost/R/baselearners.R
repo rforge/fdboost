@@ -254,15 +254,15 @@ X_bsignal <- function(mf, vary, args) {
   
   # B-spline basis of specified degree  
   #Bs <- bs(xind, knots=knots, degree=args$degree, intercept=TRUE) # old version   
-  Bs <- mboost:::bsplines(xind, knots=args$knots$knots, boundary.knots=args$knots$boundary.knots, 
-                         degree=args$degree)
+  Bs <- bsplines(xind, 
+                 knots=args$knots$knots, boundary.knots=args$knots$boundary.knots, 
+                 degree=args$degree)
   
   # use cyclic splines
   if (args$cyclic) {
-    Bs <- mboost:::cbs(xind,
-                      knots = args$knots$knots,
-                      boundary.knots = args$knots$boundary.knots,
-                      degree = args$degree)
+    Bs <- cbs(xind, knots = args$knots$knots,
+              boundary.knots = args$knots$boundary.knots,
+              degree = args$degree)
   }
   
   colnames(Bs) <- paste(xname, 1:ncol(Bs), sep="")  
@@ -580,8 +580,7 @@ bsignal <- function(x, s, index = NULL, #by = NULL,
   #print("bsignal")
   #print(Z)
   
-  ret$dpp <- mboost:::bl_lin(ret, Xfun = X_bsignal,
-                             args = temp$args)
+  ret$dpp <- bl_lin(ret, Xfun = X_bsignal, args = temp$args)
   
   rm(temp)
   
@@ -632,9 +631,9 @@ X_conc <- function(mf, vary, args) {
   # compute design-matrix in s-direction
   Bs <- switch(args$inS, 
                # B-spline basis of specified degree 
-               "smooth" = mboost:::bsplines(xind, knots=args$knots$s$knots, 
-                                            boundary.knots=args$knots$s$boundary.knots, 
-                                            degree=args$degree),
+               "smooth" = bsplines(xind, knots=args$knots$s$knots, 
+                                   boundary.knots=args$knots$s$boundary.knots, 
+                                   degree=args$degree),
                "linear" = matrix(c(rep(1, length(xind)), xind), ncol=2),
                "constant"=  matrix(c(rep(1, length(xind))), ncol=1))
   
@@ -735,7 +734,6 @@ bconcurrent <- function(x, s, time, index = NULL, #by = NULL,
   vary <- ""
   
   CC <- all(Complete.cases(mf))
-  #  CC <- all(mboost:::Complete.cases(mf[1]))
   if (!CC)
     warning("base-learner contains missing values;\n",
             "missing values are excluded per base-learner, ",
@@ -807,8 +805,7 @@ bconcurrent <- function(x, s, time, index = NULL, #by = NULL,
     })
   class(ret) <- "blg"
   
-  ret$dpp <- mboost:::bl_lin(ret, Xfun = X_conc,
-                             args = temp$args)
+  ret$dpp <- bl_lin(ret, Xfun = X_conc, args = temp$args)
   return(ret)
 }
 
@@ -922,9 +919,9 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   # compute design-matrix in s-direction
   Bs <- switch(args$inS, 
                 # B-spline basis of specified degree 
-                "smooth" = mboost:::bsplines(xind, knots=args$knots$s$knots, 
-                                                boundary.knots=args$knots$s$boundary.knots, 
-                                                degree=args$degree),
+                "smooth" = bsplines(xind, knots=args$knots$s$knots, 
+                                    boundary.knots=args$knots$s$boundary.knots, 
+                                    degree=args$degree),
                 "linear" = matrix(c(rep(1, length(xind)), xind), ncol=2),
                 "constant"=  matrix(c(rep(1, length(xind))), ncol=1))
   
@@ -1117,9 +1114,9 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   # long: design matrix over index of response (yind has long format!)
   Bt <- switch(args$inTime, 
                 # B-spline basis of specified degree 
-                "smooth" = mboost:::bsplines(yind, knots=args$knots$time$knots, 
-                                             boundary.knots=args$knots$time$boundary.knots, 
-                                             degree=args$degree),
+                "smooth" = bsplines(yind, knots=args$knots$time$knots, 
+                                    boundary.knots=args$knots$time$boundary.knots, 
+                                    degree=args$degree),
                 "linear" = matrix(c(rep(1, length(yind)), yind), ncol=2),
                 "constant"=  matrix(c(rep(1, length(yind))), ncol=1))
     
@@ -1261,7 +1258,6 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
   vary <- ""
   
   CC <- all(Complete.cases(mf))
-  #  CC <- all(mboost:::Complete.cases(mf[1]))
   if (!CC)
     warning("base-learner contains missing values;\n",
             "missing values are excluded per base-learner, ",
@@ -1342,8 +1338,7 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
   class(ret) <- "blg"
   
   ### X_hist is for data in wide format with regular response
-  ret$dpp <- mboost:::bl_lin(ret, Xfun = X_hist,
-                             args = temp$args) 
+  ret$dpp <- bl_lin(ret, Xfun = X_hist, args = temp$args) 
   return(ret)
 }
 
@@ -1372,18 +1367,18 @@ X_bbsc <- function(mf, vary, args) {
   
   stopifnot(is.data.frame(mf))
   mm <- lapply(which(colnames(mf) != vary), function(i) {
-    X <- mboost:::bsplines(mf[[i]],
-                           knots = args$knots[[i]]$knots,
-                           boundary.knots = args$knots[[i]]$boundary.knots,
-                           degree = args$degree, 
-                           Ts_constraint = args$Ts_constraint,
-                           deriv = args$deriv)
+    X <- bsplines(mf[[i]],
+                  knots = args$knots[[i]]$knots,
+                  boundary.knots = args$knots[[i]]$boundary.knots,
+                  degree = args$degree, 
+                  Ts_constraint = args$Ts_constraint,
+                  deriv = args$deriv)
     if (args$cyclic) {
-      X <- mboost:::cbs(mf[[i]],
-                        knots = args$knots[[i]]$knots,
-                        boundary.knots = args$knots[[i]]$boundary.knots,
-                        degree = args$degree,
-                        deriv = args$deriv)
+      X <- cbs(mf[[i]],
+               knots = args$knots[[i]]$knots,
+               boundary.knots = args$knots[[i]]$boundary.knots,
+               degree = args$degree,
+               deriv = args$deriv)
     }
     class(X) <- "matrix"
     return(X)
@@ -1740,8 +1735,7 @@ bbsc <- function(..., by = NULL, index = NULL, knots = 10, boundary.knots = NULL
     })
   class(ret) <- "blg"
   
-  ret$dpp <- mboost:::bl_lin(ret, Xfun = X_bbsc,
-                             args = temp$args)
+  ret$dpp <- bl_lin(ret, Xfun = X_bbsc, args = temp$args)
   return(ret)
 }
 
@@ -1964,7 +1958,7 @@ bolsc <- function(..., by = NULL, index = NULL, intercept = TRUE, df = NULL,
     })
   class(ret) <- "blg"
   
-  ret$dpp <- mboost:::bl_lin(ret, Xfun = X_olsc, args = temp$args)
+  ret$dpp <- bl_lin(ret, Xfun = X_olsc, args = temp$args)
   return(ret)
 }
 
@@ -1993,49 +1987,5 @@ brandomc <- function (..., contrasts.arg = "contr.dummy", df = 4) {
   assign("cll", cltmp, envir = environment(ret$get_call))
   ret
 }
-
-
-
-##################################################################################
-
-# further utility functions of library mboost, bl.R
-# necessary to copy them into FDboost?
-
-### extract variables names from base-learner
-names.blg <- function(x)
-  x$get_names()
-
-### extract data from base-learner
-model.frame.blg <- function(formula, ...)
-  formula$model.frame(...)
-
-# ### extract coefficients
-# coef.bm_lin <- function(object, ...) {
-#   ret <- as.vector(object$model)
-#   names(ret) <- object$Xnames
-#   ret
-# }
-# 
-# ### extract fitted values
-# fitted.bm <- function(object)
-#   object$fitted()
-# 
-# ### extract hatmatrix
-# hatvalues.bl_lin <- function(model)
-#   model$hatvalues()
-# 
-# ### data preprocessing (plug in weights)
-# dpp <- function(object, weights)
-#   UseMethod("dpp", object)
-# 
-# dpp.blg <- function(object, weights)
-#   object$dpp(weights)
-# 
-# ### actually fit a base-learner to response y
-# fit <- function(object, y)
-#   UseMethod("fit", object)
-# 
-# fit.bl <- function(object, y)
-#   object$fit(y)
 
 
