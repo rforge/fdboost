@@ -781,7 +781,7 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
     
     if(is.null(which)) which <- 1:length(object$baselearner)
     
-    ## short names for the terms, if shortnames() doesn´t work, use the original names
+    ## short names for the terms, if shortnames() does not work, use the original names
     shrtlbls <- try(unlist(lapply(names(object$baselearner), shortnames)))
     if(class(shrtlbls)=="try-error") shrtlbls <- names(object$baselearner) 
     
@@ -895,7 +895,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
     do.call(plotFun, args)            
   }
   
-  #     #### Fabian´s superUtils
+  #     #### function by Fabian Scheipl
   #     # colors in rgb
   #     alpha <- function(x, alpha=25){
   #       tmp <- sapply(x, col2rgb)
