@@ -479,7 +479,7 @@ bsignal <- function(x, s, index = NULL, #by = NULL,
                     knots = 10, boundary.knots = NULL, degree = 3, differences = 2, df = 4, 
                     lambda = NULL, #center = FALSE, 
                     cyclic = FALSE, Z = NULL, 
-                    penalty=c("ps","pss"), check.ident = TRUE
+                    penalty=c("ps","pss"), check.ident = FALSE
 ){
   
   if (!is.null(lambda)) df <- NULL
@@ -832,7 +832,7 @@ hyper_hist <- function(mf, vary, knots = 10, boundary.knots = NULL, degree = 3,
                          Z=NULL, s=NULL, time=NULL, limits=NULL, 
                          standard="no", intFun=integrationWeightsLeft,  
                          inS="smooth", inTime="smooth", 
-                         penalty = "ps", check.ident = TRUE, 
+                         penalty = "ps", check.ident = FALSE, 
                          format="long") {
   
   knotf <- function(x, knots, boundary.knots) {
@@ -1200,7 +1200,7 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
                   inS=c("smooth","linear","constant"), inTime=c("smooth","linear","constant"),
                   knots = 10, boundary.knots = NULL, degree = 3, differences = 2, df = 4,
                   lambda = NULL, #center = FALSE, cyclic = FALSE
-                  penalty = c("ps", "pss"), check.ident = TRUE
+                  penalty = c("ps", "pss"), check.ident = FALSE
 ){
   
   if (!is.null(lambda)) df <- NULL

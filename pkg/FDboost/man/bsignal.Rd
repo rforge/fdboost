@@ -8,7 +8,7 @@
 \usage{
 bsignal(x, s, index = NULL, knots = 10, boundary.knots = NULL,
   degree = 3, differences = 2, df = 4, lambda = NULL, cyclic = FALSE,
-  Z = NULL, penalty = c("ps", "pss"), check.ident = TRUE)
+  Z = NULL, penalty = c("ps", "pss"), check.ident = FALSE)
 
 bconcurrent(x, s, time, index = NULL, knots = 10, boundary.knots = NULL,
   degree = 3, differences = 2, df = 4, lambda = NULL, cyclic = FALSE)
@@ -17,7 +17,7 @@ bhist(x, s, time, index = NULL, limits = "s<=t", standard = c("no",
   "time", "length"), intFun = integrationWeightsLeft, inS = c("smooth",
   "linear", "constant"), inTime = c("smooth", "linear", "constant"),
   knots = 10, boundary.knots = NULL, degree = 3, differences = 2,
-  df = 4, lambda = NULL, penalty = c("ps", "pss"), check.ident = TRUE)
+  df = 4, lambda = NULL, penalty = c("ps", "pss"), check.ident = FALSE)
 }
 \arguments{
 \item{x}{matrix of functional variable x(s). The functional covariate has to be
