@@ -321,7 +321,8 @@ X_bsignal <- function(mf, vary, args) {
  
   ## see Scheipl and Greven: Identifiability in penalized function-on-function regression models  
   if(args$check.ident){
-    res_check <- check_ident(X1=X1, L=L, Bs=Bs, K=K, xname=xname, penalty=args$penalty)
+    res_check <- check_ident(X1=X1, L=L, Bs=Bs, K=K, xname=xname, 
+                             penalty=args$penalty, cumOverlap=FALSE)
     args$penalty <- res_check$penalty
     args$logCondDs <- res_check$logCondDs
     args$overlapKe <- res_check$overlapKe
@@ -937,10 +938,16 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   if(args$check.ident && args$inS=="smooth"){
     K1 <- diff(diag(ncol(Bs)), differences = args$differences)
     K1 <- crossprod(K1)
-    res_check <- check_ident(X1=X1, L=L, Bs=Bs, K=K1, xname=xname, penalty=args$penalty)
+    # compute the kernel overlap cumulative?
+    cumOverlap <- FALSE 
+    # only for historical model of past
+    if( args$limits %in% c("s<t", "s<=t") ) cumOverlap <- TRUE 
+    res_check <- check_ident(X1=X1, L=L, Bs=Bs, K=K1, xname=xname, 
+                             penalty=args$penalty, cumOverlap=cumOverlap)
     args$penalty <- res_check$penalty
     args$logCondDs <- res_check$logCondDs
     args$overlapKe <- res_check$overlapKe
+    args$cumOverlapKe <- res_check$cumOverlapKe
     args$maxK <- res_check$maxK
   }
   
@@ -1038,41 +1045,9 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   
   ## set up matrix with adequate integration and standardization weights
   ## start with a matrix of integratio weights
-  ## case of "no"n standardization
+  ## case of "no" standardization
   Lnew <- args$intFun(X1des, xind)
   Lnew[ind0] <- 0
-  
-  ## Transform the design matrix to the square 
-  ## then s is always [0,1]
-  if(FALSE && args$stand == "transform" && is.null(args$xindStand)){
-    
-    X1desOld <- X1des
-    xindStand <- (xind - min(xind)) / (max(xind) - min(xind))
-    
-    X1des <- t(sapply(1:nrow(X1desOld), function(i){
-      if(sum(!ind0[i,])==1){
-        ret <- rep( X1desOld[i,!ind0[i,]], ncol(X1desOld))
-      }else{
-        xindHelp <- (xind[!ind0[i,]]-min(xind[!ind0[i,]])) / 
-          (max(xind[!ind0[i,]]) - min(xind[!ind0[i]]))
-        ret <- approx(xindHelp, X1desOld[i,!ind0[i,]], xout=xindStand)$y
-      }
-      return(ret)
-    } ))
-    rm(X1desOld)
-    
-    ## compute integration weights on standardized xind
-    Lnew <- args$intFun(X1des, xindStand)    
-    ## use standardized xind
-    xind <- xindStand 
-    ## <FIXME> use standardized xind? 
-    ## attr(mf[[1]], "signalIndex") <- xindStand
-    ## args$xind <- xindStand 
-    if(getDesign){
-      args$xindStand <- xindStand
-    } 
-    ## args$limits <- function(s,t){ return(FALSE) }
-  }
   
   ## Standardize with exact length of integration interval
   ##  (1/t-t0) \int_{t0}^t f(s) ds
@@ -1124,8 +1099,6 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   if(args$format == "wide"){
     Bt <- Bt[rep(1:length(yind), each=nobs), ]
   }
-  
-  #browser()
   
   if(!isMATRIX(Bt)) Bt <- matrix(Bt, ncol=1)
     

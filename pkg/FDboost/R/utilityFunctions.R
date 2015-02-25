@@ -625,20 +625,23 @@ funMRD <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,  ...
 
 
 ## based on code of function ff() in package refund
-## see Scheipl and Greven: Identifiability in penalized function-on-function regression models 
+## see Scheipl and Greven, 2014: Identifiability in penalized function-on-function regression models 
 # X1 matrix of functional covariate x(s)
 # L matrix of integration weights
 # Bs matrix of spline expansion in s
 # K penalty matrix
 # xname name of functional covariate
+# penalty the type of the penalty one of "ps" or "pps"
+# cumOverlap should a cumulative overlap be computed, 
+# which is especially suited for a historical model?
 # used type of penalty
-check_ident <- function(X1, L, Bs, K, xname, penalty){
+check_ident <- function(X1, L, Bs, K, xname, penalty, cumOverlap=FALSE){
   
   ## center X1 per column
   X1 <- scale(X1, scale=FALSE)
   
   #print("check.ident")
-  ## check whether (number of basis functionsin Bs) < (number of relevant eigenfunctions of X1)
+  ## check whether (number of basis functions in Bs) < (number of relevant eigenfunctions of X1)
   evls <- svd(X1, nu=0, nv=0)$d^2 # eigenvalues of centered fun. cov.
   evls[evls<0] <- 0
   maxK <- max(1, min(which((cumsum(evls)/sum(evls)) >= .995)))
@@ -662,14 +665,65 @@ check_ident <- function(X1, L, Bs, K, xname, penalty){
   }
   
   ## measure degree of overlap between the spans of ker(t(X1)) and W%*%Bs%*%ker(K)
-  ## overlap after Larsson and Villani 2001
-  KeX <- Null(t(X1))  # function Null of package MASS computes kernel
-  if(any(dim(KeX)==0)){ # <FIXME> does it mean t(X1) has no kernel??
-    return(list(logCondDs = logCondDs, overlapKe = 0, 
-                maxK = maxK, penalty = penalty))
-  }  
-  KePen <- diag(L[1,]) %*% Bs %*% Null(K)
-  overlapKe <- trace_lv(svd(KeX, nv=0)$u, svd(KePen, nv=0)$u)
+  ## overlap after Larsson and Villani 2001, Scheipl and Greven, 2014
+  
+  tryNA <- function(expr){
+    ret <- try(expr, silent = TRUE)
+    if(any(class(ret)=="try-error")) return(NA)
+    return(ret)
+  }
+  tryNull <- function(expr){
+    ret <- try(expr, silent = TRUE)
+    if(any(class(ret)=="try-error")) return(matrix(NA, 0, 0))
+    return(ret)
+  }
+  
+  ### get special measures for kernel overlap of WB_s(P_s) with subset of Xobs
+  getOverlap <- function(subset, X1, L, Bs, K){
+    # <FIXME> case that all observations are 0, kernel is everything -> kernel overlap
+    if(all(X1[ , subset]==0)){
+      return(5)
+    }
+    KeXsub <- tryNull(Null(t(X1[ , subset])))
+    if(ncol(KeXsub)==0){ # no null space
+      return(0)
+    }
+    KePen2sub <- tryNull(diag(L[1,subset]) %*% Bs[subset,] %*% Null(K))
+    overlapSub <- tryNA(trace_lv(svd(KeXsub)$u, svd(KePen2sub)$u))
+    return(overlapSub)
+  }
+  
+  cumOverlapKe <- NULL
+  overlapKe <- NULL
+  
+  ## cumulative overlap for historical model
+  if(cumOverlap){  
+    restm <- ncol(X1) %% 10 # rest of modulo calculation 
+    ntemp <- (ncol(X1)-restm)/10 # group-size without rest
+    ## subset with 1/10, 2/10, ..., 10/10 of the observation points
+    if(restm > ntemp){ # case that rest is bigger than group size
+      subs <- c(list(1:restm), lapply(1:8, function(i) 1:(restm+i*ntemp)), list(1:ncol(X1)))
+    }else{
+      subs <- c(lapply(1:9, function(i) 1:(restm+i*ntemp)), list(1:ncol(X1)))
+    }
+    cumOverlapKe <- lapply(subs, getOverlap, X1=X1, L=L, Bs=Bs, K=K)
+    overlapKe <- cumOverlapKe[[length(cumOverlapKe)]]
+    
+  }else{ # overlap between whole matrix X and penalty
+    overlapKe <- getOverlap(subset=1:ncol(X1), X1=X1, L=L, Bs=Bs, K=K)
+  } 
+  
+  
+  ### OLD
+  #   ## measure degree of overlap between the spans of ker(t(X1)) and W%*%Bs%*%ker(K)
+  #   ## overlap after Larsson and Villani 2001
+  #   KeX <- Null(t(X1))  # function Null of package MASS computes kernel
+  #   if(any(dim(KeX)==0)){ # <FIXME> does it mean t(X1) has no kernel??
+  #     return(list(logCondDs = logCondDs, overlapKe = 0, 
+  #                 maxK = maxK, penalty = penalty))
+  #   }  
+  #   KePen <- diag(L[1,]) %*% Bs %*% Null(K)
+  #   overlapKe <- trace_lv(svd(KeX, nv=0)$u, svd(KePen, nv=0)$u)
   
   if(overlapKe >= 1){
     warning("Kernel overlap for <", xname, "> and the specified basis and penalty detected. ",
@@ -678,7 +732,8 @@ check_ident <- function(X1, L, Bs, K, xname, penalty){
     penalty <- "pss"
   }
   
-  return(list(logCondDs=logCondDs, overlapKe=overlapKe, maxK=maxK, penalty=penalty))
+  return(list(logCondDs=logCondDs, overlapKe=overlapKe, cumOverlapKe=cumOverlapKe, 
+              maxK=maxK, penalty=penalty))
 }
 
 
