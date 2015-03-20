@@ -141,7 +141,7 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
       #if(!is.list(newdata)) newdata <- list(newdata)
       for(i in c(posBsignal, posBconc, posBhist)){
         form <- strsplit(object$baselearner[[i]]$get_call(), "%O%")[[1]][1]
-        form <- gsub("\"", "", form, fixed=TRUE) # delete all quatation marks
+        form <- gsub("\"", "", form, fixed=TRUE) # delete all quotation marks
         form <- gsub("\\", "", form, fixed=TRUE) # delete all backslashes
         formula_help <- formula(paste("resHelp ~", form))
         xname <- all.vars(formula_help)[2]
@@ -170,13 +170,36 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
             
             attr(newdata[[xname]], "id") <-  id
           } 
+        }       
+        
+        ## <FIXME> quite ugly how to deal with %X%, is there a way to do this more generally?
+        # save data of concurrent effects
+        if(i %in% posBconc){
+          newdataConc[[xname]] <- newdata[[xname]]
+          if(grepl("%X%", names(object$baselearner)[posBconc])){
+            form <- strsplit(object$baselearner[[i]]$get_call(), "%X%")[[1]]
+            form <- form[!grepl("bconcurrent", form)]
+            form <- gsub("\"", "", form, fixed=TRUE) # delete all quotation marks
+            form <- gsub("\\", "", form, fixed=TRUE) # delete all backslashes
+            formula_help <- formula(paste("resHelp ~", form))
+            xname <- all.vars(formula_help)[2]
+            newdataConc[[xname]] <- newdata[[xname]]
+          }
         } 
         
-        # save data of concurrent effects
-        if(i %in% posBconc) newdataConc[[xname]] <- newdata[[xname]]
-        
         # save data of historic effects
-        if(i %in% posBhist) newdataHist[[xname]] <- newdata[[xname]]
+        if(i %in% posBhist){
+          newdataHist[[xname]] <- newdata[[xname]]
+          if(grepl("%X%", names(object$baselearner)[posBhist])){
+            form <- strsplit(object$baselearner[[i]]$get_call(), "%X%")[[1]]
+            form <- form[!grepl("bhist", form)]
+            form <- gsub("\"", "", form, fixed=TRUE) # delete all quotation marks
+            form <- gsub("\\", "", form, fixed=TRUE) # delete all backslashes
+            formula_help <- formula(paste("resHelp ~", form))
+            xname <- all.vars(formula_help)[2]
+            newdataHist[[xname]] <- newdata[[xname]]
+          }
+        } 
         
         ## delete signalIndex if newdata is a list 
         # - not a good idea if you have the same index for several functional covariates
