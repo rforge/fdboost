@@ -1008,30 +1008,43 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   ### Compute the design matrix as sparse or normal matrix 
   ### depending on dimensions of the final design matrix
   MATRIX <- any(c(nrow(ind0), ncol(Bs)) > c(500, 50)) #MATRIX <- any(dim(X) > c(500, 50))
-  MATRIX <- MATRIX && options("mboost_useMatrix")$mboost_useMatrix
+  MATRIX <- MATRIX && options("mboost_useMatrix")$mboost_useMatrix 
+
   if(MATRIX){
     #message("use sparse matrix in X_hist")
     diag <- Diagonal
     cbind <- cBind
-    ### compute the design matrix as sparse matrix
+    ###### <FIXME> consturciton of X1des directly as sparse matrix does not work 
+    
+    #     ### compute the design matrix as sparse matrix
+    #     if(args$format == "wide"){
+    #       tempIndexDesign <- which(!ind0, arr.ind=TRUE)
+    #       tempIndexX1 <- cbind(rep(1:nobs, length.out=nrow(tempIndexDesign)), tempIndexDesign[,2] )
+    #       X1des <- sparseMatrix(i=tempIndexDesign[,1], j=tempIndexDesign[,2],
+    #                             x=X1[tempIndexX1], dims=dim(ind0))  
+    #       # object.size(X1des)
+    #       rm(tempIndexX1, tempIndexDesign)
+    #     }else{ # long format
+    #       tempj <- unlist(apply(!ind0, 1, which)) # in which columns are the values? 
+    #       ## i: row numbers: one row number per observation of response, 
+    #       #     repeat the row number for each entry
+    #       X1des <- sparseMatrix(i=rep(1:length(id), times=rowSums(!ind0)), j=tempj,
+    #                             x=X1[cbind(rep(id, t=rowSums(!ind0)), tempj)], dims=dim(ind0))
+    #       # object.size(X1des)
+    #       rm(tempj)       
+    #     }
+    
+    ###### <FIXME> instead: build the matrix as dense matrix and convert it into a sparse matrix
     if(args$format == "wide"){
-      tempIndexDesign <- which(!ind0, arr.ind=TRUE)
-      tempIndexX1 <- cbind(rep(1:nobs, length.out=nrow(tempIndexDesign)), tempIndexDesign[,2] )
-      X1des <- sparseMatrix(i=tempIndexDesign[,1], j=tempIndexDesign[,2],
-                            x=X1[tempIndexX1], dims=dim(ind0))  
-      # object.size(X1des)
-      rm(tempIndexX1, tempIndexDesign)
-    }else{ # long format
-      tempj <- unlist(apply(!ind0, 1, which)) # in which columns are the values? 
-      ## i: row numbers: one row number per observation of response, 
-      #     repeat the row number for each entry
-      ## index for the X1 matrix taking each value of original matrix
-      tempIndex <- cbind(rep(unique(id), tapply(apply(!ind0, 1, sum), id, sum)), tempj )
-      X1des <- sparseMatrix(i=rep(1:length(id), times=rowSums(!ind0)), j=tempj,
-                            x=X1[ tempIndex], dims=dim(ind0))
-      # object.size(X1des)
-      rm(tempj, tempIndex) 
+      ### expand the design matrix for all observations (yind is equal for all observations!)
+      ### the response is a vector (y1(t1), y2(t1), ... , yn(t1), yn(tG))
+      X1des <- X1[rep(1:nobs, times=length(yind)), ]
+    } else{ # yind is over all observations in long format
+      X1des <- X1[id, ] 
     }
+    X1des[ind0] <- 0    
+    X1des <- Matrix(X1des, sparse=TRUE) # convert into sparse matrix
+    
   }else{ # small matrices: do not use Matrix
     if(args$format == "wide"){
       ### expand the design matrix for all observations (yind is equal for all observations!)
@@ -1044,7 +1057,7 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   }
   
   ## set up matrix with adequate integration and standardization weights
-  ## start with a matrix of integratio weights
+  ## start with a matrix of integration weights
   ## case of "no" standardization
   Lnew <- args$intFun(X1des, xind)
   Lnew[ind0] <- 0
@@ -1064,13 +1077,13 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   ## use time of current observation for standardization
   ##  (1/t) \int_{t0}^t f(s) ds
   if(args$stand=="time"){
-    if(any(yindHelp < 0)) stop("For standardization with time, time must be non-negative")
+    if(any(yindHelp <= 0)) stop("For standardization with time, time must be positive.")
     ## Lnew <- matrix(1, ncol=ncol(X1des), nrow=nrow(X1des))
     ## Lnew[ind0] <- 0  
     ## use fundamental theorem of calculus 
     ## \lim t->0+ (1/t) \int_0^t f(s) ds = f(0), if necessary
     ## (as previously X*L, use now X*(1/L) for cases with one single point)
-    yindHelp[yindHelp==0] <- L[1,1] 
+    yindHelp[yindHelp==0] <- L[1,1] # impossible! 
     # standFact <- 1/yindHelp 
     args$vecStand <- yindHelp
     Lnew <- Lnew * 1/yindHelp 

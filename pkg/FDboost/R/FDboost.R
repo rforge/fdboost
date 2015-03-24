@@ -265,7 +265,7 @@ FDboost <- function(formula,          ### response ~ xvars
     stopifnot(length(response)==length(time) & length(response)==length(id))
     
     if(any(is.na(response))) warning("For non-grid observations the response should not contain missing values.")
-    if( !all(sort(unique(id))==1:length(unique(id))) ) warning("id should be integers 1, 2, 3, ...")
+    if( !all(sort(unique(id))==1:length(unique(id))) ) stop("id has to be integers 1, 2, 3,..., N.")
     
     nr <- length(response) # total number of observations
     nc <- length(unique(id)) # number of trajectories
