@@ -229,7 +229,7 @@ FDboost <- function(formula,          ### response ~ xvars
   if(length(allCovs) > 1){
     data <- data[allCovs[!allCovs %in% c(yname, nameyind)] ]    
   }else data <- list(NULL)  # <SB> intercept-model without covariates
-      
+        
   ### get covariates that are modeled constant over time
   # code of function pffr() of package refund
   tf <- terms.formula(formula, specials=c("c"))
@@ -259,6 +259,11 @@ FDboost <- function(formula,          ### response ~ xvars
     nc <- ncol(response)
     dresponse <- as.vector(response) # column-wise stacking of response 
     nobs <- nr # number of observed trajectories
+    ## check wether time variable is used in other base-learners
+    ## only check in regular response case, as for irregular response, the problem cannot occur
+    if(nameyind %in% allCovs){
+      warning("Do not use the same variable t as time-variable in y(t) and in the base-learners, e.g. as x(t).")
+    }
   }else{
     stopifnot(is.vector(response))
     # check length of response and its time and index
