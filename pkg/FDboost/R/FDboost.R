@@ -261,9 +261,9 @@ FDboost <- function(formula,          ### response ~ xvars
     nobs <- nr # number of observed trajectories
     ## check wether time variable is used in other base-learners
     ## only check in regular response case, as for irregular response, the problem cannot occur
-    if(nameyind %in% allCovs){
-      warning("Do not use the same variable t as time-variable in y(t) and in the base-learners, e.g. as x(t).")
-    }
+    #if(nameyind %in% allCovs){
+    #  warning("Do not use the same variable t as time-variable in y(t) and in the base-learners, e.g. as x(t).")
+    #}
   }else{
     stopifnot(is.vector(response))
     # check length of response and its time and index

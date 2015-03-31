@@ -137,19 +137,25 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
     newdataConc <- list() # data to predict concurrent effect
     newdataHist <- list() # data to predict historic effect 
     indname_all <- c() # save the names of all indices
+
     if(length(c(posBsignal, posBconc, posBhist))>0){
       #if(!is.list(newdata)) newdata <- list(newdata)
-      for(i in c(posBsignal, posBconc, posBhist)){
-        form <- strsplit(object$baselearner[[i]]$get_call(), "%O%")[[1]][1]
-        form <- gsub("\"", "", form, fixed=TRUE) # delete all quotation marks
-        form <- gsub("\\", "", form, fixed=TRUE) # delete all backslashes
-        formula_help <- formula(paste("resHelp ~", form))
-        xname <- all.vars(formula_help)[2]
-        indname <- if(length(all.vars(formula_help))>=3) all.vars(formula_help)[3] else "xindDefault" 
+      for(i in c(posBsignal, posBconc, posBhist)){ 
+        xname <- object$baselearner[[i]]$get_names()[1] 
+        ## if two ore more base-learners are connected by %X%, find the functional variable 
+        if(grepl("%X%", names(object$baselearner)[i])){
+          form <- strsplit(object$baselearner[[i]]$get_call(), "%X%")[[1]]
+          findFun <- grepl("bhist", form) | grepl("bconcurrent", form) | grepl("bsignal", form)
+          form <- form[findFun]
+          if(sum(findFun)!=1){stop("Can only predict effect of one functional effect in %X%.")}
+          xname <- object$baselearner[[i]]$get_names()[findFun][1]
+        }
+        # print(xname)
+        indname <- attr(object$baselearner[[i]]$get_data()[[xname]], "indname") 
         indname_all <- c(indname_all, indname)
         if(i %in% c(posBhist, posBconc)){
-          indnameY <- attr(object$yind, "nameyind")
-        } else{
+          indnameY <- attr(object$baselearner[[i]]$get_data()[[xname]], "indnameY")
+        }else{
           indnameY <- NULL
         }
         
@@ -177,27 +183,21 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
         if(i %in% posBconc){
           newdataConc[[xname]] <- newdata[[xname]]
           if(grepl("%X%", names(object$baselearner)[posBconc])){
-            form <- strsplit(object$baselearner[[i]]$get_call(), "%X%")[[1]]
-            form <- form[!grepl("bconcurrent", form)]
-            form <- gsub("\"", "", form, fixed=TRUE) # delete all quotation marks
-            form <- gsub("\\", "", form, fixed=TRUE) # delete all backslashes
-            formula_help <- formula(paste("resHelp ~", form))
-            xname <- all.vars(formula_help)[2]
-            newdataConc[[xname]] <- newdata[[xname]]
+            xname <- object$baselearner[[i]]$get_names() 
+            xname <- xname[!xname %in% names(newdataConc)] # already there
+            # print(xname)
+            newdataConc[xname] <- newdata[xname]
           }
         } 
-        
+
         # save data of historic effects
         if(i %in% posBhist){
           newdataHist[[xname]] <- newdata[[xname]]
           if(grepl("%X%", names(object$baselearner)[posBhist])){
-            form <- strsplit(object$baselearner[[i]]$get_call(), "%X%")[[1]]
-            form <- form[!grepl("bhist", form)]
-            form <- gsub("\"", "", form, fixed=TRUE) # delete all quotation marks
-            form <- gsub("\\", "", form, fixed=TRUE) # delete all backslashes
-            formula_help <- formula(paste("resHelp ~", form))
-            xname <- all.vars(formula_help)[2]
-            newdataHist[[xname]] <- newdata[[xname]]
+            xname <- object$baselearner[[i]]$get_names() 
+            xname <- xname[!xname %in% names(newdataHist)] # already there
+            # print(xname)
+            newdataHist[xname] <- newdata[xname]
           }
         } 
         
@@ -228,7 +228,7 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
       whichHelp <- whichHelp[-which(whichHelp %in% posBconc)]
     }
     
-    # Predict historic effect extra
+    # Predict historical effect extra
     predMboostHist <- 0
     if(length(posBhist) > 0){ 
       if(length(unique(sapply(newdataHist, NROW))) != 1) stop(paste("Dimensions of newdata do not match:", 

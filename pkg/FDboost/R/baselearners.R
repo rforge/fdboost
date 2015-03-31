@@ -704,6 +704,11 @@ bconcurrent <- function(x, s, time, index = NULL, #by = NULL,
   if(!is.atomic(s)) stop("index of signal has to be a vector")
   if(!is.atomic(time)) stop("index of response has to be a vector")
   
+  if(substitute(time)==substitute(s)){
+    #warning("Do not use the same variable t as time-variable in y(t) and in x(t).")
+    warning("Do not use the same variable for s and time in bconcurrent().")
+  }
+  
   # compare range of index signal and index response
   # the index of the signal s, has to contain all values of time
   if( !all(s %in% time) ) stop("Index s of functional variable has to contain all values of time.")
@@ -1210,6 +1215,11 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
   
   if(!is.atomic(s)) stop("index of signal has to be a vector")
   if(!is.atomic(time)) stop("index of response has to be a vector")
+  
+  if(substitute(time)==substitute(s)){
+    #warning("Do not use the same variable t as time-variable in y(t) and in x(t).")
+    warning("Do not use the same variable for s and time in bhist().")
+  }
   
   # compare range of index signal and index response
   # minimal value of the signal-index has to be smaller than the response-index
