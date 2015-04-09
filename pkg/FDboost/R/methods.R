@@ -906,10 +906,10 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
   
   #argsPlot <- getArguments(x=formals(graphics::plot.default), dots=dots)
   argsPlot <- getArguments(x=c(formals(graphics::plot.default), par()), dots=dots)
-  argsMatplot  <- getArguments(x=c(formals(graphics::matplot), par()), dots=dots)
-  argsFunplot  <- getArguments(x=c(formals(funplot), par()), dots=dots)
+  argsMatplot  <- getArguments(x=c(formals(graphics::matplot), par(), formals(graphics::plot.default)), dots=dots)
+  argsFunplot  <- getArguments(x=c(formals(funplot), par(), formals(graphics::plot.default)), dots=dots)
 
-  argsImage <- getArguments(x=formals(graphics::image.default), dots=dots)
+  argsImage <- getArguments(x=c(formals(graphics::plot.default), formals(graphics::image.default)), dots=dots)
   argsContour <- getArguments(x=formals(graphics::contour.default), dots=dots)
   argsPersp <- getArguments(x=formals(getS3method("persp", "default")), dots=dots)
   
