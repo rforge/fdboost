@@ -717,6 +717,7 @@ bconcurrent <- function(x, s, time, index = NULL, #by = NULL,
   xname <- varnames[1]
   indname <- varnames[2]
   indnameY <- varnames[3]
+  if(length(varnames)==2) indnameY <- varnames[2]
   attr(x, "indexY") <- time
   attr(x, "indnameY") <- indnameY
   attr(x, "id") <- index
@@ -1019,7 +1020,7 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
     #message("use sparse matrix in X_hist")
     diag <- Diagonal
     cbind <- cBind
-    ###### <FIXME> consturciton of X1des directly as sparse matrix does not work 
+    ###### <FIXME> construction of X1des directly as sparse matrix does not work 
     
     #     ### compute the design matrix as sparse matrix
     #     if(args$format == "wide"){
@@ -1232,6 +1233,7 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
   xname <- varnames[1]
   indname <- varnames[2]
   indnameY <- varnames[3]
+  if(length(varnames)==2) indnameY <- varnames[2]
   if(is.null(colnames(x))) colnames(x) <- paste(xname, 1:ncol(x), sep="_")
   attr(x, "signalIndex") <- s
   attr(x, "xname") <- xname
