@@ -63,7 +63,8 @@ truncateTime <- function(funVar, time, newtime, data){
 #' Plot functional data with linear interpolation of missing values 
 #' 
 #' @param x optional, time-vector for plotting 
-#' @param y matrix of functional data with functions in rows and measured times in columns
+#' @param y matrix of functional data with functions in rows and measured times in columns; 
+#' or vector or functional observations, in this case id has to be specified 
 #' @param id defaults to NULL for y matrix, is id-variables for y in long format
 #' @param rug logical. Should rugs be plotted? Defaults to TRUE.
 #' @param ... further arguments passed to \code{\link[graphics]{matplot}}.
@@ -101,7 +102,7 @@ funplot <- function(x, y, id=NULL, rug=TRUE, ...){
   argsPlot <- getArguments(x=c(formals(graphics::plot.default), par()), dots=dots)
   
   
-  if(is.null(id)){
+  if(!is.vector(y)){  # is.null(id)
     
     # Deal with missing values: interpolate data
     if (missing(x)) {
@@ -223,7 +224,7 @@ plotPredicted <- function(x, subset=NULL, posLegend="topleft", lwdObs=1, lwdPred
   
   stopifnot("FDboost" %in% class(x))
   
-  if(is.null(x$id)){
+  if(!any(class(x)=="FDboostLong")){
     if(is.null(subset)) subset <- 1:x$ydim[1]
     response <- matrix(x$response, nrow=x$ydim[1], ncol=x$ydim[2])[subset, , drop=FALSE] 
     pred <- fitted(x)[subset, , drop=FALSE]
@@ -261,7 +262,7 @@ plotResiduals <- function(x, subset=NULL, posLegend="topleft", ...){
   
   stopifnot("FDboost" %in% class(x))
   
-  if(is.null(x$id)){
+  if(!any(class(x)=="FDboostLong")){
     if(is.null(subset)) subset <- 1:x$ydim[1]
     response <- matrix(x$response, nrow=x$ydim[1], ncol=x$ydim[2])[subset, , drop=FALSE] 
     pred <- fitted(x)[subset, , drop=FALSE]
@@ -367,7 +368,7 @@ getYYhatTime <- function(object, breaks=object$yind){
 #' @export
 funRsquared <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE, ...){
   
-  if(length(object$yind)<2 | !is.null(object$id)){
+  if(length(object$yind)<2 | any(class(object)=="FDboostLong")){
     y <- object$response
     yhat <- object$fitted()
     time <- object$yind
@@ -414,7 +415,7 @@ funRsquared <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,
     attr(ret, "missings") <- apply(y, 2, function(x) sum(is.na(x))/length(x) )
     
   }else{ ### for each subject i
-    if(length(object$yind)<2 | !is.null(object$id)){
+    if(length(object$yind)<2 | any(class(object)=="FDboostLong")){
       # Mean for each subject
       mut <- tapply(y, id, mean, na.rm=TRUE  )[id]
       # numerator cannot be 0
@@ -484,7 +485,7 @@ funRsquared <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,
 funMSE <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE, 
                    relative=FALSE, root=FALSE, ...){
   
-  if(length(object$yind)<2 | !is.null(object$id)){
+  if(length(object$yind)<2 | any(class(object)=="FDboostLong")){
     y <- object$response
     yhat <- object$fitted()
     time <- object$yind
@@ -514,7 +515,7 @@ funMSE <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,
       attr(ret, "missings") <- apply(y, 2, function(x) sum(is.na(x))/length(x))     
     }else{ 
       ### for each subject i
-      if(length(object$yind)<2 | !is.null(object$id)){
+      if(length(object$yind)<2 | any(class(object)=="FDboostLong")){
         ret <- tapply((y - yhat)^2, id, mean, na.rm=TRUE  )
         attr(ret, "name") <- "MSE over subjects"              
       }else{
@@ -571,7 +572,7 @@ funMSE <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,
 #' @export
 funMRD <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,  ...){
   
-  if(length(object$yind)<2 | !is.null(object$id)){
+  if(length(object$yind)<2 | any(class(object)=="FDboostLong")){
     y <- object$response
     yhat <- object$fitted()
     time <- object$yind
@@ -605,7 +606,7 @@ funMRD <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,  ...
       attr(ret, "missings") <- apply(y, 2, function(x) sum(is.na(x))/length(x))     
     }else{ 
       ### for each subject i
-      if(length(object$yind)<2 | !is.null(object$id)){
+      if(length(object$yind)<2 | any(class(object)=="FDboostLong")){
         ret <- tapply( abs((y1 - yhat) / y1), id, mean, na.rm=TRUE  )
         attr(ret, "name") <- "MRD over subjects"              
       }else{
@@ -660,7 +661,7 @@ check_ident <- function(X1, L, Bs, K, xname, penalty, cumOverlap=FALSE){
   e_DstDs$values <- pmax(0, e_DstDs$values) # set negative eigenvalues to 0
   logCondDs <- log10(e_DstDs$values[1]) - log10(tail(e_DstDs$values, 1))
   if(logCondDs > 10^6){
-    warning("condition number for <", xname, "> greater than 10^6.", 
+    warning("condition number for <", xname, "> greater than 10^6. ", 
             "Effect identifiable only through penalty.")
   }
   

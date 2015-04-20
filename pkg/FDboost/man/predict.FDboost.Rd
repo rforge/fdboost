@@ -10,7 +10,7 @@
 \arguments{
 \item{object}{a fitted \code{FDboost}-object}
 
-\item{newdata}{A named list or a data frame containing the values of the model
+\item{newdata}{a named list or a data frame containing the values of the model
 covariates at which predictions are required.
 If this is not provided then predictions corresponding to the original data are returned.
 If \code{newdata} is provided then it should contain all the variables needed for

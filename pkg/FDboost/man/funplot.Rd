@@ -9,7 +9,8 @@ funplot(x, y, id = NULL, rug = TRUE, ...)
 \arguments{
 \item{x}{optional, time-vector for plotting}
 
-\item{y}{matrix of functional data with functions in rows and measured times in columns}
+\item{y}{matrix of functional data with functions in rows and measured times in columns;
+or vector or functional observations, in this case id has to be specified}
 
 \item{id}{defaults to NULL for y matrix, is id-variables for y in long format}
 

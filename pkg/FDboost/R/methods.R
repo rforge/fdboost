@@ -41,7 +41,11 @@ summary.FDboost <- function(object, ...) {
 print.FDboost <- function(x, ...) {
   
   cat("\n")
-  cat("\t Model-based Boosting with Functional Response\n")
+  if(!any(class(x)=="FDboostLong")){
+    cat(cat("\t Model-based Boosting with Functional Response\n"))
+  }else{
+    cat("\t Model-based Boosting with Irregular Functional Response\n")
+  }
   cat("\n")
   if (!is.null(x$call))
     cat("Call:\n", deparse(x$call), "\n\n", sep = "")
@@ -72,7 +76,7 @@ print.FDboost <- function(x, ...) {
 #'  function for \code{\link[mboost]{predict.mboost}()}
 #' 
 #' @param object a fitted \code{FDboost}-object
-#' @param newdata  A named list or a data frame containing the values of the model 
+#' @param newdata  a named list or a data frame containing the values of the model 
 #' covariates at which predictions are required.
 #' If this is not provided then predictions corresponding to the original data are returned. 
 #' If \code{newdata} is provided then it should contain all the variables needed for 
@@ -243,9 +247,9 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
     predOffset <- object$offsetVec # offset is just an integer 
     #if(1 %in% whichHelp && grepl("ONEx", names(object$baselearner)[[1]])){
     if(length(object$offsetVec)>1){ # offset is a smooth function
-      if(is.null(object$id)){
+      if(!any(class(object)=="FDboostLong")){ # irregular response
         predOffset <- rep(object$predictOffset(newdata[[nameyind]]), each=n)
-      }else{
+      }else{ # regular response 
         predOffset <- object$predictOffset(newdata[[nameyind]])
       }  
       names(predOffset) <- NULL
@@ -264,7 +268,7 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
         # a list is NOT possible
         ## only keep the necessary variables in the dataframe
         vars <- all.vars(formula(object$formulaMboost)[[3]])
-        if(is.null(object$id)){ # get rid of id and index of Y in the case of regular data 
+        if(!any(class(object)=="FDboostLong")){ # get rid of id and index of Y in the case of regular data 
           vars <- vars[!vars %in% c(attr(object$id, "nameid"), indname_all)]
         }
         vars <- vars[vars %in% names(newdata)]
@@ -381,7 +385,7 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
 fitted.FDboost <- function(object, ...) {
   args <- list(...)
   if (length(args) == 0) {
-    if(is.null(object$id)){
+    if(!any(class(object)=="FDboostLong")){
       ret <- matrix(object$fitted(), nrow=object$ydim[1])
     }else{
       ret <- object$fitted()
@@ -407,7 +411,7 @@ fitted.FDboost <- function(object, ...) {
 ### residuals (the current negative gradient)
 residuals.FDboost <- function(object, ...){
   
-  if(is.null(object$id)){
+  if(!any(class(object)=="FDboostLong")){
     resid <- matrix(object$resid(), nrow=object$ydim[1])
     resid[is.na(object$response)] <- NA 
   }else{
@@ -853,7 +857,6 @@ getColPersp <- function(z, col1="tomato", col2="lightblue"){
 #' and the locations of the covariates are plotted as points on the contour plot 
 #' representing a 2-d smooth.
 #' @param which a subset of base-learners to take into account for plotting. 
-#' a list is returned. 
 #' @param includeOffset logical, defaults to TRUE. Should the offset be included in the plot of the intercept (default)
 #' or should it be plotted separately.
 #' @param ask logical, defaults to TRUE, if several effects are plotted the user
@@ -1127,6 +1130,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
     ################################          
     # predict the effects using the original data
     terms <- predict(x, which=which)
+    offset <- attr(terms, "offset")
     
     # convert matrix into a list, each list entry for one effect
     if(is.null(x$ydim) & !is.null(dim(terms))){
@@ -1139,10 +1143,12 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
       rm(temp)
     }
     
-    if(length(which)==1 && which==0) terms <- attr(terms, "offset")
+    #browser()
+    if(class(terms)!="list") terms <- list(terms)
+    if(length(which)==1 && which==0) terms[[1]] <- offset
+    if(length(which)==1 && length(terms[[1]]) == 1 && terms[[1]]==0){ terms[[1]] <- rep(0, l=length(x$yind)) }
     
-    if(length(which)==1 & is.null(x$id)) terms <- list(terms)
-    if(class(terms)!="list") terms <- list(terms) 
+    if(length(which)==1 && !any(class(x)=="FDboostLong")) terms <- list(terms) 
     
     shrtlbls <- try(coef(x, which=which, computeCoef=FALSE))# get short names
     if(class(shrtlbls)=="try-error"){

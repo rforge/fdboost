@@ -7,16 +7,16 @@
 \title{Base-learners for Functional Covariates}
 \usage{
 bsignal(x, s, index = NULL, knots = 10, boundary.knots = NULL,
-  degree = 3, differences = 2, df = 4, lambda = NULL, cyclic = FALSE,
+  degree = 3, differences = 1, df = 4, lambda = NULL, cyclic = FALSE,
   Z = NULL, penalty = c("ps", "pss"), check.ident = FALSE)
 
 bconcurrent(x, s, time, index = NULL, knots = 10, boundary.knots = NULL,
-  degree = 3, differences = 2, df = 4, lambda = NULL, cyclic = FALSE)
+  degree = 3, differences = 1, df = 4, lambda = NULL, cyclic = FALSE)
 
 bhist(x, s, time, index = NULL, limits = "s<=t", standard = c("no",
   "time", "length"), intFun = integrationWeightsLeft, inS = c("smooth",
   "linear", "constant"), inTime = c("smooth", "linear", "constant"),
-  knots = 10, boundary.knots = NULL, degree = 3, differences = 2,
+  knots = 10, boundary.knots = NULL, degree = 3, differences = 1,
   df = 4, lambda = NULL, penalty = c("ps", "pss"), check.ident = FALSE)
 }
 \arguments{
@@ -39,7 +39,7 @@ for the lower and the upper boundary knot can be specified.}
 
 \item{degree}{degree of the regression spline.}
 
-\item{differences}{a non-negative integer, typically 1, 2 or 3.
+\item{differences}{a non-negative integer, typically 1, 2 or 3. Defaults to 1.
 If \code{differences} = \emph{k}, \emph{k}-th-order differences are used as
 a penalty (\emph{0}-th order differences specify a ridge penalty).}
 
@@ -86,13 +86,6 @@ which is the index of the functional covariates x(s).}
 
 \item{inTime}{historical effect can be smooth, linear or constant in time,
 which is the index of the functional response y(time).}
-
-\item{...}{matrix of functional data and the vector of observation points.
-The functional covariates have to be supplied as n by <no. of evaluations>
-matrices, i.e. each row is one functional observation.
-The base-learner \code{bhist} expects three arguments: functional covariate,
-index of functional covariate, index of functional response
-\eqn{[0,1]} is assumed.}
 }
 \value{
 Equally to the base-learners of the package mboost:
@@ -105,23 +98,18 @@ The call of \code{dpp} returns an object of class
 \code{fit} finally returns an object of class \code{bm} (base-model).
 }
 \description{
-Base-learners that fit effects of functional covariates
+Base-learners that fit effects of functional covariates.
 }
 \details{
 \code{bsignal} implements a base-learner for functional covariates to
 estimate an effect of the form \eqn{int X_i(s)\beta(t,s)ds}. Defaults to a cubic
-B-spline basis with second difference penalties for \eqn{beta(t,s)} in the direction
+B-spline basis with first difference penalties for \eqn{beta(t,s)} in the direction
 of s and numerical integration over the entire range by using trapezoidal
 Riemann weights.
 
 \code{bconcurrent} implements a concurrent effect for a functional covariate
 on a functional response, i.e. an effect of the form \eqn{X_i(t)beta(t)} for
 a functional response \eqn{Y_i(t)}.
-
-It is recommended to use centered functional covariates with
-\eqn{\sum_i X_i(s) = 0} for all \eqn{s} in \code{bconcurrent}- and
-\code{bsignal}-terms so that the global functional intercept
-can be interpreted as the global mean function.
 
 \code{bhist} implements a base-learner for functional covariates with
 flexible integration limits \code{l(t)}, \code{r(t)} and the possibility to
@@ -130,6 +118,13 @@ The effect is \code{stand * int_{l(t)}^{r_{t}} x(s)beta(t,s)ds}.
 The base-learner defaults to a historical effect of the form
 \eqn{\int_{t0}^{t} X_i(s)beta(t,s)ds},
 where \eqn{t0} is the minimal index of \eqn{t} of the response \eqn{Y(t)}.
+
+It is recommended to use centered functional covariates with
+\eqn{\sum_i X_i(s) = 0} for all \eqn{s} in \code{bsignal}-,
+\code{bhist}- and \code{bconcurrent}-terms
+so that the effects are centered per time-point of the response.
+If all effects are centered the functional intercept
+can be interpreted as the global mean function.
 
 Cannot deal with any missing values in the covariates.
 }

@@ -27,8 +27,7 @@ displayed as a rug plot at the foot of each plot of a 1-d smooth,
 and the locations of the covariates are plotted as points on the contour plot
 representing a 2-d smooth.}
 
-\item{which}{a subset of base-learners to take into account for plotting.
-a list is returned.}
+\item{which}{a subset of base-learners to take into account for plotting.}
 
 \item{includeOffset}{logical, defaults to TRUE. Should the offset be included in the plot of the intercept (default)
 or should it be plotted separately.}

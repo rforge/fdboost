@@ -196,7 +196,7 @@ integrationWeightsLeft(X1, xind, leftWeight="zero")
 
 ### hyper parameters for signal baselearner with P-splines
 hyper_signal <- function(mf, vary, knots = 10, boundary.knots = NULL, degree = 3,
-                      differences = 2, df = 4, lambda = NULL, center = FALSE,
+                      differences = 1, df = 4, lambda = NULL, center = FALSE,
                       cyclic = FALSE, constraint = "none", deriv = 0L, 
                       Z=NULL, penalty="ps", check.ident = FALSE,
                       s=NULL) {
@@ -355,14 +355,8 @@ X_bsignal <- function(mf, vary, args) {
 
 #' Base-learners for Functional Covariates
 #' 
-#' Base-learners that fit effects of functional covariates 
+#' Base-learners that fit effects of functional covariates.  
 #' 
-#' @param ... matrix of functional data and the vector of observation points.
-#' The functional covariates have to be supplied as n by <no. of evaluations> 
-#' matrices, i.e. each row is one functional observation.
-#' The base-learner \code{bhist} expects three arguments: functional covariate,
-#' index of functional covariate, index of functional response 
-#' \eqn{[0,1]} is assumed.
 #' @param x matrix of functional variable x(s). The functional covariate has to be 
 #' supplied as n by <no. of evaluations> matrix, i.e. each row is one functional observation. 
 #' @param s vector for the index of the functional variable x(s) giving 
@@ -378,7 +372,7 @@ X_bsignal <- function(mf, vary, args) {
 #' (default the range of the data). A vector (of length 2) 
 #' for the lower and the upper boundary knot can be specified.
 #' @param degree degree of the regression spline.
-#' @param differences a non-negative integer, typically 1, 2 or 3. 
+#' @param differences a non-negative integer, typically 1, 2 or 3. Defaults to 1.  
 #' If \code{differences} = \emph{k}, \emph{k}-th-order differences are used as 
 #' a penalty (\emph{0}-th order differences specify a ridge penalty).
 #' @param df trace of the hat matrix for the base-learner defining the 
@@ -416,18 +410,13 @@ X_bsignal <- function(mf, vary, args) {
 #' 
 #' @details \code{bsignal} implements a base-learner for functional covariates to  
 #' estimate an effect of the form \eqn{int X_i(s)\beta(t,s)ds}. Defaults to a cubic  
-#' B-spline basis with second difference penalties for \eqn{beta(t,s)} in the direction 
+#' B-spline basis with first difference penalties for \eqn{beta(t,s)} in the direction 
 #' of s and numerical integration over the entire range by using trapezoidal 
 #' Riemann weights. 
 #' 
 #' \code{bconcurrent} implements a concurrent effect for a functional covariate
 #' on a functional response, i.e. an effect of the form \eqn{X_i(t)beta(t)} for
 #' a functional response \eqn{Y_i(t)}. 
-#' 
-#' It is recommended to use centered functional covariates with 
-#' \eqn{\sum_i X_i(s) = 0} for all \eqn{s} in \code{bconcurrent}- and 
-#' \code{bsignal}-terms so that the global functional intercept 
-#' can be interpreted as the global mean function. 
 #'
 #' \code{bhist} implements a base-learner for functional covariates with 
 #' flexible integration limits \code{l(t)}, \code{r(t)} and the possibility to
@@ -436,6 +425,13 @@ X_bsignal <- function(mf, vary, args) {
 #' The base-learner defaults to a historical effect of the form 
 #' \eqn{\int_{t0}^{t} X_i(s)beta(t,s)ds}, 
 #' where \eqn{t0} is the minimal index of \eqn{t} of the response \eqn{Y(t)}. 
+#' 
+#' It is recommended to use centered functional covariates with 
+#' \eqn{\sum_i X_i(s) = 0} for all \eqn{s} in \code{bsignal}-, 
+#' \code{bhist}- and \code{bconcurrent}-terms 
+#' so that the effects are centered per time-point of the response. 
+#' If all effects are centered the functional intercept 
+#' can be interpreted as the global mean function. 
 #' 
 #' Cannot deal with any missing values in the covariates.
 #' 
@@ -477,7 +473,7 @@ X_bsignal <- function(mf, vary, args) {
 #' @export
 ### P-spline base-learner for signal matrix with index vector
 bsignal <- function(x, s, index = NULL, #by = NULL,
-                    knots = 10, boundary.knots = NULL, degree = 3, differences = 2, df = 4, 
+                    knots = 10, boundary.knots = NULL, degree = 3, differences = 1, df = 4, 
                     lambda = NULL, #center = FALSE, 
                     cyclic = FALSE, Z = NULL, 
                     penalty=c("ps","pss"), check.ident = FALSE
@@ -684,7 +680,7 @@ X_conc <- function(mf, vary, args) {
 #' @export
 ### P-spline base learner for signal matrix with index vector
 bconcurrent <- function(x, s, time, index = NULL, #by = NULL, 
-                        knots = 10, boundary.knots = NULL, degree = 3, differences = 2, df = 4, 
+                        knots = 10, boundary.knots = NULL, degree = 3, differences = 1, df = 4, 
                         lambda = NULL, #center = FALSE, 
                         cyclic = FALSE
 ){
@@ -834,7 +830,7 @@ bconcurrent <- function(x, s, time, index = NULL, #by = NULL,
 
 ### hyper parameters for signal baselearner with P-splines
 hyper_hist <- function(mf, vary, knots = 10, boundary.knots = NULL, degree = 3,
-                         differences = 2, df = 4, lambda = NULL, center = FALSE,
+                         differences = 1, df = 4, lambda = NULL, center = FALSE,
                          cyclic = FALSE, constraint = "none", deriv = 0L, 
                          Z=NULL, s=NULL, time=NULL, limits=NULL, 
                          standard="no", intFun=integrationWeightsLeft,  
@@ -1190,7 +1186,7 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
                   limits="s<=t", standard=c("no", "time", "length"), ##, "transform"
                   intFun=integrationWeightsLeft, 
                   inS=c("smooth","linear","constant"), inTime=c("smooth","linear","constant"),
-                  knots = 10, boundary.knots = NULL, degree = 3, differences = 2, df = 4,
+                  knots = 10, boundary.knots = NULL, degree = 3, differences = 1, df = 4,
                   lambda = NULL, #center = FALSE, cyclic = FALSE
                   penalty = c("ps", "pss"), check.ident = FALSE
 ){

@@ -48,32 +48,39 @@
 #' including, \code{family} and \code{control}.
 #' 
 #' @details The functional response and functional covariates have to be
-#' supplied as n by <no. of evaluations> matrices, i.e. each row is one
+#' supplied as n by <no. of evaluations> matrices, i.e., each row is one
 #' functional observation. For the model fit the matrix of the functional
 #' response evaluations \eqn{Y_i(t)} are stacked into one long vector. 
-#' If it is possible to write the model as a generalized linear array model, 
-#' the array structure is used as efficient implementation, 
-#' see \code{\link[mboost]{mboost}}.
-#' If the response is observed irregularly or sparse it can be supplied  
+#' If it is possible to write the model as a generalized linear array model 
+#' (Currie et al., 2006), the array structure is used for an efficient implementation, 
+#' see \code{\link[mboost]{mboost}}. This is only possible if the design 
+#' matrix can be written as the Kronecker product of two marginal design 
+#' matrices. 
+#' 
+#' If the response is observed irregularly or sparse it must be supplied  
 #' as a vector in long format. In that case the argument \code{id} has  
 #' to be specified as integers 1, 2, 3, ... to define which observation
-#' belongs to which curve. 
+#' belongs to which curve. In this case the base-learners are built as
+#' row tensor-products of marginal base-learners, see Scheipl et al. (2014), 
+#' for details on how to set up the effects. 
 #' 
 #' @return on object of class \code{FDboost} that inherits from \code{mboost}.
 #' Special \code{\link{predict.FDboost}}, \code{\link{coef.FDboost}} and 
 #' \code{\link{plot.FDboost}} methods are available. 
 #' The methods of \code{\link[mboost]{mboost}} are available as well, 
-#' e.g. \code{\link[mboost]{extract}}. 
+#' e.g., \code{\link[mboost]{extract}}. 
 #' 
 #' The \code{FDboost}-object is a named list containing: 
 #' \item{...}{all elements of an \code{\link[mboost]{mboost}-object}}
 #' \item{yname}{the name of the response}
+#' \item{ydim}{for a regualr response the dimension of the response matrix}
 #' \item{yind}{the observation points of the response, with its name as attribute}
 #' \item{data}{the data that was used for the model fit}
-#' \item{id}{NULL for a response over a regular grid, otherwise the id variable of the response}
+#' \item{id}{the id variable of the response}
 #' \item{predictOffset}{the function to predict the smooth offset}
 #' \item{offsetVec}{the offset for one trajectory for regular response and 
 #' otherwise the offset for all trajectories}
+#' \item{call}{the call to FDboost}
 #' \item{callEval}{the evaluated function call}
 #' \item{timeformula}{the time-formula}
 #' \item{formulaFDboost}{the formula with which \code{FDboost} was called}
@@ -81,16 +88,24 @@
 #' 
 #' @author Sarah Brockhaus, Torsten Hothorn
 #' 
-#' @seealso \code{\link[mboost]{mboost}} for the help of the wrapped function in 
-#' package mboost.  
-#' See \code{\link[FDboost]{bsignal}} and \code{\link[FDboost]{bbsc}} 
+#' @seealso Note that \link{FDboost} calls \code{\link[mboost]{mboost}} directly.  
+#' See e.g. \code{\link[FDboost]{bsignal}} and \code{\link[FDboost]{bbsc}} 
 #' for possible base-learners
 #' 
 #' @keywords models, nonlinear 
 #' 
 #' @references 
 #' Brockhaus, S., Scheipl, F., Hothorn, T. and Greven, S. (2015). 
-#' The Functional Linear Array Model. Statistical Modelling, in press.
+#' The functional linear array model. Statistical Modelling, in press.
+#' 
+#' Currie, I.D., Durban, M., and Eilers P.H.C. (2006), 
+#' Generalized linear array models with applications to multidimensional smoothing. 
+#' Journal of the Royal Statistical Society, Series B-Statistical Methodology, 68(2), 259-280.
+#' 
+#' Scheipl, F., Staicu, A.-M., and Greven, S. (2014), 
+#' Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 
+#' in press, DOI 10.1080/10618600.2014.901914.
+#' \url{http://arxiv.org/abs/1207.5947} 
 #' 
 #' @examples 
 #' ## Example for function-on-scalar-regression 
@@ -115,6 +130,21 @@
 #'                data=viscosity, control=boost_control(mstop = 100, nu = 0.4))
 #' summary(mod1)
 #' ## plot(mod1)
+#' 
+#' \dontrun{
+#' ## find optimal mstop over 5-fold bootstrap, small number of folds for example
+#' ## do the resampling on the level of curves
+#' val1 <- validateFDboost(mod1, folds = cv(rep(1, length(unique(mod1$id))), B=5))
+#' ## plot(val1)
+#' mstop(val1)
+#' mod1[mstop(val1)]
+#' 
+#' ## find the optimal mstop over 5-fold bootstrap
+#' ## using the function cvrisk 
+#' cvm1 <- cvrisk(mod1, folds = cvLong(id = mod1$id, weights = model.weights(mod1), B=5))
+#' ## plot(cvm1)
+#' mstop(cvm1)
+#' }
 #' 
 #' ## Example for scalar-on-function-regression 
 #' data("fuelSubset", package = "FDboost")
@@ -555,6 +585,8 @@ FDboost <- function(formula,          ### response ~ xvars
   ### assign new class (e.g. for specialized predictions)
   class(ret) <- c("FDboost", class(ret))
   if(!is.null(id)) class(ret) <- c("FDboostLong", class(ret))
+  ## generate an id-variable for a regular response 
+  if(is.null(id)) id <- rep(1:ydim[1], times=ydim[2])
   
   ### reset weights for cvrisk etc., expanding works OK in bl_lin_matrix!
   # ret$"(weights)" <- weights
