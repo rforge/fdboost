@@ -343,6 +343,7 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
   
   # Reshape prediciton in vector to the prediction as matrix
   reshapeToMatrix <- function(pred){
+    if(is.null(pred)) return(NULL)
     if(length(pred)==1) return(pred)
     if(is.matrix(pred)){
       fit <- list()
