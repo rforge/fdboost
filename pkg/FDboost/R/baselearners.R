@@ -301,12 +301,13 @@ X_bsignal <- function(mf, vary, args) {
     C <- t(Bs) %*% rep(1, nrow(Bs))
     Q <- qr.Q(qr(C), complete=TRUE) # orthonormal matrix of QR decomposition
     args$Z <- Q[  , 2:ncol(Q)] # only keep last columns  
+  }else{ ### <FIXME> nicer solution that Z not produced for prediction with new data with mean 0?
+    args$Z <- diag(x=1, ncol=ncol(Bs), nrow=ncol(Bs))
   }
   
   if(!is.null(args$Z)){ 
     ### Transform design and penalty matrix
     Bs <- Bs %*% args$Z
-    ### <FIXME> is it correct, that penalty-matrix is transformed as well?
     K <- t(args$Z) %*% K %*% args$Z
   }
   #---------------------------------- 

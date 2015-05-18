@@ -203,7 +203,12 @@ FDboost <- function(formula,          ### response ~ xvars
     stopifnot(class(id)=="formula")
     tf <- terms.formula(formula, specials=c("c"))
     trmstrings <- attr(tf, "term.labels")
-    if(length(trmstrings)>0) trmstrings <- paste(substr(trmstrings, 1 , nchar(trmstrings)-1), ", index=", id[2],")", sep="")
+    if(length(trmstrings)>0){
+      trmstrings2 <- paste(substr(trmstrings, 1 , nchar(trmstrings)-1), ", index=", id[2],")", sep="")
+      ### <FIXME> do not add an index if an index is already part of the formula
+      #trmstrings2[grepl("index", trmstrings)] <- trmstrings[grepl("index", trmstrings)]
+      trmstrings <- trmstrings2
+    } 
     xpart <- paste(as.vector(trmstrings), collapse = " + ")
     if(xpart!=""){
       if(any(substr(tf[[3]], 1, 1)=="1")) xpart <- paste0("1 + ", xpart)
