@@ -96,7 +96,7 @@
 #' 
 #' @references 
 #' Brockhaus, S., Scheipl, F., Hothorn, T. and Greven, S. (2015). 
-#' The functional linear array model. Statistical Modelling, in press.
+#' The functional linear array model. Statistical Modelling, 15(3), 279-300. 
 #' 
 #' Currie, I.D., Durban, M., and Eilers P.H.C. (2006), 
 #' Generalized linear array models with applications to multidimensional smoothing. 
@@ -108,7 +108,7 @@
 #' \url{http://arxiv.org/abs/1207.5947} 
 #' 
 #' @examples 
-#' ## Example for function-on-scalar-regression 
+#' ######## Example for function-on-scalar-regression 
 #' data("viscosity", package = "FDboost") 
 #' ## set time-interval that should be modeled
 #' interval <- "101"
@@ -121,15 +121,17 @@
 #' 
 #' ## fit median regression model with 100 boosting iterations,
 #' ## step-length 0.4 and smooth time-specific offset
-#' ## the factors are in effect coding -1, 1 for the levels
+#' ## the factors are in effect coding -1, 1 for the levels 
+#' ## no integration weights are used!
 #' mod1 <- FDboost(vis ~ 1 + bols(T_C, contrasts.arg = "contr.sum", intercept=FALSE) 
 #'                + bols(T_A, contrasts.arg = "contr.sum", intercept=FALSE),
 #'                timeformula=~bbs(time, lambda=100),
-#'                numInt="Riemann", family=QuantReg(),
+#'                numInt="equal", family=QuantReg(),
 #'                offset=NULL, offset_control = o_control(k_min = 9),
 #'                data=viscosity, control=boost_control(mstop = 100, nu = 0.4))
 #' summary(mod1)
 #' ## plot(mod1)
+#' ## plotPredicted(mod1, lwdPred=2)
 #' 
 #' \dontrun{
 #' ## find optimal mstop over 5-fold bootstrap, small number of folds for example
@@ -140,14 +142,19 @@
 #' mod1[mstop(val1)]
 #' 
 #' ## find the optimal mstop over 5-fold bootstrap
-#' ## using the function cvrisk 
-#' cvm1 <- cvrisk(mod1, folds = cvLong(id = mod1$id, weights = model.weights(mod1), B=5))
+#' ## using the function cvrisk; be careful to do the resampling on the level of curves
+#' cvm1 <- cvrisk(mod1, folds = cvLong(id = mod1$id, weights = model.weights(mod1), B=5), 
+#'                grid = 1:100)
 #' ## plot(cvm1)
 #' mstop(cvm1)
 #' }
 #' 
-#' ## Example for scalar-on-function-regression 
+#' ######## Example for scalar-on-function-regression 
 #' data("fuelSubset", package = "FDboost")
+#' 
+#' ## center the functional covariates per observed wavelength
+#' fuelSubset$UVVIS <- scale(fuelSubset$UVVIS)
+#' fuelSubset$NIR <- scale(fuelSubset$NIR)
 #' 
 #' mod2 <- FDboost(heatan ~ bsignal(UVVIS, uvvis.lambda, knots=40, df=4, check.ident=FALSE) 
 #'                + bsignal(NIR, nir.lambda, knots=40, df=4, check.ident=FALSE), 
@@ -162,6 +169,9 @@
 #'   CanadianWeather$temp <- t(CanadianWeather$monthlyTemp)
 #'   CanadianWeather$region <- factor(CanadianWeather$region)
 #'   CanadianWeather$month.s <- CanadianWeather$month.t <- 1:12
+#'   
+#'   ## center the temperature curves per time-point
+#'   CanadianWeather$temp <- scale(CanadianWeather$temp, scale=FALSE)
 #'   
 #'   ## fit model with cyclic splines over the year
 #'   mod3 <- FDboost(l10precip ~ bols(region, df=2.5, contrasts.arg = "contr.dummy") 
@@ -184,6 +194,7 @@
 #' @importFrom zoo na.locf
 #' @importFrom MASS Null
 #' @importFrom parallel mclapply
+#' @importFrom refund fpca.sc
 FDboost <- function(formula,          ### response ~ xvars
                     timeformula,      ### time
                     id=NULL,          ### id variable if response in long format

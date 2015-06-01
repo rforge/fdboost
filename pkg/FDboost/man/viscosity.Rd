@@ -53,7 +53,7 @@ hard so the measurements should be interpreted as a qualitative measure of harde
  mod <- FDboost(vis ~ 1 + bols(T_C, contrasts.arg = "contr.sum", intercept=FALSE)
                 + bols(T_A, contrasts.arg = "contr.sum", intercept=FALSE),
                 timeformula=~bbs(time, lambda=100),
-                numInt="Riemann", family=QuantReg(),
+                numInt="equal", family=QuantReg(),
                 offset=NULL, offset_control = o_control(k_min = 9),
                 data=viscosity, control=boost_control(mstop = 100, nu = 0.4))
  summary(mod)

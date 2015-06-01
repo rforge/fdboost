@@ -2,13 +2,15 @@
 % Please edit documentation in R/baselearners.R
 \name{bsignal}
 \alias{bconcurrent}
+\alias{bfpc}
 \alias{bhist}
 \alias{bsignal}
 \title{Base-learners for Functional Covariates}
 \usage{
-bsignal(x, s, index = NULL, knots = 10, boundary.knots = NULL,
-  degree = 3, differences = 1, df = 4, lambda = NULL, cyclic = FALSE,
-  Z = NULL, penalty = c("ps", "pss"), check.ident = FALSE)
+bsignal(x, s, index = NULL, inS = c("smooth", "linear", "constant"),
+  knots = 10, boundary.knots = NULL, degree = 3, differences = 1,
+  df = 4, lambda = NULL, cyclic = FALSE, Z = NULL, penalty = c("ps",
+  "pss"), check.ident = FALSE)
 
 bconcurrent(x, s, time, index = NULL, knots = 10, boundary.knots = NULL,
   degree = 3, differences = 1, df = 4, lambda = NULL, cyclic = FALSE)
@@ -18,6 +20,9 @@ bhist(x, s, time, index = NULL, limits = "s<=t", standard = c("no",
   "linear", "constant"), inTime = c("smooth", "linear", "constant"),
   knots = 10, boundary.knots = NULL, degree = 3, differences = 1,
   df = 4, lambda = NULL, penalty = c("ps", "pss"), check.ident = FALSE)
+
+bfpc(x, s, index = NULL, df = 4, lambda = NULL, pve = 0.99,
+  npc = NULL, npc.max = 15, getEigen = TRUE)
 }
 \arguments{
 \item{x}{matrix of functional variable x(s). The functional covariate has to be
@@ -29,6 +34,9 @@ measurment points.}
 \item{index}{a vector of integers for expanding the signal variable in \code{x}
 For example, \code{bsignal(X, s, index = index)} is equal to \code{bsignal(X[index,], s)},
 where index is an integer of length greater or equal to \code{length(x)}.}
+
+\item{inS}{historical effect can be smooth, linear or constant in s,
+which is the index of the functional covariates x(s).}
 
 \item{knots}{either the number of knots or a vector of the positions
 of the interior knots (for more details see \code{\link[mboost]{bbs})}.}
@@ -71,8 +79,7 @@ otherwise specifies the integration limits s_{hi, i}, s_{lo, i}:
 either one of \code{"s<t"} or \code{"s<=t"} for (s_{hi, i}, s_{lo, i}) = (0, t) or a
 function that takes \eqn{s} as the first and \code{t} as the second argument and returns
 \code{TRUE} for combinations of values (s,t) if \eqn{s} falls into the integration range for
-the given \eqn{t}.
-This is an experimental feature and not well tested yet; use at your own risk.}
+the given \eqn{t}.}
 
 \item{standard}{the historical effect can be standardized with a factor.
 "no" means no standardization, "time" standardizes with the current value of time and
@@ -81,11 +88,16 @@ This is an experimental feature and not well tested yet; use at your own risk.}
 \item{intFun}{specify the function that is used to compute integration weights in \code{s}
 over the functional covariate \eqn{x(s)}}
 
-\item{inS}{historical effect can be smooth, linear or constant in s,
-which is the index of the functional covariates x(s).}
-
 \item{inTime}{historical effect can be smooth, linear or constant in time,
 which is the index of the functional response y(time).}
+
+\item{pve}{proportion of variance explained: used to choose the number of principal components.}
+
+\item{npc}{prespecified value for the number of principal components (if given, this overrides pve).}
+
+\item{npc.max}{maximal number K of FPCs to use, regardless of decomppars; defaults to 15}
+
+\item{getEigen}{save the eigenvalues and eigenvectors, defaults to TRUE}
 }
 \value{
 Equally to the base-learners of the package mboost:
@@ -119,27 +131,41 @@ The base-learner defaults to a historical effect of the form
 \eqn{\int_{t0}^{t} X_i(s)beta(t,s)ds},
 where \eqn{t0} is the minimal index of \eqn{t} of the response \eqn{Y(t)}.
 
+\code{bfpc} is a base-learner for functional covariates based on
+functional principal component analysis (fPCA). The functional covariate
+X(s) is decomposed into \eqn{X(s) \approx \sum^K_{k=1} \xi_{ik} \Phi_k(s)} using
+\code{\link[refund]{fpca.sc}} and represents \eqn{\beta(s)} in the function
+space spanned by \eqn{\Phi_k(s)}, see Scheipl et al. (2014) for details.
+The implementation is similar to \code{\link[refund]{ffpc}}.
+This is an experimental base-learner and not well tested yet.
+The functional variable must be observed on a regular grid \code{s}.
+
 It is recommended to use centered functional covariates with
 \eqn{\sum_i X_i(s) = 0} for all \eqn{s} in \code{bsignal}-,
 \code{bhist}- and \code{bconcurrent}-terms
 so that the effects are centered per time-point of the response.
-If all effects are centered the functional intercept
+If all effects are centered, the functional intercept
 can be interpreted as the global mean function.
 
 Cannot deal with any missing values in the covariates.
 }
 \examples{
-### example for scalar response and two functional covariates
-data(fuelSubset, package = "FDboost")
-modFuel <- FDboost(heatan ~ bsignal(UVVIS, uvvis.lambda, knots=40, df=4, check.ident=FALSE)
-           + bsignal(NIR, nir.lambda, knots=40, df=4, check.ident=FALSE),
-           timeformula=~bols(1), check0=FALSE, data=fuelSubset)
-summary(modFuel)
-## plot(modFuel)
+######## Example for scalar-on-function-regression
+data("fuelSubset", package = "FDboost")
+
+## center the functional covariates per observed wavelength
+fuelSubset$UVVIS <- scale(fuelSubset$UVVIS)
+fuelSubset$NIR <- scale(fuelSubset$NIR)
+
+mod2 <- FDboost(heatan ~ bsignal(UVVIS, uvvis.lambda, knots=40, df=4, check.ident=FALSE)
+               + bsignal(NIR, nir.lambda, knots=40, df=4, check.ident=FALSE),
+               timeformula=~bols(1), data=fuelSubset)
+summary(mod2)
+## plot(mod2)
 }
 \references{
 Brockhaus, S., Scheipl, F., Hothorn, T. and Greven, S. (2015).
-The Functional Linear Array Model. Statistical Modelling, in press.
+The functional linear array model. Statistical Modelling, 15(3), 279-300.
 
 Marra, G., and Wood, S.N., (2011) Practical variable selection for generalized additive models.
 Computational Statistics & Data Analysis, 55, 2372-2387.

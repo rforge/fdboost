@@ -229,20 +229,24 @@ plotPredicted <- function(x, subset=NULL, posLegend="topleft", lwdObs=1, lwdPred
     response <- matrix(x$response, nrow=x$ydim[1], ncol=x$ydim[2])[subset, , drop=FALSE] 
     pred <- fitted(x)[subset, , drop=FALSE]
     pred[is.na(response)] <- NA
+    yind <- x$yind
+    id <- NULL
   }else{
     if(is.null(subset)) subset <- unique(x$id)
     response <- x$response[x$id %in% subset] 
     pred <- fitted(x)[x$id %in% subset]
     pred[is.na(response)] <- NA
+    yind <- x$yind[x$id %in% subset] 
+    id <- x$id[x$id %in% subset]
   }
 
   ylim <- range(response, pred, na.rm = TRUE)
   
   if(length(x$yind)>1){
     # Observed values
-    funplot(x$yind, response, id=x$id, pch=1, ylim=ylim, lty=3, 
+    funplot(yind, response, id=id, pch=1, ylim=ylim, lty=3, 
             ylab=x$yname, xlab=attr(x$yind, "nameyind"), lwd=lwdObs, ...)
-    funplot(x$yind, pred, id=x$id, pch=2, lwd=lwdPred, add=TRUE, ...)
+    funplot(yind, pred, id=id, pch=2, lwd=lwdPred, add=TRUE, ...)
     # predicted values
     legend(posLegend, legend=c("observed","predicted"), col=1, pch=1:2)  
   }else{

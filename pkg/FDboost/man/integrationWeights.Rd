@@ -19,19 +19,21 @@ integrationWeightsLeft(X1, xind, leftWeight = c("first", "mean", "zero"))
 \item{leftWeight}{one of \code{c("mean", "first", "zero")}. With left Riemann sums
 different assumptions for the weight of the first observation are possible.
 The default is to use the mean over all integration weights, \code{"mean"}.
-Alternative one can use the first integration weight, \code{"first"}, or
-use distance to zero, \code{"zero"}.}
+Alternatively one can use the first integration weight, \code{"first"}, or
+use the distance to zero, \code{"zero"}.}
 }
 \description{
 Computes trapezoidal integration weights for a functional variable X1 on grid xind.
 }
 \details{
 The function \code{integrationWeights()} computes trapezoidal integration weights,
- that are symmetric. Per default those weights are use in the \code{\link{bsignal}}-base-learner.
+ that are symmetric. Per default those weights are used in the \code{\link{bsignal}}-base-learner.
+ In the special case of regular xind with equal distances all integration weights are equal.
+
  The function \code{integrationWeightsLeft()} computes weights,
  that take into account only the distance to the prior observation point.
  Thus one has to decide what to do with the first observation.
- Those left weights are adequate for historical effects like in \code{\link{bhist}}.
+ The left weights are adequate for historical effects like in \code{\link{bhist}}.
 }
 \examples{
 ## Example for trapezoidal integration weights
@@ -54,7 +56,7 @@ xind0 <- seq(0,1,l=5)
 xind <- c(0, 0.1, 0.3, 0.7, 1)
 X1 <- matrix(xind^2, ncol=length(xind0), nrow=2)
 
-# Regualar observation points
+# Regular observation points
 integrationWeightsLeft(X1, xind0, leftWeight="mean")
 integrationWeightsLeft(X1, xind0, leftWeight="first")
 integrationWeightsLeft(X1, xind0, leftWeight="zero")

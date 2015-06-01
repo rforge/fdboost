@@ -128,9 +128,10 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
     assign(nameyind, newdata[[nameyind]])
     newdata$ONEtime <- rep(1.0, lengthYind)
     
-    # In the case of bsignal(), bconcurrent() and bhist() it is necessary 
+    # In the case of bsignal(), bfpc(), bconcurrent() and bhist() it is necessary 
     # to add the index of the signal-matrix as attribute
-    posBsignal <- grep("bsignal", names(object$baselearner))
+    posBsignal <- c(grep("bsignal", names(object$baselearner)), 
+                    grep("bfpc", names(object$baselearner)))
     posBconc <- grep("bconcurrent", names(object$baselearner))
     posBhist <- grep("bhist", names(object$baselearner))
     whichHelp <- which
@@ -149,7 +150,7 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
         ## if two ore more base-learners are connected by %X%, find the functional variable 
         if(grepl("%X%", names(object$baselearner)[i])){
           form <- strsplit(object$baselearner[[i]]$get_call(), "%X%")[[1]]
-          findFun <- grepl("bhist", form) | grepl("bconcurrent", form) | grepl("bsignal", form)
+          findFun <- grepl("bhist", form) | grepl("bconcurrent", form) | grepl("bsignal", form) | grepl("bfpc", form)
           form <- form[findFun]
           if(sum(findFun)!=1){stop("Can only predict effect of one functional effect in %X%.")}
           xname <- object$baselearner[[i]]$get_names()[findFun][1]
@@ -467,7 +468,7 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
                          n1=40, n2=40, n3=20, n4=10,...){
   
   if(raw){
-    return(object$coefficients)  
+    return(object$coef(which = which))  
   } else {
     
     # delete an extra 0 in which as the offset is always returned
@@ -519,7 +520,7 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
           ng <- n1
           varnms <- varnms[!varnms %in% c("ONEx", "ONEtime")] 
           # Extra setup of dataframe in the case of a functional covariate
-          if(grepl("bsignal", trm$get_call()) | grepl("bconcurrent", trm$get_call())){
+          if(grepl("bsignal", trm$get_call()) | grepl("bfpc", trm$get_call()) | grepl("bconcurrent", trm$get_call())){
             x <- attr(trm$model.frame()[[1]], "signalIndex")
             xg <- seq(min(x), max(x),length=ng) 
             varnms[1] <- attr(trm$model.frame()[[1]], "indname")            
@@ -545,7 +546,7 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
           ### get variables for x, y and eventually z direction
           
           # Extra setup of dataframe in the case of a functional covariate
-          if(grepl("bsignal", trm$get_call()) | grepl("bhist", trm$get_call())){
+          if(grepl("bsignal", trm$get_call()) | grepl("bfpc", trm$get_call()) | grepl("bhist", trm$get_call())){
             x <- attr(trm$model.frame()[[1]], "signalIndex")
             xg <- seq(min(x), max(x),length=ng) 
             varnms[1] <- attr(trm$model.frame()[[1]], "indname")             
@@ -559,9 +560,12 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
           if(!grepl("bhist", trm$get_call())){
             y <- trm$model.frame()[[yListPlace]] # index of response or second scalar covariate
           }else{
-            y <- object$yind
-            varnms[2] <- attr(object$yind, "nameyind")
+            y <- object$yind  ## attr(trm$model.frame()[[1]], "indexY")
+            varnms[2] <- attr(object$yind, "nameyind") ## attr(trm$model.frame()[[1]], "indnameY")
             if(varnms[1]==varnms[2]) varnms[1] <- paste(varnms[2], "_cov", sep="")
+            if(attr(object$yind, "nameyind") != attr(trm$model.frame()[[1]], "indnameY")){
+              stop("coef.FDboost works for bhist only if time variable is the same in timeformula and bhist.")
+            }
           }
           yg <- if(is.factor(y)) {
             sort(unique(y))
@@ -606,6 +610,24 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
           d[[ trm$get_names()[1] ]] <- I(diag(ng)/integrationWeights(diag(ng), d[[varnms[1]]] ))
         }
         
+        ## add dummy signal to data for bfpc()
+        if(grepl("bfpc", trm$get_call()) ){
+          ##browser()
+          ## <FIXME> only works for regular s \in [0,1]
+          ## use the number of observations of the original s, 
+          ## as fPCA is multivariate for the observations of X
+          origXind <- attr(trm$get_data()[[trm$get_names()[1]]], "signalIndex")
+          #d[[ trm$get_names()[1] ]] <- I( diag(ng)*length(origXind) )
+          
+          if(!all( diff(origXind)[1] - diff(origXind) < .Machine$double.eps*10^10)){
+            warning("<", trm$get_names()[1], ">", " is observed on an irregular grid, ", 
+                    "but computation of smooth effect beta only works for regular grid.")
+          }
+          
+          ## <FIXME> only works for regular observed s 
+          d[[ trm$get_names()[1] ]] <- I(diag(ng)/integrationWeights(diag(origXind), origXind )[1,1] )
+        }
+        
         ## add dummy signal to data for bhist()
         ### <FIXME> is dummy-signal for bhist() correct?
         ## standardisation weights depending on t must be multiplied to the final \beta(s,t)
@@ -640,7 +662,6 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
           }
           d[[attr(object$yind, "nameyind")]] <- 1 
         }
-        
         return(d)
       }
       
@@ -749,7 +770,7 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL, computeCoef=TRUE,
                                                                   each=length(unique(d[[vari]]))  )
           }else{
           # expand signal variable
-          if( grepl("bhist", trm$get_call()) | grepl("bsignal", trm$get_call()) ){
+          if( grepl("bhist", trm$get_call()) | grepl("bsignal", trm$get_call()) | grepl("bfpc", trm$get_call()) ){
             vari <- names(d)[!names(d) %in% attr(d, "varnms")]
             d[[vari]] <- d[[vari]][ rep(1:NROW(d[[vari]]), times=NROW(d[[vari]])), ]
             
@@ -910,10 +931,13 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
   
   #argsPlot <- getArguments(x=formals(graphics::plot.default), dots=dots)
   argsPlot <- getArguments(x=c(formals(graphics::plot.default), par()), dots=dots)
-  argsMatplot  <- getArguments(x=c(formals(graphics::matplot), par(), formals(graphics::plot.default)), dots=dots)
-  argsFunplot  <- getArguments(x=c(formals(funplot), par(), formals(graphics::plot.default)), dots=dots)
+  argsMatplot  <- getArguments(x=c(formals(graphics::matplot), par(), 
+                                   formals(graphics::plot.default)), dots=dots)
+  argsFunplot  <- getArguments(x=c(formals(funplot), par(), 
+                                   formals(graphics::plot.default)), dots=dots)
 
-  argsImage <- getArguments(x=c(formals(graphics::plot.default), formals(graphics::image.default)), dots=dots)
+  argsImage <- getArguments(x=c(formals(graphics::plot.default), 
+                                formals(graphics::image.default)), dots=dots)
   argsContour <- getArguments(x=formals(graphics::contour.default), dots=dots)
   argsPersp <- getArguments(x=formals(getS3method("persp", "default")), dots=dots)
   
@@ -936,10 +960,10 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
   if(is.null(which)) which <- 1:length(x$baselearner) 
   
   if(onlySelected){
-#     sel <- selected(x)
-#     if( !1 %in% sel  && length(x$offsetVec) > 1 && grepl("ONEx", names(x$baselearner)[[1]])){
-#       sel <- c(1, sel) # plot the offset as first effect
-#     } 
+    #     sel <- selected(x)
+    #     if( !1 %in% sel  && length(x$offsetVec) > 1 && grepl("ONEx", names(x$baselearner)[[1]])){
+    #       sel <- c(1, sel) # plot the offset as first effect
+    #     } 
     which <- intersect(which, c(0, selected(x)))
   }
   
@@ -986,11 +1010,11 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
    
     if((length(terms)>1 | terms[[1]]$dim==3) & ask) par(ask=TRUE)
     
-#     ### <TODO> implement common range
-#     if(commonRange){
-#       #range <- range(fit)
-#       #range[1] <- range[1]-0.02*diff(range)
-#     }else range <- NULL
+    #     ### <TODO> implement common range
+    #     if(commonRange){
+    #       #range <- range(fit)
+    #       #range[1] <- range[1]-0.02*diff(range)
+    #     }else range <- NULL
     
     for(i in 1:length(terms)){
       trm <- terms[[i]] 
@@ -1020,7 +1044,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
         }
         
           if(rug & !is.factor(x=trm$x)){
-            if(grepl("bconcurrent", trm$main) | grepl("bsignal", trm$main)){
+            if(grepl("bconcurrent", trm$main) | grepl("bsignal", trm$main) | grepl("bfpc", trm$main) ){
               rug(attr(bl_data[[i]][[1]], "signalIndex"), ticksize = 0.02)
             }else ifelse(length(unique(bl_data[[i]][[1]]))!=1,
                          rug(bl_data[[i]][[1]], ticksize = 0.02),
@@ -1072,7 +1096,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
         if(trm$dim==2 & !pers){        
           plotWithArgs(image, args=argsImage,
                        myargs=list(x=trm$y, y=trm$x, z=t(trm$value), xlab=trm$ylab, ylab=trm$xlab, 
-                                   main=trm$main, col = terrain.colors(length(trm$x)^2)))          
+                                   main=trm$main, col = heat.colors(length(trm$x)^2)))          
           plotWithArgs(contour, args=argsContour,
                        myargs=list(trm$y, trm$x, z=t(trm$value), add = TRUE))
           
@@ -1085,7 +1109,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
                      rug(bl_data[[i]][[3]], ticksize = 0.02),
                      rug(bl_data[[i]][[2]], ticksize = 0.02))
             }
-            ifelse(grepl("bsignal", trm$main) | grepl("bhist", trm$main),
+            ifelse(grepl("bsignal", trm$main) | grepl("bfpc", trm$main) | grepl("bhist", trm$main),
               rug(attr(bl_data[[i]][[1]], "signalIndex"), ticksize = 0.02, side=2),
               rug(bl_data[[i]][[1]], ticksize = 0.02, side=2))
           }
@@ -1109,17 +1133,17 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
         for(j in 1:length(trm$z)){
           plotWithArgs(image, args=argsImage,
             myargs=list(x=trm$x, y=trm$y, z=trm$value[[j]], xlab=trm$xlab, ylab=trm$ylab,
-                        col = terrain.colors(length(trm$x)^2), zlim=range(trm$value),
+                        col = heat.colors(length(trm$x)^2), zlim=range(trm$value),
                         main= paste(trm$zlab ,"=", round(trm$z[j],2), ": ", trm$main, sep="")))
           plotWithArgs(contour, args=argsContour,
                        myargs=list(trm$x, trm$y, trm$value[[j]], xlab=trm$xlab, add = TRUE))
           if(rug){
             points(bl_data[[i]][[1]], bl_data[[i]][[2]]) 
           }
-#           plotWithArgs(filled.contour, args=list(),
-#                        myargs=list(x=trm$x, y=trm$y, z=trm$value[[j]], xlab=trm$xlab, ylab=trm$ylab,
-#                                    zlim=range(trm$value), color.palette=terrain.colors,
-#                                    main= paste(trm$zlab ,"=", round(trm$z[j],2), ": ", trm$main, sep="")))
+          #           plotWithArgs(filled.contour, args=list(),
+          #                        myargs=list(x=trm$x, y=trm$y, z=trm$value[[j]], xlab=trm$xlab, ylab=trm$ylab,
+          #                                    zlim=range(trm$value), color.palette=heat.colors,
+          #                                    main= paste(trm$zlab ,"=", round(trm$z[j],2), ": ", trm$main, sep="")))
         }        
       }
     } # end for-loop
@@ -1181,7 +1205,7 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
       if(length(time)>1){
         
         plotWithArgs(funplot, args=argsFunplot, 
-                     myargs=list(x=time, y=terms[[i]], id=x$id, type="l", ylab="effect", lty=1, rug=FALSE,
+                     myargs=list(x=time, y=terms[[i]][[1]], id=x$id, type="l", ylab="effect", lty=1, rug=FALSE,
                                  xlab=attr(time, "nameyind"), ylim=range, main=shrtlbls[i]))
         if(rug) rug(time)
       }else{

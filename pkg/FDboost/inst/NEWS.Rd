@@ -1,6 +1,23 @@
 \name{NEWS}
 \title{News for Package 'FDboost'}
 
+
+\section{Changes in FDboost version 0.0-11 (2015-06-01)}{
+  \subsection{User-visible changes}{
+    \itemize{
+    \item integrationWeights() gives equal weights for regular grids
+    \item new base-learner bfpc() for a functional covariate where
+    functional covariate and the coeffcient are both expanded using fPCA (experimental feature!); 
+    only works for regularly observed functional covariate. 
+    }
+  }
+  \subsection{Bug-fixes}{
+    \itemize{
+      \item the function coef.FDboost() only works for bhist() if the time variable is the same in the timeformula and in bhist()
+    }
+  }
+}
+
 \section{Changes in FDboost version 0.0-10 (2015-04-16)}{
   \subsection{User-visible changes}{
     \itemize{
