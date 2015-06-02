@@ -62,7 +62,7 @@ intercept is implicitly included but each factor level gets a
 separate effect estimate (for more details see \code{\link[mboost]{brandom}}).}
 }
 \value{
-Equally to the base-learners of the package mboost:
+Equally to the base-learners of package mboost:
 
 An object of class \code{blg} (base-learner generator) with a
 \code{dpp} function.
@@ -86,7 +86,9 @@ marginal terms include the index of the functional
 response \eqn{t} constraints that enforce
 \eqn{\sum_i \hat f(z_i, x_i, t) = 0} for all \eqn{t} are used, so that
 effects varying over \eqn{t} can be interpreted as deviations
-from the global functional intercept.
+from the global functional intercept, see the online appendix of
+Brockhaus et al. (2015) for details on how to enforce the
+constraints.
 
 Cannot deal with any missing values in the covariates.
 }

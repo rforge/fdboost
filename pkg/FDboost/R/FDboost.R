@@ -7,14 +7,14 @@
 #' only one observation. 
 #' This function is a wrapper for \code{mboost}'s \code{\link[mboost]{mboost}} and its 
 #' siblings to fit models of the general form 
-#' \cr \eqn{xi(Y_i(t)) = \sum_j h_j(x_i, t)} \cr
+#' \cr \eqn{\xi(Y_i(t)) = \sum j h_j(x_i, t)}, i=1, ..., N, \cr
 #' with a functional (but not necessarily continuous) response \eqn{Y(t)}, 
-#' transformation function \eqn{xi}, e.g. the expectation, the median or some quantile, 
+#' transformation function \eqn{\xi}, e.g., the expectation, the median or some quantile, 
 #' and partial effects \eqn{h_j(x_i, t)} depending on covariates 
 #' and the current index of the response. 
-#' Possible effects are e.g. a smooth intercept \eqn{\mu(t)}, 
+#' Possible effects are, e.g., a smooth intercept \eqn{\beta_0(t)}, 
 #' effects of functional covariates \eqn{\int X_i(s)\beta(s,t)ds}, 
-#' smooth and linear effects of scalar covariates \eqn{f(z_{i})}, \eqn{z_{i} \beta_3(t)}. 
+#' smooth and linear effects of scalar covariates \eqn{f(z_i)}, \eqn{z_i \beta(t)}. 
 #' 
 #' @param formula a symbolic description of the model to be fit.
 #' @param timeformula formula for the expansion over the index of the response. 
@@ -23,8 +23,9 @@
 #' use \code{~bols(1)}, which sets up a base-learner for the scalar 1.
 #' @param id defaults to NULL which means that the response is a matrix with a regular time. 
 #' If the response is given in long format for irregular observations, \code{id} 
-#' contains the information which observations belong together. 
-#' \code{id} should contain numbers 1, 2, 3, ...
+#' contains the information which observations belong together and must be supplied as a formula, 
+#' \code{~nameid}, where the variable \code{nameid} should be contained in \code{nameid} 
+#' and contain integers 1, 2, 3, ..., N. 
 #' @param numInt integration scheme for the integration of the loss function.
 #' One of \code{c("equal", "Riemann")} meaning equal weights of 1 or 
 #' trapezoidal Riemann weights.
@@ -48,21 +49,24 @@
 #' including, \code{family} and \code{control}.
 #' 
 #' @details The functional response and functional covariates have to be
-#' supplied as n by <no. of evaluations> matrices, i.e., each row is one
+#' supplied as N by <number of evaluations> matrices, i.e., each row is one
 #' functional observation. For the model fit the matrix of the functional
 #' response evaluations \eqn{Y_i(t)} are stacked into one long vector. 
-#' If it is possible to write the model as a generalized linear array model 
+#' If it is possible to represent the model as a generalized linear array model 
 #' (Currie et al., 2006), the array structure is used for an efficient implementation, 
 #' see \code{\link[mboost]{mboost}}. This is only possible if the design 
 #' matrix can be written as the Kronecker product of two marginal design 
-#' matrices. 
+#' matrices, see Brockhaus et al. (2015) for details. 
+#' The Kronecker product of two marignal bases is implemented in R-package mboost 
+#' in the function \code{\%O\%}, see ?"\%O\%".  
 #' 
 #' If the response is observed irregularly or sparse it must be supplied  
 #' as a vector in long format. In that case the argument \code{id} has  
-#' to be specified as integers 1, 2, 3, ... to define which observation
-#' belongs to which curve. In this case the base-learners are built as
-#' row tensor-products of marginal base-learners, see Scheipl et al. (2014), 
-#' for details on how to set up the effects. 
+#' to be specified (as formula!) to define which observations belong to which curve. 
+#' In this case the base-learners are built as row tensor-products of marginal base-learners, 
+#' see Scheipl et al. (2014), for details on how to set up the effects. 
+#' The row tensor product of two marignal bases is implemented in R-package mboost 
+#' in the function \code{\%X\%}, see ?"\%X\%".
 #' 
 #' @return on object of class \code{FDboost} that inherits from \code{mboost}.
 #' Special \code{\link{predict.FDboost}}, \code{\link{coef.FDboost}} and 
@@ -89,8 +93,8 @@
 #' @author Sarah Brockhaus, Torsten Hothorn
 #' 
 #' @seealso Note that \link{FDboost} calls \code{\link[mboost]{mboost}} directly.  
-#' See e.g. \code{\link[FDboost]{bsignal}} and \code{\link[FDboost]{bbsc}} 
-#' for possible base-learners
+#' See, e.g., \code{\link[FDboost]{bsignal}} and \code{\link[FDboost]{bbsc}} 
+#' for possible base-learners. 
 #' 
 #' @keywords models, nonlinear 
 #' 

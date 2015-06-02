@@ -445,26 +445,32 @@ X_bsignal <- function(mf, vary, args) {
 #' @aliases bconcurrent bhist bfpc 
 #' 
 #' @details \code{bsignal} implements a base-learner for functional covariates to  
-#' estimate an effect of the form \eqn{int X_i(s)\beta(t,s)ds}. Defaults to a cubic  
-#' B-spline basis with first difference penalties for \eqn{beta(t,s)} in the direction 
-#' of s and numerical integration over the entire range by using trapezoidal 
-#' Riemann weights. 
+#' estimate an effect of the form \eqn{int x_i(s)\beta(s)ds}. Defaults to a cubic  
+#' B-spline basis with first difference penalties for \eqn{beta(s)} and numerical 
+#' integration over the entire range by using trapezoidal Riemann weights. 
+#' If \code{bsignal} is used within \code{FDboost}, the base-learner of 
+#' \code{timeformula} is attached, resulting in an effect varying over the index
+#' of the response \eqn{int x_i(s)\beta(s, t)ds}.   
 #' 
 #' \code{bconcurrent} implements a concurrent effect for a functional covariate
-#' on a functional response, i.e. an effect of the form \eqn{X_i(t)beta(t)} for
-#' a functional response \eqn{Y_i(t)}. 
+#' on a functional response, i.e., an effect of the form \eqn{x_i(t)beta(t)} for
+#' a functional response \eqn{Y_i(t)} and concurrently observed covariate \eqn{x_i(t)}. 
+#' \code{bconcurrent} can only be used if \eqn{Y(t)} and \eqn{x(s)} are observd over
+#' the same domain \eqn{s,t \in [t_0, T]}.  
 #'
 #' \code{bhist} implements a base-learner for functional covariates with 
 #' flexible integration limits \code{l(t)}, \code{r(t)} and the possibility to
 #' standardize the effect by \code{1/t} or the length of the integration interval. 
 #' The effect is \code{stand * int_{l(t)}^{r_{t}} x(s)beta(t,s)ds}. 
 #' The base-learner defaults to a historical effect of the form 
-#' \eqn{\int_{t0}^{t} X_i(s)beta(t,s)ds}, 
-#' where \eqn{t0} is the minimal index of \eqn{t} of the response \eqn{Y(t)}.
+#' \eqn{\int_{t0}^{t} x_i(s)beta(t,s)ds}, 
+#' where \eqn{t0} is the minimal index of \eqn{t} of the response \eqn{Y(t)}. 
+#' \code{bhist} can only be used if \eqn{Y(t)} and \eqn{x(s)} are observd over
+#' the same domain \eqn{s,t \in [t_0, T]}.   
 #' 
 #' \code{bfpc} is a base-learner for functional covariates based on 
 #' functional principal component analysis (fPCA). The functional covariate
-#' X(s) is decomposed into \eqn{X(s) \approx \sum^K_{k=1} \xi_{ik} \Phi_k(s)} using 
+#' \eqn{x(s)} is decomposed into \eqn{x(s) \approx \sum^K_{k=1} \xi_{ik} \Phi_k(s)} using 
 #' \code{\link[refund]{fpca.sc}} and represents \eqn{\beta(s)} in the function
 #' space spanned by \eqn{\Phi_k(s)}, see Scheipl et al. (2014) for details. 
 #' The implementation is similar to \code{\link[refund]{ffpc}}.  
@@ -472,7 +478,7 @@ X_bsignal <- function(mf, vary, args) {
 #' The functional variable must be observed on a regular grid \code{s}.      
 #' 
 #' It is recommended to use centered functional covariates with 
-#' \eqn{\sum_i X_i(s) = 0} for all \eqn{s} in \code{bsignal}-, 
+#' \eqn{\sum_i x_i(s) = 0} for all \eqn{s} in \code{bsignal}-, 
 #' \code{bhist}- and \code{bconcurrent}-terms 
 #' so that the effects are centered per time-point of the response. 
 #' If all effects are centered, the functional intercept 
@@ -480,7 +486,7 @@ X_bsignal <- function(mf, vary, args) {
 #' 
 #' Cannot deal with any missing values in the covariates.
 #' 
-#' @return Equally to the base-learners of the package mboost: 
+#' @return Equally to the base-learners of package mboost: 
 #' 
 #' An object of class \code{blg} (base-learner generator) with a 
 #' \code{dpp} function. 
@@ -1440,6 +1446,7 @@ X_fpc <- function(mf, vary, args) {
     
     ## only use part of the eigen-functions! 
     args$subset <- 1:min(ncol(klX$scores), args$npc.max)
+    ## args$a <- max(xind) - min(xind)
     
     ## scores \xi_{ik}: rows i=1,..., N and columns k=1,...,K
     ## are the design matrix
@@ -1454,6 +1461,8 @@ X_fpc <- function(mf, vary, args) {
     if(ncol(X1) == length(klX$mu) && all(args$s == xind)){
       ## is the same as "X <- klX$scores[ , args$subset, drop = FALSE]" if klX is fPCA on X1 
       X <- (scale(X1, center=klX$mu, scale=FALSE) %*% klX$efunctions)[ , args$subset, drop = FALSE]
+      ## <FIXME> use integration weights?
+      #X <- 1/args$a*(scale(X1, center=klX$mu, scale=FALSE) %*% klX$efunctions)[ , args$subset, drop = FALSE]
     }else{
       ##stop("In bfpc the grid for the functional covariate has to be the same as in the model fit!")
       ## <FIXME> is this linear interpolation of the basis functions correct?
@@ -1462,7 +1471,9 @@ X_fpc <- function(mf, vary, args) {
         approxEfunctions[,i] <- approx(x=args$klX$xind, y=klX$efunctions[,i], xout=xind)$y
       }
       approxMu <- approx(x=args$klX$xind, y=klX$mu, xout=xind)$y
-      X <- (scale(X1, center=approxMu, scale=FALSE) %*% approxEfunctions) 
+      X <-(scale(X1, center=approxMu, scale=FALSE) %*% approxEfunctions)
+      ## <FIXME> use integration weights?
+      #X <- 1/args$a*(scale(X1, center=approxMu, scale=FALSE) %*% approxEfunctions)
     }  
   }
 
@@ -1852,11 +1863,13 @@ hyper_bbsc <- function(Z, ...){
 #' response \eqn{t} constraints that enforce 
 #' \eqn{\sum_i \hat f(z_i, x_i, t) = 0} for all \eqn{t} are used, so that 
 #' effects varying over \eqn{t} can be interpreted as deviations 
-#' from the global functional intercept. 
+#' from the global functional intercept, see the online appendix of 
+#' Brockhaus et al. (2015) for details on how to enforce the 
+#' constraints. 
 #' 
 #' Cannot deal with any missing values in the covariates.
 #' 
-#' @return Equally to the base-learners of the package mboost: 
+#' @return Equally to the base-learners of package mboost: 
 #' 
 #' An object of class \code{blg} (base-learner generator) with a 
 #' \code{dpp} function. 
