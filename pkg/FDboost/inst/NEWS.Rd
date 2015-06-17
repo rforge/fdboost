@@ -14,6 +14,7 @@
   \subsection{Bug-fixes}{
     \itemize{
       \item the function coef.FDboost() only works for bhist() if the time variable is the same in the timeformula and in bhist()
+      \item predict.FDboost() has a check that for newdata only type="link" can be predicted
     }
   }
 }
