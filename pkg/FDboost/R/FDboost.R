@@ -213,7 +213,7 @@ FDboost <- function(formula,          ### response ~ xvars
 {
   dots <- list(...)
 
-  ## insert the id variable into the formula, to treat is like the other variables
+  ## insert the id variable into the formula, to treat it like the other variables
   if(!is.null(id)){
     stopifnot(class(id)=="formula")
     tf <- terms.formula(formula, specials=c("c"))
@@ -260,6 +260,36 @@ FDboost <- function(formula,          ### response ~ xvars
     data$ONEtime <- 1
     response <- matrix(response, ncol=1)
   }
+  
+  ### <TODO> find a reasonable way to warn the user in the case of non-identifiable models?
+  #   else{   
+  #     ### <FIXME> option to switch off those checks?    
+  #     ## in the case of functional response: check formula to use identifiable base-learners
+  #     tf <- terms.formula(formula, specials=c("c"))
+  #     trmstrings <- attr(tf, "term.labels")    
+  #     if(length(trmstrings)>0){
+  #       if(any(grepl("bbs(", trmstrings, fixed = TRUE))){
+  #         warning("Use bbsc() instead of bbs() with functional response, to get an identifiable model.")
+  #       }      
+  #       if(any(grepl("bols(", trmstrings, fixed = TRUE))){
+  #         temp <- trmstrings[grepl("bols(", trmstrings, fixed = TRUE)]
+  #         #temp[[1]]
+  #         warning("Use bolsc() instead of bols() with functional response, to get an identifiable model.")
+  #       }      
+  #       if(any(grepl("brandom(", trmstrings, fixed = TRUE))){
+  #         warning("Use brandomc() instead of brandom() with functional response, to get an identifiable model.")
+  #       }      
+  #       if(any(grepl("bspatial(", trmstrings, fixed = TRUE))){
+  #         warning("Use bbsc() instead of bspatial() with functional response, to get an identifiable model.")
+  #       }      
+  #       if(any(grepl("bmono(", trmstrings, fixed = TRUE))){
+  #         warning("With functional response, base-learner bmono() yields generally not an identifiable effect.")
+  #       }      
+  #       if(any(grepl("bmrf(", trmstrings, fixed = TRUE))){
+  #         warning("With functional response, base-learner bmrf() yields generally not an identifiable effect.")
+  #       }
+  #     }    
+  #   }
   
   ### extract time;
   # <FixMe> Only keep first variable, 

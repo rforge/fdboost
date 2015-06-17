@@ -48,7 +48,7 @@ print.FDboost <- function(x, ...) {
   }
   cat("\n")
   if (!is.null(x$call))
-    cat("Call:\n", deparse(x$call), "\n\n", sep = "")
+    cat("Call:\n", deparse(x$call, nlines=10), "\n\n", sep = "", nlines = 10)
   show(x$family)
   cat("\n")
   cat("Number of boosting iterations: mstop =", mstop(x), "\n")
@@ -105,6 +105,13 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
   
   classObject <- class(object)
   class(object) <- "mboost"
+  
+  ## check that type="link" if the type is given, 
+  ## otherwise adding the different effects of the linear predictor does not make sense!
+  dots <- list(...)
+  if(!is.null(newdata) && !is.null(dots$type) && dots$type!="link"){
+    stop("predict.FDboost can only handle type=\"link\" when newdata is provided.")
+  } 
   
   ### Prepare data so that the function predict.mboost() can be used
   if(!is.null(newdata)){
