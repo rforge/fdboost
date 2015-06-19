@@ -78,8 +78,8 @@ integrationWeights <- function(X1, xind, id=NULL){
   ## special case that grid has equal distances = regular grid
   if(all( abs(diff(xind) - mean(diff(xind))) < .Machine$double.eps *10^10 )){
     ## use the first difference 
-    ## L <- matrix(diff(xind)[1], nrow=nrow(X1), ncol=ncol(X1)) 
-    L <- matrix( 1/length(xind)*( max(xind)-min(xind) ), nrow=nrow(X1), ncol=ncol(X1))
+    L <- matrix(diff(xind)[1], nrow=nrow(X1), ncol=ncol(X1)) 
+    ##L <- matrix( 1/length(xind)*( max(xind)-min(xind) ), nrow=nrow(X1), ncol=ncol(X1))
     
   }else{ ## case with irregular grid
     
