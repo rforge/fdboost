@@ -194,7 +194,7 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
         # save data of concurrent effects
         if(i %in% posBconc){
           newdataConc[[xname]] <- newdata[[xname]]
-          if(grepl("%X%", names(object$baselearner)[posBconc])){
+          if(grepl("%X%", names(object$baselearner)[i])){
             xname <- object$baselearner[[i]]$get_names() 
             xname <- xname[!xname %in% names(newdataConc)] # already there
             # print(xname)
@@ -205,7 +205,7 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, unlist=TRUE, ...
         # save data of historic effects
         if(i %in% posBhist){
           newdataHist[[xname]] <- newdata[[xname]]
-          if(grepl("%X%", names(object$baselearner)[posBhist])){
+          if(grepl("%X%", names(object$baselearner)[i])){
             xname <- object$baselearner[[i]]$get_names() 
             xname <- xname[!xname %in% names(newdataHist)] # already there
             # print(xname)
