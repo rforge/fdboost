@@ -1,10 +1,12 @@
 citHeader("To cite package FDboost in publications use:")
 
 citEntry(
- entry="Article",
- title="The Functional Linear Array Model",
- journal="Statistical Modelling",
- year="2015",
- note="in press",
- author="Sarah Brockhaus, Fabian Scheipl, Torsten Hothorn and Sonja Greven",
- textVersion="Brockhaus, S., Scheipl, F., Hothorn, T. and Greven, S. (2015) The Functional Linear Array Model. Statistical Modelling, 15(3), 279-300." )
+ entry = "Article",
+ title = "The Functional Linear Array Model", 
+ author = "Sarah Brockhaus, Fabian Scheipl, Torsten Hothorn, and Sonja Greven",
+ journal = "Statistical Modelling",
+ year = "2015",
+ volume = "15",
+ number = "3",
+ pages = "279--300",
+ textVersion="Brockhaus, S., Scheipl, F., Hothorn, T., and Greven, S. (2015), The Functional Linear Array Model. Statistical Modelling, 15(3), 279-300." )
