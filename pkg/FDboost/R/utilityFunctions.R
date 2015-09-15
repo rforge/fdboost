@@ -102,7 +102,8 @@ funplot <- function(x, y, id=NULL, rug=TRUE, ...){
   argsPlot <- getArguments(x=c(formals(graphics::plot.default), par()), dots=dots)
   
   
-  if(!is.vector(y)){  # is.null(id)
+  #if( !(is.vector(y) | is.atomic(y)) ){  # is.null(id)
+  if( !is.null(dim(y)) ){ # is.null(id)
     
     # Deal with missing values: interpolate data
     if (missing(x)) {

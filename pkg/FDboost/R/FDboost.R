@@ -189,7 +189,53 @@
 #'  ## plot(mod3, pers=TRUE)
 #' }
 #' 
+#' ######## Example for functional response observed on irregular grid
+#' ######## Delete part of observations in viscosity data-set
+#' data("viscosity", package = "FDboost")
+#' ## set time-interval that should be modeled
+#' interval <- "101"
 #' 
+#' ## model time until "interval" and take log() of viscosity
+#' end <- which(viscosity$timeAll==as.numeric(interval))
+#' viscosity$vis <- log(viscosity$visAll[,1:end])
+#' viscosity$time <- viscosity$timeAll[1:end]
+#' # with(viscosity, funplot(time, vis, pch=16, cex=0.2))
+#' 
+#' ## only keep a quarter of the observation points
+#' set.seed(123)
+#' selectObs <- sample(x=1:(64*46), size=64*46/4, replace=FALSE)
+#' dataIrregular <- with(viscosity, list(vis=c(vis)[selectObs], 
+#'                                       T_A=T_A, T_C=T_C,  
+#'                                       time=rep(time, each=64)[selectObs], 
+#'                                       id=rep(1:64, 46)[selectObs]))
+#' 
+#' ## fit median regression model with 100 boosting iterations,
+#' ## step-length 0.4 and smooth time-specific offset
+#' ## the factors are in effect coding -1, 1 for the levels
+#' ## no integration weights are used!
+#' mod4 <- FDboost(vis ~ 1 + bols(T_C, contrasts.arg = "contr.sum", intercept=FALSE)
+#'                 + bols(T_A, contrasts.arg = "contr.sum", intercept=FALSE),
+#'                 timeformula=~bbs(time, lambda=100), id=~id, 
+#'                 numInt="equal", family=QuantReg(),
+#'                 offset=NULL, offset_control = o_control(k_min = 9),
+#'                 data=dataIrregular, control=boost_control(mstop = 100, nu = 0.4))
+#' summary(mod4)
+#' ## plot(mod4)
+#' ## plotPredicted(mod4, lwdPred=2)
+
+#' ## Be careful if you want to predict newdata with irregular response,  
+#' ## as the argument index is not considered in the prediction of newdata. 
+#' ## Thus all covariates have to be reapeated according to the number of observations 
+#' ## in each response trajectroy. 
+#' ## Predict four response curves with full time-observations 
+#' ## for the four combinations of T_A and T_C. 
+#' newd <- list(T_A=factor(c(1,1,2,2), levels=1:2, labels=c("low", "high"))[rep(1:4, length(viscosity$time))], 
+#'              T_C=factor(c(1,2,1,2), levels=1:2, labels=c("low", "high"))[rep(1:4, length(viscosity$time))], 
+#'              time=rep(viscosity$time, 4))
+#' 
+#' pred <- predict(mod4, newdata=newd)
+#' ## funplot(x=rep(viscosity$time, 4), y=pred, id=rep(1:4, length(viscosity$time)))
+#'                   
 #'                 
 #' @export
 #' @import mboost Matrix 
@@ -219,7 +265,21 @@ FDboost <- function(formula,          ### response ~ xvars
     tf <- terms.formula(formula, specials=c("c"))
     trmstrings <- attr(tf, "term.labels")
     if(length(trmstrings)>0){
+      ## insert id at end of each base-learner
       trmstrings2 <- paste(substr(trmstrings, 1 , nchar(trmstrings)-1), ", index=", id[2],")", sep="")
+      ## insert into the other base-learners of the tensor-product as well
+      for(i in 1:length(trmstrings)){
+        if(grepl( "%X", trmstrings2[i])){
+          temp <- unlist(strsplit(trmstrings2[i], "%X"))
+          temp1 <- temp[-length(temp)]
+          ## http://stackoverflow.com/questions/2261079
+          ## delete all trailing whitespace
+          trim.trailing <- function (x) sub("\\s+$", "", x) 
+          temp1 <- trim.trailing(temp1)
+          temp1 <- paste(substr(temp1, 1 , nchar(temp1)-1), ", index=", id[2],")", sep="")
+          trmstrings2[i] <- paste0(paste0(temp1, collapse=" %X"), " %X", temp[length(temp)]) 
+        } 
+      }
       ### <FIXME> do not add an index if an index is already part of the formula
       #trmstrings2[grepl("index", trmstrings)] <- trmstrings[grepl("index", trmstrings)]
       trmstrings <- trmstrings2

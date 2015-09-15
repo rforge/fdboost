@@ -129,8 +129,27 @@ cbs <- function (x, knots, boundary.knots, degree = 3, deriv = 0L) {
   return(X)
 }
 
+
+### code taken form mboost 2.5-0
+### new argument extrapolation
 bsplines <- function(x, knots, boundary.knots, degree,
-                     Ts_constraint = "none", deriv = 0L){
+                     Ts_constraint = "none", deriv = 0L,
+                     extrapolation = FALSE) {
+  
+  ## do not allow data beyond boundary knots while fitting
+  if (!extrapolation && (any(x < boundary.knots[1], na.rm = TRUE) |
+                         any(x > boundary.knots[2], na.rm = TRUE)))
+    stop("some ", sQuote("x"), " values are beyond ",
+         sQuote("boundary.knots"))
+  
+  ## allow extrapolation when predicting
+  if (extrapolation <- extrapolation &&
+      (any(x < boundary.knots[1], na.rm = TRUE) |
+       any(x > boundary.knots[2], na.rm = TRUE))) {
+    warning("Some ", sQuote("x"), " values are beyond ",
+            sQuote("boundary.knots"), "; Linear extrapolation used.")
+  }
+  
   nx <- names(x)
   x <- as.vector(x)
   ## handling of NAs
@@ -148,6 +167,27 @@ bsplines <- function(x, knots, boundary.knots, degree,
   ## construct design matrix
   X <- splineDesign(k, x, degree + 1, derivs = rep(deriv, length(x)),
                     outer.ok = TRUE)
+  
+  ## code along the lines of mgcv::Predict.matrix.pspline.smooth
+  if (extrapolation) {
+    ## Build matrix to map coeficients to value (deriv = 0) and
+    ## slope (deriv = 1) at end points.
+    if (deriv != 0L) {
+      warning("deriv != 0L; Linear extrapolation overwritten")
+    } else {
+      deriv <- c(0, 1, 0, 1)
+    }
+    D <- splineDesign(knots = k, x = rep(boundary.knots, each = 2),
+                      ord = degree + 1, deriv)
+    ## Add rows for linear extrapolation
+    idx <- x < boundary.knots[1]
+    if (any(idx, na.rm = TRUE))
+      X[idx,] <- cbind(1, x[idx] - boundary.knots[1]) %*% D[1:2, ]
+    idx <- x > boundary.knots[2]
+    if (any(idx, na.rm = TRUE))
+      X[idx,] <- cbind(1, x[idx] - boundary.knots[2]) %*% D[3:4, ]
+  }
+  
   ## handling of NAs
   if (nas) {
     tmp <- matrix(NA, length(nax), ncol(X))
@@ -168,7 +208,7 @@ bsplines <- function(x, knots, boundary.knots, degree,
     attr(X, "Ts_constraint") <- Ts_constraint
   if (Ts_constraint != "none")
     attr(X, "D") <- D
-  if (deriv != 0)
+  if (length(deriv) > 1 || deriv != 0)
     attr(X, "deriv") <- deriv
   dimnames(X) <- list(nx, 1L:ncol(X))
   return(X)

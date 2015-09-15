@@ -370,7 +370,7 @@ for(i in 1:35) {
 plot(0,0,col="white",xaxt="n",yaxt="n",bty="n")
 
 if(require(maps) & require(mapdata)){
-  mapcanada <- map(database="worldHires", regions="can", plot=FALSE)
+  mapcanada <- map(database="world", regions="can", plot=FALSE)
   plot(mapcanada, type="l", xaxt="n", yaxt="n", ylab="", xlab="", bty="n",
      xlim = c(-141,-50), ylim=c(43,74),
      col="grey",

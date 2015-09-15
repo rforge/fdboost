@@ -457,6 +457,9 @@ X_bsignal <- function(mf, vary, args) {
 #' a functional response \eqn{Y_i(t)} and concurrently observed covariate \eqn{x_i(t)}. 
 #' \code{bconcurrent} can only be used if \eqn{Y(t)} and \eqn{x(s)} are observd over
 #' the same domain \eqn{s,t \in [t_0, T]}.  
+#' Note that in the case of \code{bhist} the argument \code{index} is treated
+#' like a variable and thus has to be given as variable in \code{newdata}, 
+#' if \code{predict.FDboost} is with argument \code{newdata}.  
 #'
 #' \code{bhist} implements a base-learner for functional covariates with 
 #' flexible integration limits \code{l(t)}, \code{r(t)} and the possibility to

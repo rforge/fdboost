@@ -2,6 +2,18 @@
 \title{News for Package 'FDboost'}
 
 
+\section{Changes in FDboost version 0.0-13 (2015-09-15)}{
+  \subsection{User-visible changes}{
+    \itemize{
+    \item todo, new base-learner bhistx() planned
+    }
+  }
+}
+
+\section{Changes in FDboost version 0.0-12 (2015-09-15)}{
+Internal experimental version. 
+}
+
 \section{Changes in FDboost version 0.0-11 (2015-06-01)}{
   \subsection{User-visible changes}{
     \itemize{
