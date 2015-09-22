@@ -22,7 +22,7 @@ cvLong(id, weights = rep(1, l = length(id)), type = c("bootstrap", "kfold",
 
 cvMa(ydim, weights = rep(1, l = ydim[1] * ydim[2]), type = c("bootstrap",
   "kfold", "subsampling", "curves"), B = ifelse(type == "kfold", 10, 25),
-  prob = 0.5, strata = NULL)
+  prob = 0.5, strata = NULL, ...)
 }
 \arguments{
 \item{object}{fitted FDboost-object}
@@ -60,7 +60,8 @@ may extract any other characteristic of the cross-validated models. These are re
 
 \item{corrected}{see \code{\link[mboost]{cvrisk}}.}
 
-\item{id}{the id-vector as integers 1, 2, ... specifying which observations belong to the same curve.}
+\item{id}{the id-vector as integers 1, 2, ... specifying which observations belong to the same curve,
+deprecated in \code{cvMa()}}
 
 \item{weights}{a numeric vector of (integration) weights, defaults to 1.}
 

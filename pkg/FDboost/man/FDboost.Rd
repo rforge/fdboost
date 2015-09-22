@@ -106,7 +106,7 @@ If the response is observed irregularly or sparse it must be supplied
 as a vector in long format. In that case the argument \code{id} has
 to be specified (as formula!) to define which observations belong to which curve.
 In this case the base-learners are built as row tensor-products of marginal base-learners,
-see Scheipl et al. (2014), for details on how to set up the effects.
+see Scheipl et al. (2015), for details on how to set up the effects.
 The row tensor product of two marignal bases is implemented in R-package mboost
 in the function \code{\%X\%}, see ?"\%X\%".
 }
@@ -245,10 +245,8 @@ Currie, I.D., Durban, M., and Eilers P.H.C. (2006),
 Generalized linear array models with applications to multidimensional smoothing.
 Journal of the Royal Statistical Society, Series B-Statistical Methodology, 68(2), 259-280.
 
-Scheipl, F., Staicu, A.-M., and Greven, S. (2014),
-Functional Additive Mixed Models, Journal of Computational and Graphical Statistics,
-in press, DOI 10.1080/10618600.2014.901914.
-\url{http://arxiv.org/abs/1207.5947}
+Scheipl, F., Staicu, A.-M., and Greven, S. (2015),
+Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 24(2), 477-501.
 }
 \seealso{
 Note that \link{FDboost} calls \code{\link[mboost]{mboost}} directly.

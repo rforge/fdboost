@@ -5,7 +5,8 @@
 \title{Coefficients of boosted functional regression model}
 \usage{
 \method{coef}{FDboost}(object, raw = FALSE, which = NULL,
-  computeCoef = TRUE, n1 = 40, n2 = 40, n3 = 20, n4 = 10, ...)
+  computeCoef = TRUE, returnData = FALSE, n1 = 40, n2 = 40, n3 = 20,
+  n4 = 10, ...)
 }
 \arguments{
 \item{object}{a fitted \code{FDboost}-object}
@@ -20,6 +21,9 @@ defaults to NULL which is the same as \code{which=1:length(object$baselearner)}
 In the special case of \code{which=0}, only the coefficients of the offset are returned.}
 
 \item{computeCoef}{defaults to TRUE, if FALSE only the names of the terms are returned}
+
+\item{returnData}{return the dataset which is used to get the coefficient estimates as
+predictions}
 
 \item{n1}{see below}
 

@@ -64,7 +64,7 @@
 #' as a vector in long format. In that case the argument \code{id} has  
 #' to be specified (as formula!) to define which observations belong to which curve. 
 #' In this case the base-learners are built as row tensor-products of marginal base-learners, 
-#' see Scheipl et al. (2014), for details on how to set up the effects. 
+#' see Scheipl et al. (2015), for details on how to set up the effects. 
 #' The row tensor product of two marignal bases is implemented in R-package mboost 
 #' in the function \code{\%X\%}, see ?"\%X\%".
 #' 
@@ -106,10 +106,8 @@
 #' Generalized linear array models with applications to multidimensional smoothing. 
 #' Journal of the Royal Statistical Society, Series B-Statistical Methodology, 68(2), 259-280.
 #' 
-#' Scheipl, F., Staicu, A.-M., and Greven, S. (2014), 
-#' Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 
-#' in press, DOI 10.1080/10618600.2014.901914.
-#' \url{http://arxiv.org/abs/1207.5947} 
+#' Scheipl, F., Staicu, A.-M., and Greven, S. (2015), 
+#' Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 24(2), 477-501.
 #' 
 #' @examples 
 #' ######## Example for function-on-scalar-regression 
@@ -279,6 +277,8 @@ FDboost <- function(formula,          ### response ~ xvars
           temp1 <- paste(substr(temp1, 1 , nchar(temp1)-1), ", index=", id[2],")", sep="")
           trmstrings2[i] <- paste0(paste0(temp1, collapse=" %X"), " %X", temp[length(temp)]) 
         } 
+        ## do not add index to base-learners bhistx()
+        if( grepl("bhistx", trmstrings[i]) ) trmstrings2[i] <- trmstrings[i] 
       }
       ### <FIXME> do not add an index if an index is already part of the formula
       #trmstrings2[grepl("index", trmstrings)] <- trmstrings[grepl("index", trmstrings)]
@@ -510,16 +510,17 @@ FDboost <- function(formula,          ### response ~ xvars
     
   ## offset for regular and irregular data: handling of missings is different!
   if(is.null(id)){
-    
+
     ## per default add smooth time-specific offset 
     if(is.null(offset) && dim(response)[2] > 1 && 
          any(colMeans(response) > .Machine$double.eps *10^10)){
       message("Use a smooth offset.") 
       ### <FixMe> is the use of family@offset correct?
       #meanY <- colMeans(response, na.rm=TRUE)
-      if(! "family" %in% names(dots) ){
-        offsetFun <- Gaussian()@offset
-      } else offsetFun <- dots$family@offset
+      if(! "family" %in% names(dots) ){ # get the used family
+        myfamily <-  Gaussian()
+      } else myfamily <- dots$family
+      offsetFun <- myfamily@offset
       meanY <- c()
       # do a linear interpolation of the response to prevent bias because of missing values
       # only use responses with less than 90% missings for the calculation of the offset

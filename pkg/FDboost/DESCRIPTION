@@ -27,7 +27,9 @@ Packaged: 2015-02-16 07:44:03 UTC; brockhaus
 Collate:
     'FDboost.R'
     'baselearners.R'
+	'baselearnersX.R'
     'crossvalidation.R'
+	'hmatrix.R'
     'internalsMboost.R'
     'methods.R'
     'utilityFunctions.R'

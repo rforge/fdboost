@@ -11,6 +11,7 @@ library(FDboost)
 library(splines)
 pathResults <- NULL
 
+# install.packages("pryr")
 library(pryr)
 
 source("simfuns.R")

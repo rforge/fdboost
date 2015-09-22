@@ -5,7 +5,7 @@
 \title{Prediction for boosted functional regression model}
 \usage{
 \method{predict}{FDboost}(object, newdata = NULL, which = NULL,
-  unlist = TRUE, ...)
+  toFDboost = TRUE, ...)
 }
 \arguments{
 \item{object}{a fitted \code{FDboost}-object}
@@ -22,8 +22,9 @@ one observed function.}
 or coefficients. If which is given (as an integer vector corresponding to base-learners)
 a list is returned.}
 
-\item{unlist}{logical, defaults to TRUE. Should predictions be returned in matrix form
-(default) or as a list}
+\item{toFDboost}{logical, defaults to TRUE. In case of regular response in wide format
+(i.e. response is supplied as matrix): should the predictions be returned as matrix, or list
+of matrices instead of vectors}
 
 \item{...}{additional arguments passed on to \code{\link[mboost]{predict.mboost}()}.}
 }

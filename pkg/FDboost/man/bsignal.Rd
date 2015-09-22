@@ -69,7 +69,7 @@ that all trajectories have the same mean
 for \code{penalty="pss"} the penalty matrix is transformed to have full rank,
 so called shrinkage approach by Marra and Wood (2011)}
 
-\item{check.ident}{use checks for identifiability of the effect, based on Scheipl and Greven (2012)}
+\item{check.ident}{use checks for identifiability of the effect, based on Scheipl and Greven (2015)}
 
 \item{time}{vector for the index of the functional response y(time)
 giving the measurement points.}
@@ -144,7 +144,7 @@ the same domain \eqn{s,t \in [t_0, T]}.
 functional principal component analysis (fPCA). The functional covariate
 \eqn{x(s)} is decomposed into \eqn{x(s) \approx \sum^K_{k=1} \xi_{ik} \Phi_k(s)} using
 \code{\link[refund]{fpca.sc}} and represents \eqn{\beta(s)} in the function
-space spanned by \eqn{\Phi_k(s)}, see Scheipl et al. (2014) for details.
+space spanned by \eqn{\Phi_k(s)}, see Scheipl et al. (2015) for details.
 The implementation is similar to \code{\link[refund]{ffpc}}.
 This is an experimental base-learner and not well tested yet.
 The functional variable must be observed on a regular grid \code{s}.
@@ -179,12 +179,10 @@ The functional linear array model. Statistical Modelling, 15(3), 279-300.
 Marra, G., and Wood, S.N., (2011) Practical variable selection for generalized additive models.
 Computational Statistics & Data Analysis, 55, 2372-2387.
 
-Scheipl, F., Staicu, A.-M., and Greven, S. (2014),
-Functional Additive Mixed Models, Journal of Computational and Graphical Statistics,
-in press, DOI 10.1080/10618600.2014.901914.
-\url{http://arxiv.org/abs/1207.5947}
+Scheipl, F., Staicu, A.-M., and Greven, S. (2015),
+Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 24(2), 477-501.
 
-Scheipl, F., Greven, S. (2012): Identifiability in penalized function-on-function regression models.
+Scheipl, F., Greven, S. (2015): Identifiability in penalized function-on-function regression models.
 Technical Report 125, Department of Statistics, LMU Muenchen.
 }
 \seealso{

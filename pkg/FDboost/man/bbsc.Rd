@@ -96,10 +96,8 @@ Cannot deal with any missing values in the covariates.
 Brockhaus, S., Scheipl, F., Hothorn, T. and Greven, S. (2015).
 The functional linear array model. Statistical Modelling, 15(3), 279-300.
 
-Scheipl, F., Staicu, A.-M., and Greven, S. (2014),
-Functional Additive Mixed Models, Journal of Computational and Graphical Statistics,
-in press, DOI 10.1080/10618600.2014.901914.
-\url{http://arxiv.org/abs/1207.5947}
+Scheipl, F., Staicu, A.-M., and Greven, S. (2015),
+Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 24(2), 477-501.
 }
 \seealso{
 \code{\link{FDboost}} for the model fit.

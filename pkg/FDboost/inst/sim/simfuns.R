@@ -395,10 +395,10 @@ fitModelMboost <- function(data,
       }else id <- NULL
       
       set.seed(attr(data, "call")$seed)
-      folds1 <- cvMa(ydim=m$ydim, type="bootstrap", B=10, id=id) 
+      folds1 <- cvMa(ydim=m$ydim, type="bootstrap", B=10) 
       
       set.seed(attr(data, "call")$seed + 100)
-      folds2 <- cvMa(ydim=m$ydim, type="bootstrap", B=10, id=id)
+      folds2 <- cvMa(ydim=m$ydim, type="bootstrap", B=10)
             
       # Increase maximal number of boosting iterations
       increaseGrid <- TRUE

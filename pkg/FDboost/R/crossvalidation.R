@@ -29,7 +29,8 @@
 #' @param corrected see \code{\link[mboost]{cvrisk}}. 
 #' @param ... further arguments passed to mclapply. 
 #' 
-#' @param id the id-vector as integers 1, 2, ... specifying which observations belong to the same curve. 
+#' @param id the id-vector as integers 1, 2, ... specifying which observations belong to the same curve, 
+#' deprecated in \code{cvMa()}
 #' @param weights a numeric vector of (integration) weights, defaults to 1.
 #' @param type character argument for specifying the cross-validation 
 #' method. Currently (stratified) bootstrap, k-fold cross-validation, subsampling and 
@@ -1217,7 +1218,11 @@ cvLong <- function(id, weights=rep(1, l=length(id)),
 # add option id to sample on the level of id if there are repeated measures
 cvMa <- function(ydim, weights=rep(1, l=ydim[1]*ydim[2]), 
                  type = c("bootstrap", "kfold", "subsampling", "curves"), 
-                 B = ifelse(type == "kfold", 10, 25), prob = 0.5, strata = NULL){
+                 B = ifelse(type == "kfold", 10, 25), prob = 0.5, strata = NULL, ...){
+  
+  dots <- list(...)
+  
+  if(any(names(dots)=="id")) message("argument id in cvMa is deprecated and ignored.")
   
   ncolY <- ydim[2]
   nrowY <- ydim[1]  

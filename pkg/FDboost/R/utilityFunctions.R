@@ -267,21 +267,25 @@ plotResiduals <- function(x, subset=NULL, posLegend="topleft", ...){
   
   stopifnot("FDboost" %in% class(x))
   
-  if(!any(class(x)=="FDboostLong")){
+  if(!any(class(x)=="FDboostLong")){ ## wide format
     if(is.null(subset)) subset <- 1:x$ydim[1]
     response <- matrix(x$response, nrow=x$ydim[1], ncol=x$ydim[2])[subset, , drop=FALSE] 
     pred <- fitted(x)[subset, , drop=FALSE]
     pred[is.na(response)] <- NA
-  }else{
+    yind <- x$yind
+    id <- NULL
+  }else{ ## long format
     if(is.null(subset)) subset <- unique(x$id)
     response <- x$response[x$id %in% subset] 
     pred <- fitted(x)[x$id %in% subset]
     pred[is.na(response)] <- NA
+    yind <- x$yind[x$id %in% subset]
+    id <- x$id[x$id %in% subset] 
   }
   
   # Observed - predicted values
   if(length(x$yind)>1){
-    funplot(x$yind, response-pred, id=x$id, ylab=x$yname, xlab=attr(x$yind, "nameyind"), ...) 
+    funplot(yind, response-pred, id=id, ylab=x$yname, xlab=attr(x$yind, "nameyind"), ...) 
   }else{
     plot(response, response-pred, ylab="residuals", xlab="observed", ...)
     #abline(h=0)

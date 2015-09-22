@@ -352,7 +352,7 @@ X_bsignal <- function(mf, vary, args) {
   
   colnames(X) <- paste0(xname, 1:ncol(X))
  
-  ## see Scheipl and Greven: Identifiability in penalized function-on-function regression models  
+  ## see Scheipl and Greven (2015): Identifiability in penalized function-on-function regression models  
   if(args$check.ident){
     res_check <- check_ident(X1=X1, L=L, Bs=Bs, K=K, xname=xname, 
                              penalty=args$penalty, cumOverlap=FALSE)
@@ -421,7 +421,7 @@ X_bsignal <- function(mf, vary, args) {
 #' @param penalty by default, \code{penalty="ps"}, the difference penalty for P-splines is used, 
 #' for \code{penalty="pss"} the penalty matrix is transformed to have full rank, 
 #' so called shrinkage approach by Marra and Wood (2011)
-#' @param check.ident use checks for identifiability of the effect, based on Scheipl and Greven (2012)
+#' @param check.ident use checks for identifiability of the effect, based on Scheipl and Greven (2015)
 #' @param standard the historical effect can be standardized with a factor. 
 #' "no" means no standardization, "time" standardizes with the current value of time and 
 #' "lenght" standardizes with the lenght of the integral 
@@ -475,7 +475,7 @@ X_bsignal <- function(mf, vary, args) {
 #' functional principal component analysis (fPCA). The functional covariate
 #' \eqn{x(s)} is decomposed into \eqn{x(s) \approx \sum^K_{k=1} \xi_{ik} \Phi_k(s)} using 
 #' \code{\link[refund]{fpca.sc}} and represents \eqn{\beta(s)} in the function
-#' space spanned by \eqn{\Phi_k(s)}, see Scheipl et al. (2014) for details. 
+#' space spanned by \eqn{\Phi_k(s)}, see Scheipl et al. (2015) for details. 
 #' The implementation is similar to \code{\link[refund]{ffpc}}.  
 #' This is an experimental base-learner and not well tested yet. 
 #' The functional variable must be observed on a regular grid \code{s}.      
@@ -508,12 +508,10 @@ X_bsignal <- function(mf, vary, args) {
 #' Marra, G., and Wood, S.N., (2011) Practical variable selection for generalized additive models. 
 #' Computational Statistics & Data Analysis, 55, 2372-2387.
 #' 
-#' Scheipl, F., Staicu, A.-M., and Greven, S. (2014), 
-#' Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 
-#' in press, DOI 10.1080/10618600.2014.901914.
-#' \url{http://arxiv.org/abs/1207.5947} 
+#' Scheipl, F., Staicu, A.-M., and Greven, S. (2015), 
+#' Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 24(2), 477-501. 
 #' 
-#' Scheipl, F., Greven, S. (2012): Identifiability in penalized function-on-function regression models. 
+#' Scheipl, F., Greven, S. (2015): Identifiability in penalized function-on-function regression models. 
 #' Technical Report 125, Department of Statistics, LMU Muenchen.
 #'  
 #' @examples 
@@ -620,7 +618,8 @@ bsignal <- function(x, s, index = NULL, inS=c("smooth", "linear", "constant"), #
     get_vary = function() vary,
     get_names = function(){
       attr(xname, "indname") <- indname 
-      xname 
+      xname
+      #c(xname, indname)
     }, #colnames(mf),
     set_names = function(value) {
       #if(length(value) != length(colnames(mf)))
@@ -1004,7 +1003,7 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
     # compute the kernel overlap cumulative?
     cumOverlap <- FALSE 
     # only for historical model of past
-    if( args$limits %in% c("s<t", "s<=t") ) cumOverlap <- TRUE 
+    if(!is.function(args$limits) && args$limits %in% c("s<t", "s<=t") ) cumOverlap <- TRUE 
     res_check <- check_ident(X1=X1, L=L, Bs=Bs, K=K1, xname=xname, 
                              penalty=args$penalty, cumOverlap=cumOverlap)
     args$penalty <- res_check$penalty
@@ -1134,7 +1133,8 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
     ## integration weights in s-direction always sum exactly to 1, 
     ## good for small number of observations!
     args$vecStand <- rowSums(Lnew)
-    Lnew <- Lnew * 1/rowSums(Lnew)
+    args$vecStand[args$vecStand==0] <- 1 ## cannnot divide 0/0, instead divide 0/1
+    Lnew <- Lnew * 1/args$vecStand
   } 
   
   ## use time of current observation for standardization
@@ -1889,10 +1889,8 @@ hyper_bbsc <- function(Z, ...){
 #' Brockhaus, S., Scheipl, F., Hothorn, T. and Greven, S. (2015). 
 #' The functional linear array model. Statistical Modelling, 15(3), 279-300.
 #' 
-#' Scheipl, F., Staicu, A.-M., and Greven, S. (2014), 
-#' Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 
-#' in press, DOI 10.1080/10618600.2014.901914.
-#' \url{http://arxiv.org/abs/1207.5947}
+#' Scheipl, F., Staicu, A.-M., and Greven, S. (2015), 
+#' Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 24(2), 477-501.
 #' 
 #' @keywords models
 #' @aliases brandomc bolsc

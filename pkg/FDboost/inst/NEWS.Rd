@@ -5,13 +5,18 @@
 \section{Changes in FDboost version 0.0-13 (2015-09-15)}{
   \subsection{User-visible changes}{
     \itemize{
-    \item todo, new base-learner bhistx() planned
+	\item predict.FDboost has new argument toFDboost (logical)
+    \item new base-learner bhistx() especially suited for effects with %X%, like bhistx %X% bolsc 
+    \item coef.FDboost() and plot.FDboost() suited for effects like bhistx %X% bolsc
+    \item for predict.FDboost() with effects bhistx() and newdata the latest mboostPatch is necessary
     }
   }
 }
 
 \section{Changes in FDboost version 0.0-12 (2015-09-15)}{
-Internal experimental version. 
+    \itemize{
+    \item Internal experimental version.
+    } 
 }
 
 \section{Changes in FDboost version 0.0-11 (2015-06-01)}{
