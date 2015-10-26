@@ -223,7 +223,7 @@
 
 #' ## Be careful if you want to predict newdata with irregular response,  
 #' ## as the argument index is not considered in the prediction of newdata. 
-#' ## Thus all covariates have to be reapeated according to the number of observations 
+#' ## Thus, all covariates have to be reapeated according to the number of observations 
 #' ## in each response trajectroy. 
 #' ## Predict four response curves with full time-observations 
 #' ## for the four combinations of T_A and T_C. 

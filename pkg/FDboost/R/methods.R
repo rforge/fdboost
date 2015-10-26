@@ -190,7 +190,7 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, toFDboost=TRUE, 
       # dummy variable for time
       newdata$ONEtime <- rep(1.0, lengthYind)
       
-      message("Predict ", lengthYind, " observations in total.")
+      ## message("Predict ", lengthYind, " observations in total.")
     }
     
     
