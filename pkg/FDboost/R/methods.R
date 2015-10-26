@@ -454,16 +454,16 @@ residuals.FDboost <- function(object, ...){
 #' Not implemented for smooths in more than 3 dimensions.
 #' 
 #' @param object a fitted \code{FDboost}-object
-#' @param raw  logical defaults to FALSE.
+#' @param raw logical defaults to FALSE.
 #' If raw=FALSE for each effect the estimated function/surface is calculated
 #' If raw=TRUE the coefficients of the model are returned. 
 #' @param which a subset of base-learners for which the coefficients
 #' should be computed (numeric vector), 
-#' defaults to NULL which is the same as \code{which=1:length(object$baselearner)}
+#' defaults to NULL which is the same as \code{which=1:length(object$baselearner)}.
 #' In the special case of \code{which=0}, only the coefficients of the offset are returned.
 #' @param computeCoef defaults to TRUE, if FALSE only the names of the terms are returned
 #' @param returnData return the dataset which is used to get the coefficient estimates as 
-#' predictions
+#' predictions, see Details. 
 #' @param n1 see below
 #' @param n2 see below
 #' @param n3 n1, n2, n3 give the number of grid-points for 1-/2-/3-dimensional 
@@ -472,7 +472,7 @@ residuals.FDboost <- function(object, ...){
 #' @param n4 gives the number of points for the third dimension in a 3-dimensional smooth term
 #' @param ... other arguments, not used.
 #' 
-#' @return If \code{raw==FALSE}, a list containing 
+#' @return If \code{raw=FALSE}, a list containing 
 #' \itemize{
 #'  \item \code{pterms} a matrix containing the parametric / non-functional coefficients 
 #'  \item \code{smterms} a named list with one entry for each smooth term in the model. 
@@ -485,7 +485,14 @@ residuals.FDboost <- function(object, ...){
 #'          \item \code{dim} the dimensionality of the effect
 #'          \item \code{main} the label of the smooth term (a short label)
 #' }} 
+#' If \code{raw=TRUE}, a list containing the estimated spline coefficients. 
+#'  
 #' @method coef FDboost
+#' 
+#' @details If \code{raw=FALSE} the \code{coef.FDboost()} generates adequate dummy data 
+#' and uses the function \code{predict.FDboost()} to 
+#' compute the estimated coefficient functions. 
+#' 
 #' @export
 ### similar to coef.pffr() by Fabian Scheipl in package refund 
 coef.FDboost <- function(object, raw=FALSE, which=NULL, 

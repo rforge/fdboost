@@ -91,6 +91,7 @@ model fit and predictions.
 \examples{
 if(require(refund)){
 ## simulate some data from a historical model
+## the interaction effect is in this case not necessary
 n <- 100
 nygrid <- 35
 data1 <- pffrSim(scenario = c("int", "ff"), limits = function(s,t){ s<=t },

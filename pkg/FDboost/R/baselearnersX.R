@@ -228,7 +228,7 @@ X_histx <- function(mf, vary, args, getDesign=TRUE) {
   
   ## Standardize with exact length of integration interval
   ##  (1/t-t0) \int_{t0}^t f(s) ds
-  if(args$stand == "length"){
+  if(args$standard == "length"){
     ## use fundamental theorem of calculus 
     ## \lim t->t0- (1/t-t0) \int_{t0}^t f(s) ds = f(t0)
     ## -> integration weight in s-direction should be 1
@@ -241,7 +241,7 @@ X_histx <- function(mf, vary, args, getDesign=TRUE) {
   
   ## use time of current observation for standardization
   ##  (1/t) \int_{t0}^t f(s) ds
-  if(args$stand=="time"){
+  if(args$standard=="time"){
     if(any(yindHelp <= 0)) stop("For standardization with time, time must be positive.")
     ## Lnew <- matrix(1, ncol=ncol(X1des), nrow=nrow(X1des))
     ## Lnew[ind0] <- 0  

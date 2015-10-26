@@ -994,28 +994,6 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   L <- args$intFun(X1=X1, xind=xind)
   # print(L[1,])
   
-  ## see Scheipl and Greven: Identifiability in penalized function-on-function regression models  
-  ## <FIXME> only check identifiability for smooth effects?
-  ## <FIXME> check identifiability for historic effect in the same way as for functional effect?
-  if(args$check.ident && args$inS=="smooth"){
-    K1 <- diff(diag(ncol(Bs)), differences = args$differences)
-    K1 <- crossprod(K1)
-    # compute the kernel overlap cumulative?
-    cumOverlap <- FALSE 
-    # only for historical model of past
-    if(!is.function(args$limits) && args$limits %in% c("s<t", "s<=t") ) cumOverlap <- TRUE 
-    res_check <- check_ident(X1=X1, L=L, Bs=Bs, K=K1, xname=xname, 
-                             penalty=args$penalty, cumOverlap=cumOverlap)
-    args$penalty <- res_check$penalty
-    args$logCondDs <- res_check$logCondDs
-    args$overlapKe <- res_check$overlapKe
-    args$cumOverlapKe <- res_check$cumOverlapKe
-    args$maxK <- res_check$maxK
-  }
-  
-  # X_hist was only run to check for identifiability
-  #if(!getDesign) return(list(args=args))
-  
   ## Weighting with matrix of functional covariate
   #X1 <- L*X1 ## -> do the integration weights more sophisticated!!
   
@@ -1126,7 +1104,7 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   
   ## Standardize with exact length of integration interval
   ##  (1/t-t0) \int_{t0}^t f(s) ds
-  if(args$stand == "length"){
+  if(args$standard == "length"){
     ## use fundamental theorem of calculus 
     ## \lim t->t0- (1/t-t0) \int_{t0}^t f(s) ds = f(t0)
     ## -> integration weight in s-direction should be 1
@@ -1139,7 +1117,7 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   
   ## use time of current observation for standardization
   ##  (1/t) \int_{t0}^t f(s) ds
-  if(args$stand=="time"){
+  if(args$standard=="time"){
     if(any(yindHelp <= 0)) stop("For standardization with time, time must be positive.")
     ## Lnew <- matrix(1, ncol=ncol(X1des), nrow=nrow(X1des))
     ## Lnew[ind0] <- 0  
@@ -1160,6 +1138,34 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   
   # Design matrix is product of expanded X1 and basis expansion over xind 
   X1des <- X1des %*% Bs
+  
+  
+  ## see Scheipl and Greven: Identifiability in penalized function-on-function regression models  
+  ## <FIXME> only check identifiability for smooth effects?
+  ## <FIXME> check identifiability for historic effect in the same way as for functional effect?
+  if(args$check.ident && args$inS=="smooth"){
+    K1 <- diff(diag(ncol(Bs)), differences = args$differences)
+    K1 <- crossprod(K1)
+    # compute the kernel overlap cumulative?
+    cumOverlap <- FALSE 
+    # only for historical model of past special case of cumOverlap meaningful
+    # use the limits function to compute chech measures on corresponding subsets of x(s)
+    if(!is.function(args$limits) && args$limits %in% c("s<t", "s<=t") ) cumOverlap <- TRUE 
+    res_check <- check_ident(X1=X1, L=L, Bs=Bs, K=K1, xname=xname, 
+                             penalty=args$penalty, 
+                             cumOverlap=cumOverlap, 
+                             limits=args$limits, yind=yind, id=id, 
+                             X1des=X1des, ind0=ind0, xind=xind)
+    args$penalty <- res_check$penalty
+    args$logCondDs <- res_check$logCondDs
+    args$logCondDs_hist <- res_check$logCondDs_hist
+    args$overlapKe <- res_check$overlapKe
+    args$cumOverlapKe <- res_check$cumOverlapKe
+    args$maxK <- res_check$maxK
+  }
+  
+  # X_hist was only run to check for identifiability
+  #if(!getDesign) return(list(args=args))
   
   # wide: design matrix over index of response for one response
   # long: design matrix over index of response (yind has long format!)

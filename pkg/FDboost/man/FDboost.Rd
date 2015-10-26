@@ -60,14 +60,14 @@ e.g., \code{\link[mboost]{extract}}.
 The \code{FDboost}-object is a named list containing:
 \item{...}{all elements of an \code{\link[mboost]{mboost}-object}}
 \item{yname}{the name of the response}
-\item{ydim}{for a regualr response the dimension of the response matrix}
+\item{ydim}{for a regualar response the dimension of the response matrix}
 \item{yind}{the observation points of the response, with its name as attribute}
 \item{data}{the data that was used for the model fit}
 \item{id}{the id variable of the response}
 \item{predictOffset}{the function to predict the smooth offset}
 \item{offsetVec}{the offset for one trajectory for regular response and
 otherwise the offset for all trajectories}
-\item{call}{the call to FDboost}
+\item{call}{the call to \code{FDboost}}
 \item{callEval}{the evaluated function call}
 \item{timeformula}{the time-formula}
 \item{formulaFDboost}{the formula with which \code{FDboost} was called}

@@ -17,13 +17,13 @@ If raw=TRUE the coefficients of the model are returned.}
 
 \item{which}{a subset of base-learners for which the coefficients
 should be computed (numeric vector),
-defaults to NULL which is the same as \code{which=1:length(object$baselearner)}
+defaults to NULL which is the same as \code{which=1:length(object$baselearner)}.
 In the special case of \code{which=0}, only the coefficients of the offset are returned.}
 
 \item{computeCoef}{defaults to TRUE, if FALSE only the names of the terms are returned}
 
 \item{returnData}{return the dataset which is used to get the coefficient estimates as
-predictions}
+predictions, see Details.}
 
 \item{n1}{see below}
 
@@ -38,7 +38,7 @@ covariates at which the estimated effects are evaluated.}
 \item{...}{other arguments, not used.}
 }
 \value{
-If \code{raw==FALSE}, a list containing
+If \code{raw=FALSE}, a list containing
 \itemize{
  \item \code{pterms} a matrix containing the parametric / non-functional coefficients
  \item \code{smterms} a named list with one entry for each smooth term in the model.
@@ -51,11 +51,17 @@ If \code{raw==FALSE}, a list containing
          \item \code{dim} the dimensionality of the effect
          \item \code{main} the label of the smooth term (a short label)
 }}
+If \code{raw=TRUE}, a list containing the estimated spline coefficients.
 }
 \description{
 Takes a fitted \code{FDboost}-object produced by \code{\link{FDboost}()} and
 returns estimated coefficient functions/surfaces \eqn{\beta(t), \beta(s,t)} and
 estimated smooth effects \eqn{f(z), f(x,z)} or \eqn{f(x, z, t)}.
 Not implemented for smooths in more than 3 dimensions.
+}
+\details{
+If \code{raw=FALSE} the \code{coef.FDboost()} generates adequate dummy data
+and uses the function \code{predict.FDboost()} to
+compute the estimated coefficient functions.
 }
 
