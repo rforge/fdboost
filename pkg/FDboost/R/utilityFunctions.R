@@ -643,9 +643,17 @@ funMRD <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,  ...
 # xname name of functional covariate
 # penalty the type of the penalty one of "ps" or "pps"
 # cumOverlap should a cumulative overlap be computed, 
-# which is especially suited for a historical model?
-# used type of penalty
-check_ident <- function(X1, L, Bs, K, xname, penalty, cumOverlap=FALSE){
+# which is especially suited for a historical effect with triangular coefficient surface?
+# limits the limits function of the historical effect, default to NULL for unconstrained effect
+# yind, id, X1des, ind0, xind pass from X_hist() to compute sequential identifiability measures
+# giveWarnings should warnings be printed
+check_ident <- function(X1, L, Bs, K, xname, penalty, 
+                        cumOverlap=FALSE, 
+                        limits=NULL, yind=NULL, 
+                        t_unique=NULL, 
+                        id=NULL, 
+                        X1des=NULL, ind0=NULL, xind=NULL, 
+                        giveWarnings = TRUE){
   
   ## center X1 per column
   X1 <- scale(X1, scale=FALSE)
@@ -664,15 +672,92 @@ check_ident <- function(X1, L, Bs, K, xname, penalty, cumOverlap=FALSE){
   ## you would have to change args$knots accordingly
   
   ### compute condition number of Ds^t Ds
+  ### <FIXME> possibel to use argument stand here?
   Ds <- (X1 * L) %*% Bs
   DstDs <- crossprod(Ds)
   e_DstDs <- try(eigen(DstDs))
   e_DstDs$values <- pmax(0, e_DstDs$values) # set negative eigenvalues to 0
   logCondDs <- log10(e_DstDs$values[1]) - log10(tail(e_DstDs$values, 1))
-  if(logCondDs > 10^6){
+  if(giveWarnings & logCondDs > 6 & is.null(limits)){
     warning("condition number for <", xname, "> greater than 10^6. ", 
             "Effect identifiable only through penalty.")
   }
+  
+  ### compute condition number of Ds^t Ds for subsections of Ds accoring to limits
+  logCondDs_hist <- NULL
+
+  # look at condition number of Ds for all values of yind for historical effect
+  # use X1des, as this is the marginal design matrix using the limits
+  if(!is.null(limits)){ 
+    ind0Bs <- ((!ind0)*1) %*% Bs # matrix to check for 0 columns
+    ## implementation is suitable for common grid of t, maybe with some missings
+    ## common grid is assumed if Y(t) is observed at least in 80% for each point 
+    if( all(table(yind)/max(id)>0.8) ){
+      if(is.null(t_unique)) t_unique <- sort(unique(yind))
+      logCondDs_hist <- rep(NA, length=length(t_unique))
+      for(k in 1:length(t_unique)){
+        Ds_t <- X1des[yind==t_unique[k], ] # get rows of Ds corresponding to yind
+        ind0Bs_t <- ind0Bs[yind==t_unique[k], ] # get rows of ind0Bs corresponding to yind
+        # only keep columns that are not completely 0, otherwise matrix is always rank deficient
+        # idea: only this part is used to model y(t) at this point
+        # also delete if not perfectly but almost zero, for all spline bases
+        Ds_t <- Ds_t[ , apply(ind0Bs_t, 2, function(x) !all(abs(x)<10^-1) ) ]
+        
+        if(dim(Ds_t)[2]!=0){ # for matrix with 0 columns does not make sense
+          DstDs_t <- crossprod(Ds_t)
+          e_DstDs_t <- try(eigen(DstDs_t))
+          e_DstDs_t$values <- pmax(0, e_DstDs_t$values) # set negative eigenvalues to 0
+          logCondDs_t <- log10(e_DstDs_t$values[1]) - log10(tail(e_DstDs_t$values, 1))
+          logCondDs_hist[k] <- logCondDs_t
+        }
+        ## matplot(xind, Bs, type="l", lwd=2, ylim=c(-2,2)); rug(xind); rug(yind, col=2, lwd=2)
+        ## matplot(knots[1:ncol(Ds_t)], t(Ds_t), type="l", lwd=1, add=TRUE)
+        ## lines(t_unique, logCondDs_hist-6, col=2, lwd=4)
+      }
+      names(logCondDs_hist) <- round(t_unique,2)
+      
+      ### implementation for seriously irregular observation points t
+    }else{
+      # use the mean number grid points, in the case of irregular t
+      #t_unique <- seq(min(yind), max(yind), length=round(mean(table(id))))
+      ### use quantiles of yind, as only at places with observations effect can be identifiable
+      ### using quntiles prevents Ds_t from beeing completely empty
+      if(is.null(t_unique))  t_unique <- quantile(yind, probs=seq(0,1,length=round(mean(table(id)))) )
+      names(t_unique) <- NULL
+      logCondDs_hist <- rep(NA, length=length(t_unique)-1)
+      for(k in 1:(length(t_unique)-1)){
+        # get rows of Ds corresponding to t_unique[k] <= yind < t_unique[k+1]
+        Ds_t <- X1des[(t_unique[k] <= yind) & (yind < t_unique[k+1]), ] 
+        ind0Bs_t <- ind0Bs[(t_unique[k] <= yind) & (yind < t_unique[k+1]), ]
+        # for the last interval: include upper limit
+        if(k==length(t_unique)-1){
+          Ds_t <- X1des[(t_unique[k] <= yind) & (yind <= t_unique[k+1]), ]
+          ind0Bs_t <- ind0Bs[(t_unique[k] <= yind) & (yind <= t_unique[k+1]), ]
+        } 
+        # only keep columns that are not completely 0, otherwise matrix is always rank deficient
+        # idea: only this part is used to model y(t) at this point
+        # also delete if not perfectly but almost zero, for all spline bases
+        Ds_t <- Ds_t[ , apply(ind0Bs_t, 2, function(x) !all(abs(x)<10^-1) )] 
+        
+        if(dim(Ds_t)[2]!=0){ # for matrix with 0 columns does not make sense
+          DstDs_t <- crossprod(Ds_t)
+          e_DstDs_t <- try(eigen(DstDs_t))
+          e_DstDs_t$values <- pmax(0, e_DstDs_t$values) # set negative eigenvalues to 0
+          logCondDs_t <- log10(e_DstDs_t$values[1]) - log10(tail(e_DstDs_t$values, 1))
+          logCondDs_hist[k] <- logCondDs_t
+        }
+      }
+      names(logCondDs_hist) <- round(t_unique[-length(t_unique)],2)
+    }
+    if(giveWarnings & any(logCondDs_hist > 6)){
+      # get the last entry of t, for which the condition number is >10^6
+      temp <- names(which.max(which(logCondDs_hist > 6)))
+      warning("condition number for <", xname, "> considering limits of historical effect ", 
+              "greater than 10^6, for some time-points up to ", temp, ". ",
+              "Effect in this region identifiable only through penalty.")
+    }
+  } ## end of computation of logCondDs_hist for historical effects
+
   
   ## measure degree of overlap between the spans of ker(t(X1)) and W%*%Bs%*%ker(K)
   ## overlap after Larsson and Villani 2001, Scheipl and Greven, 2014
@@ -689,6 +774,8 @@ check_ident <- function(X1, L, Bs, K, xname, penalty, cumOverlap=FALSE){
   }
   
   ### get special measures for kernel overlap of WB_s(P_s) with subset of Xobs
+  ### overlap measure of Larsson and Villani 2001
+  ### as proposed by Scheipl and Greven 2015
   getOverlap <- function(subset, X1, L, Bs, K){
     # <FIXME> case that all observations are 0, kernel is everything -> kernel overlap
     if(all(X1[ , subset]==0)){
@@ -705,44 +792,59 @@ check_ident <- function(X1, L, Bs, K, xname, penalty, cumOverlap=FALSE){
   
   cumOverlapKe <- NULL
   overlapKe <- NULL
+  overlapKeComplete <- NULL
   
-  ## cumulative overlap for historical model
-  if(cumOverlap){  
-    restm <- ncol(X1) %% 10 # rest of modulo calculation 
-    ntemp <- (ncol(X1)-restm)/10 # group-size without rest
-    ## subset with 1/10, 2/10, ..., 10/10 of the observation points
-    if(restm > ntemp){ # case that rest is bigger than group size
-      subs <- c(list(1:restm), lapply(1:8, function(i) 1:(restm+i*ntemp)), list(1:ncol(X1)))
-    }else{
-      subs <- c(lapply(1:9, function(i) 1:(restm+i*ntemp)), list(1:ncol(X1)))
+  #   ## cumulative overlap for historical model in the special case of s<t
+  #   if(cumOverlap){   
+  #     restm <- ncol(X1) %% 10 # rest of modulo calculation 
+  #     ntemp <- (ncol(X1)-restm)/10 # group-size without rest
+  #     ## subset with 1/10, 2/10, ..., 10/10 of the observation points
+  #     if(restm > ntemp){ # case that rest is bigger than group size
+  #       subs <- c(list(1:restm), lapply(1:8, function(i) 1:(restm+i*ntemp)), list(1:ncol(X1)))
+  #     }else{
+  #       subs <- c(lapply(1:9, function(i) 1:(restm+i*ntemp)), list(1:ncol(X1)))
+  #     }
+  #     cumOverlapKe <- sapply(subs, getOverlap, X1=X1, L=L, Bs=Bs, K=K)
+  #     overlapKe <- max(cumOverlapKe, na.rm = TRUE) #cumOverlapKe[[length(cumOverlapKe)]]
+  #     
+  #   }else{ # overlap between whole matrix X and penalty
+  #     overlapKe <- getOverlap(subset=1:ncol(X1), X1=X1, L=L, Bs=Bs, K=K)
+  #   } 
+  #   print("overlapKe")
+  #   print(overlapKe)
+  #   plot( seq(min(t_unique), max(t_unique), l=10), cumOverlapKe, ylim=c(0,1))
+  
+  
+  ## sequential overlap for historical model with general integraion limits
+  if(!is.null(limits)){  
+
+    subs <- list()
+    for(k in 1:length(t_unique)){
+      subs[[k]] <- which(limits(s=xind, t=t_unique[k]))
     }
-    cumOverlapKe <- lapply(subs, getOverlap, X1=X1, L=L, Bs=Bs, K=K)
-    overlapKe <- cumOverlapKe[[length(cumOverlapKe)]]
+    cumOverlapKe <- sapply(subs, getOverlap, X1=X1, L=L, Bs=Bs, K=K)
+    overlapKe <- max(cumOverlapKe, na.rm = TRUE) #cumOverlapKe[[length(cumOverlapKe)]]
     
   }else{ # overlap between whole matrix X and penalty
     overlapKe <- getOverlap(subset=1:ncol(X1), X1=X1, L=L, Bs=Bs, K=K)
-  } 
+  }
+  # print("overlapKe general limits")
+  # print(overlapKe)
+  # points(t_unique, cumOverlapKe, col=2)
   
+  # look at overlap with whole functional covariate 
+  overlapKeComplete  <- getOverlap(subset=1:ncol(X1), X1=X1, L=L, Bs=Bs, K=K)
   
-  ### OLD
-  #   ## measure degree of overlap between the spans of ker(t(X1)) and W%*%Bs%*%ker(K)
-  #   ## overlap after Larsson and Villani 2001
-  #   KeX <- Null(t(X1))  # function Null of package MASS computes kernel
-  #   if(any(dim(KeX)==0)){ # <FIXME> does it mean t(X1) has no kernel??
-  #     return(list(logCondDs = logCondDs, overlapKe = 0, 
-  #                 maxK = maxK, penalty = penalty))
-  #   }  
-  #   KePen <- diag(L[1,]) %*% Bs %*% Null(K)
-  #   overlapKe <- trace_lv(svd(KeX, nv=0)$u, svd(KePen, nv=0)$u)
-  
-  if(overlapKe >= 1){
+  if(giveWarnings & overlapKe >= 1){
     warning("Kernel overlap for <", xname, "> and the specified basis and penalty detected. ",
             "Changing basis for X-direction to <penalty='pss'> to make model identifiable through penalty. ", 
             "Coefficient surface estimate will be inherently unreliable.") 
     penalty <- "pss"
   }
   
-  return(list(logCondDs=logCondDs, overlapKe=overlapKe, cumOverlapKe=cumOverlapKe, 
+  return(list(logCondDs=logCondDs, logCondDs_hist=logCondDs_hist,  
+              overlapKe=overlapKe, cumOverlapKe=cumOverlapKe, 
+              overlapKeComplete=overlapKeComplete, 
               maxK=maxK, penalty=penalty))
 }
 
