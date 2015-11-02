@@ -399,6 +399,9 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, toFDboost=TRUE, 
 #'  Takes a fitted \code{FDboost}-object and computes the fitted values.
 #' 
 #' @param object a fitted \code{FDboost}-object
+#' @param toFDboost logical, defaults to TRUE. In case of regular response in wide format 
+#' (i.e. response is supplied as matrix): should the predictions be returned as matrix, or list 
+#' of matrices instead of vectors
 #' @param ... additional arguments passed on to \code{\link{predict.FDboost}}
 #' 
 #' @seealso \code{\link{FDboost}} for the model fit.
@@ -406,16 +409,20 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, toFDboost=TRUE, 
 #' @method fitted FDboost
 #' @export
 ### similar to fitted.mboost() but returns the fitted values as matrix
-fitted.FDboost <- function(object, ...) {
+fitted.FDboost <- function(object, toFDboost=TRUE, ...) {
+
   args <- list(...)
+  
   if (length(args) == 0) {
-    if(!any(class(object)=="FDboostLong")){
+    ## give back matrix for regular response and toFDboost==TRUE
+    if(!any(class(object)=="FDboostLong") & toFDboost){
       ret <- matrix(object$fitted(), nrow=object$ydim[1])
-    }else{
+    }else{ # give back a long vector
       ret <- object$fitted()
+      names(ret) <- object$rownames
     }
   } else {
-    ret <- predict(object, newdata=NULL, ...)
+    ret <- predict(object, newdata=NULL, toFDboost=toFDboost, ...)
   }
   ret
 }

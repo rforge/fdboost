@@ -4,10 +4,14 @@
 \alias{fitted.FDboost}
 \title{Fitted values of a boosted functional regression model}
 \usage{
-\method{fitted}{FDboost}(object, ...)
+\method{fitted}{FDboost}(object, toFDboost = TRUE, ...)
 }
 \arguments{
 \item{object}{a fitted \code{FDboost}-object}
+
+\item{toFDboost}{logical, defaults to TRUE. In case of regular response in wide format
+(i.e. response is supplied as matrix): should the predictions be returned as matrix, or list
+of matrices instead of vectors}
 
 \item{...}{additional arguments passed on to \code{\link{predict.FDboost}}}
 }
