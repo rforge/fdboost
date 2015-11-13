@@ -312,11 +312,14 @@ FDboost <- function(formula,          ### response ~ xvars
   ### for scalar response bols(1)
   if(timeformula == ~bols(1)){
     
-    if(grepl("df", formula[3])){
+    if(grepl("df", formula[3]) | !grepl("lambda", formula[3]) ){
       timeformula <- ~bols(ONEtime, intercept=FALSE, df=1)
     }else{
       timeformula <- ~bols(ONEtime, intercept=FALSE)
     }
+    
+    timeformula <- ~bols(ONEtime, lambda=0)
+    
     data$ONEtime <- 1
     response <- matrix(response, ncol=1)
   }
@@ -405,7 +408,7 @@ FDboost <- function(formula,          ### response ~ xvars
     #  warning("Do not use the same variable t as time-variable in y(t) and in the base-learners, e.g. as x(t).")
     #}
   }else{
-    stopifnot(is.vector(response))
+    stopifnot(is.null(dim(response))) ## stopifnot(is.vector(response))
     # check length of response and its time and index
     stopifnot(length(response)==length(time) & length(response)==length(id))
     
@@ -474,7 +477,7 @@ FDboost <- function(formula,          ### response ~ xvars
     tmp <- outer(xfm, tfm, function(x, y) paste(x, y, sep = "%X%"))
   }
 
-  # do not expand an effect bconcurrent() by a Kronecker product
+  # do not expand an effect bconcurrent() or bhist() by a Kronecker product
   if( length(c(grep("bconcurrent", tmp), grep("bhis", tmp)) ) > 0 ) 
     tmp[c(grep("bconcurrent", tmp), grep("bhis", tmp))] <- xfm[c(grep("bconcurrent", tmp), grep("bhis", tmp))]   
   if(length(where.c) > 0) 
@@ -513,7 +516,7 @@ FDboost <- function(formula,          ### response ~ xvars
 
     ## per default add smooth time-specific offset 
     if(is.null(offset) && dim(response)[2] > 1 && 
-         any(colMeans(response) > .Machine$double.eps *10^10)){
+         any(colMeans(response, na.rm = TRUE) > .Machine$double.eps *10^10)){
       message("Use a smooth offset.") 
       ### <FixMe> is the use of family@offset correct?
       #meanY <- colMeans(response, na.rm=TRUE)
