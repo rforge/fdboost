@@ -9,7 +9,9 @@ FDboost(formula, timeformula, id = NULL, numInt = "equal", data,
   check0 = FALSE, ...)
 }
 \arguments{
-\item{formula}{a symbolic description of the model to be fit.}
+\item{formula}{a symbolic description of the model to be fit.
+Per default no intercept is added, only a smooth offset, see argument \code{offset}.
+To add a smooth intercept, use 1, e.g. y ~ 1 for a pure intercept model.}
 
 \item{timeformula}{formula for the expansion over the index of the response.
 For a functional response \eqn{Y_i(t)} typically \code{~bbs(t)} to obtain a smooth
@@ -223,7 +225,7 @@ summary(mod4)
 ## plotPredicted(mod4, lwdPred=2)
 ## Be careful if you want to predict newdata with irregular response,
 ## as the argument index is not considered in the prediction of newdata.
-## Thus, all covariates have to be reapeated according to the number of observations
+## Thus, all covariates have to be repeated according to the number of observations
 ## in each response trajectroy.
 ## Predict four response curves with full time-observations
 ## for the four combinations of T_A and T_C.
@@ -231,7 +233,8 @@ newd <- list(T_A=factor(c(1,1,2,2), levels=1:2, labels=c("low", "high"))[rep(1:4
              T_C=factor(c(1,2,1,2), levels=1:2, labels=c("low", "high"))[rep(1:4, length(viscosity$time))],
              time=rep(viscosity$time, 4))
 
-pred <- predict(mod4, newdata=newd)
+# needs mboostPatch of mboost 2.5-0 to work
+#pred <- predict(mod4, newdata=newd)
 ## funplot(x=rep(viscosity$time, 4), y=pred, id=rep(1:4, length(viscosity$time)))
 }
 \author{
