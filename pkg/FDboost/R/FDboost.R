@@ -318,7 +318,8 @@ FDboost <- function(formula,          ### response ~ xvars
       timeformula <- ~bols(ONEtime, intercept=FALSE)
     }
     
-    timeformula <- ~bols(ONEtime, lambda=0)
+    ## <FIXME> would be nice, as then no penalization in dummy-direction happens
+    ## timeformula <- ~bols(ONEtime, lambda=0)
     
     data$ONEtime <- 1
     response <- matrix(response, ncol=1)
