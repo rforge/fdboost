@@ -39,8 +39,10 @@ i.e. \code{length(weights)} has to be \code{nrow(response)},
 per default weights is constantly 1.}
 
 \item{offset}{a numeric vector to be used as offset over the index of the response (optional).
-If no offset is specified, per default a smooth time-specific offset is calculated and used
-within the model fit. If you do not want to use an offset you can set \code{offset=0}.}
+If no offset is specified, per default \code{offset=NULL} which means that a
+smooth time-specific offset is computed and used before the model fit to center the data.
+If you do not want to use a time-specific offset, set \code{offset="scalar"} to get an overall scalar offset,
+like in \code{mboost}.}
 
 \item{offset_control}{parameters for the calculation of the offset,
 defaults to \code{o_control(k_min=20, silent=TRUE)}, see \code{\link{o_control}}.}
@@ -223,6 +225,12 @@ mod4 <- FDboost(vis ~ 1 + bols(T_C, contrasts.arg = "contr.sum", intercept=FALSE
 summary(mod4)
 ## plot(mod4)
 ## plotPredicted(mod4, lwdPred=2)
+
+## Find optimal mstop, small grid/low B for a fast example
+cvm4 <- cvrisk(mod4, folds = cvLong(id = mod4$id, weights = model.weights(mod4), B=5), grid = 1:100)
+mstop(cvm4)
+## val4 <- validateFDboost(mod4, folds = cv(rep(1, length(unique(mod4$id))), B=5))
+
 ## Be careful if you want to predict newdata with irregular response,
 ## as the argument index is not considered in the prediction of newdata.
 ## Thus, all covariates have to be repeated according to the number of observations

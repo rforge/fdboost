@@ -103,6 +103,18 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, toFDboost=TRUE, 
   
   stopifnot(any(class(object)=="FDboost")) 
   # print("Prediction FDboost") 
+  dots <- list(...)
+  
+  # toFDboost is only meaningful for array-data
+  if(any(class(object) == "FDboostScalar") |  any(class(object) == "FDboostLong")) toFDboost <- FALSE
+
+  if(!is.null(dots$aggregate) && dots$aggregate != "sum"){
+    if(length(which) > 1 ) stop("For aggregate != 'sum', only one effect, or which=NULL are possible.")
+    if(toFDboost & class(object)[1]=="FDboost"){ 
+      toFDboost <- FALSE
+      warning("Set toFDboost to FALSE, as aggregate!='sum'. Prediction is in long vector.")
+    }
+  }
   
   classObject <- class(object)
   class(object) <- "mboost"
@@ -130,13 +142,13 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, toFDboost=TRUE, 
     ## save time-variable (index over response)
     nameyind <- attr(object$yind, "nameyind")
     
-    ## response observed on common grid
+    ## response observed on common grid / scalar response 
     if(!is.null(object$ydim)){
       # get the number of trajectories you want to predict
       n <- NROW(newdata[[1]])  ## FIXME check that this is not the time-variable
       
       lengthYind <- length(newdata[[nameyind]])
-      if(lengthYind==0) stop("Index of response, ", nameyind, ", must be specified and have length >0.")
+      if(object$ydim[2]>1 && lengthYind==0) stop("Index of response, ", nameyind, ", must be specified and have length >0.")
       #assign(nameyind, newdata[[nameyind]])
       
       # try to get more reliable information on n (number of trajectories)
@@ -156,6 +168,9 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, toFDboost=TRUE, 
             alllengthYind <- c(alllengthYind, length(unique(newdata[[nameyind]])))
           }
         }
+        ## in case of scalar response, set lenth of yindex to 1
+        if(object$ydim[2]==1) lengthYind <- 1; alllengthYind <- 1
+        
         if( length(unique(alln))>1 ) stop("The hmatrix-objects in newdata imply differing numbers of trajectories.")
         if( length(unique(alllengthYind))>1 ) stop("The hmatrix-objects in newdata imply differing times or do not match the time variable.")
       }
@@ -191,23 +206,26 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, toFDboost=TRUE, 
       newdata$ONEtime <- rep(1.0, lengthYind)
       
       ## message("Predict ", lengthYind, " observations in total.")
-    }
+      
+    } ## for response observed on irregular grid
+
+    # browser()
+    #     # Predict effect of offset: predOffset
+    #     predOffset <- object$offsetVec # offset is just an integer 
+    #     if(length(object$offsetVec)>1){ # offset is a smooth function
+    #       if(!any(class(object)=="FDboostLong")){ # irregular response
+    #         predOffset <- rep(object$predictOffset(newdata[[nameyind]]), each=n)
+    #       }else{ # regular response 
+    #         predOffset <- object$predictOffset(newdata[[nameyind]])
+    #       }  
+    #       names(predOffset) <- NULL
+    #     }
     
+    ### Predict effect of offset (scalar, regular, irregular):  
+    # use the function predictOffset() on the new time-variable   
+    predOffset <- object$predictOffset(newdata[[nameyind]])  
     
-    # Predict effect of offset: predOffset
-    predOffset <- object$offsetVec # offset is just an integer 
-    if(length(object$offsetVec)>1){ # offset is a smooth function
-      if(!any(class(object)=="FDboostLong")){ # irregular response
-        predOffset <- rep(object$predictOffset(newdata[[nameyind]]), each=n)
-      }else{ # regular response 
-        predOffset <- object$predictOffset(newdata[[nameyind]])
-      }  
-      names(predOffset) <- NULL
-    }
-    
-    
-    
-    # In the case of bsignal(), bfpc(), bconcurrent() and bhist() it is necessary 
+    ### In the case of bsignal(), bfpc(), bconcurrent() and bhist() it is necessary 
     # to add the index of the signal-matrix as attribute
     posBsignal <- c(grep("bsignal(", names(object$baselearner), fixed = TRUE), 
                     grep("bfpc(", names(object$baselearner), fixed = TRUE))
@@ -219,7 +237,7 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, toFDboost=TRUE, 
     posBconc <- whichHelp[whichHelp %in% posBconc]
     posBhist <- whichHelp[whichHelp %in% posBhist]
     
-    if(length(c(posBsignal, posBconc, posBhist))>0){
+    if(length(c(posBsignal, posBconc, posBhist)) > 0){
       #if(!is.list(newdata)) newdata <- list(newdata)
       for(i in c(posBsignal, posBconc, posBhist)){ 
         xname <- object$baselearner[[i]]$get_names()[1] 
@@ -253,7 +271,6 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, toFDboost=TRUE, 
           } 
         }       
         
-        
         ### <FIXE> is this code still necessary?? changes necessary!
         #         ## <FIXME> quite ugly how to deal with %X%, is there a way to do this more generally?
         #         # save data of concurrent effects
@@ -279,16 +296,35 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, toFDboost=TRUE, 
         #         }
         
       } ## loop over posBsignal, ...
+    } # end data setup for functional effects (adding index as attribute to the data)
+    
+    ###### Prediction using the function predict.mboost() 
+    
+    # Function to suppress the warning that user-specified 
+    # offset of length>1 is not used in prediction, 
+    # important when offset=NULL in FDboost() but not in mboost()
+    muffleWarning1 <- function(w){
+      if( any( grepl( "Offset not used for prediction when", w) ) ) 
+        invokeRestart( "muffleWarning" )  
     }
-    
-    ## Prediction using the function predict.mboost() 
-    
-    ## predict all effects together, include the offset into the prediction 
+
+    ## predict all effects together, model-inherent offset is included automatically
     if(is.null(which)){
-      predMboost0 <- predict(object=object, newdata=newdata, which=NULL, ...)[,1]
-      # for which=NULL return prediction of all effects including the offset
-      # FIXME check that offset is not included twice!!
-      predMboost <- predMboost0 + predOffset
+
+      if(is.null(object$offsetFDboost) & !is.null(object$offsetMboost) ){ 
+        # offset=NULL in FDboost, but not in mboost
+        ## suppress the warning that the offset cannot be used if offset=NULL in FDboost
+        ## as offset is predicted and included in prediction 
+        predMboost <- withCallingHandlers(predict(object=object, newdata=newdata, which=NULL, ...), 
+                                           warning = muffleWarning1)
+        predOffsetLong <- predOffset
+        if(classObject[1]=="FDboost") predOffsetLong <- rep(predOffset, each=n)
+        predMboost <- predMboost + predOffsetLong
+      }else{ # offset != NULL in FDboost -> treat offset like in mboost 
+        predMboost <- predict(object=object, newdata=newdata, which=NULL, ...)
+      }
+      
+      if(!is.null(dim(predMboost)) && dim(predMboost)[2] == 1) predMboost <- predMboost[,1]
       
       ## predict one or several effects separately   
     }else{   
@@ -296,7 +332,9 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, toFDboost=TRUE, 
       for(i in seq_along(which)){
         if(which[i]!=0){
           # [,1] save vector instead of a matrix with one column
-          predMboost[[i]] <- predict(object=object, newdata=newdata, which=which[i], ...)[,1]
+          predMboost[[i]] <- predict(object=object, newdata=newdata, which=which[i], ...)#[,1]
+          if(!is.null(dim(predMboost[[i]])) && dim(predMboost[[i]])[2] == 1) predMboost[[i]] <- predMboost[[i]][,1]
+          
           if(!which[i] %in% sel){
             predMboost[[i]] <- rep(0L, lengthYind*n)
           }
@@ -304,7 +342,8 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, toFDboost=TRUE, 
           predMboost[[i]] <- predOffset # predict offset in case of which=0
         } 
       } 
-    } # end else for !is.null(which)          
+    } # end else for !is.null(which) 
+    
     attr(predMboost, "offset") <- predOffset
     
     
@@ -319,9 +358,12 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, toFDboost=TRUE, 
       lengthYind <- length(object$yind)
     }
     
+    #browser()
+    
     ## predict all effects together, include the offset into the prediction 
     if(is.null(which)){
-      predMboost <- predict(object=object, newdata=NULL, which=NULL, ...)[,1]
+      predMboost <- predict(object=object, newdata=NULL, which=NULL, ...)#[,1]
+      if(!is.null(dim(predMboost)) && dim(predMboost)[2] == 1) predMboost <- predMboost[,1]
       # for which=NULL return prediction of all effects 
       # offset of original data-fit is included automatically 
       
@@ -330,7 +372,8 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, toFDboost=TRUE, 
       predMboost <- vector("list", length(which))
       for(i in seq_along(which)){
         if(which[i]!=0){
-          predMboost[[i]] <- predict(object=object, newdata=NULL, which=which[i], ...)[,1]
+          predMboost[[i]] <- predict(object=object, newdata=NULL, which=which[i], ...)#[,1]
+          if(!is.null(dim(predMboost[[i]])) && dim(predMboost[[i]])[2] == 1) predMboost[[i]] <- predMboost[[i]][,1]
           if(!which[i] %in% sel){
             predMboost[[i]] <- rep(0L, lengthYind*n)
           }
@@ -346,7 +389,7 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, toFDboost=TRUE, 
   offsetTemp <- attr(predMboost, "offset") 
   
   
-  ## unlist the prediction in case that just one effect is predicted
+  ### unlist the prediction in case that just one effect is predicted
   if(length(which)==1){
     predMboost <- predMboost[[1]]
   } 
@@ -783,16 +826,20 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL,
       getP <- function(trm, d){
         #return an object similar to what plot.mgcv.smooth etc. returns 
         if(trm$dim==1){
+          #browser()
           predHelp <- predict(object, which=i, newdata=d)
-          if(!is.matrix(predHelp)){ X <- predHelp
+          if(!is.matrix(predHelp)){ 
+            X <- predHelp
           }else{
-            X <- if(any(trm$get_names() %in% c("ONEtime"))){ # effect constant in t 
+            X <- if(any(trm$get_names() %in% c("ONEtime")) | 
+                    any(class(object)=="FDboostScalar")){ # effect constant in t 
               predHelp[,1]
-            }else{ predHelp[1,] # smooth intercept/ concurrent effect                
+            }else{ 
+              predHelp[1,] # smooth intercept/ concurrent effect                
             }            
           } 
           P <- list(x=attr(d, "xm"), xlab=attr(d, "xname"), xlim=safeRange(attr(d, "xm")))
-        ## trm$dim > 1
+          ## trm$dim > 1
         }else{
           varnms <- attr(d, "varnms")
           if(trm$dim==2){

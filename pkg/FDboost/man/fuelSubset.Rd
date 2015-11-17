@@ -36,8 +36,8 @@ both spectra and their derivatives as predictors.
 
    Siemens AG
 
-   Fuchs, K., Scheipl, F. & Greven, S. (2013), Penalized scalar-on-functions
-   regression with interaction term. Submitted for publication.
+   Fuchs, K., Scheipl, F. & Greven, S. (2015), Penalized scalar-on-functions
+   regression with interaction term. Computational Statistics and Data Analysis. 81, 38-51. 
 
 }
 \examples{

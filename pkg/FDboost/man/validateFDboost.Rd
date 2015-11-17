@@ -174,18 +174,23 @@ mod1 <- FDboost(vis ~ 1 + bols(T_C, contrasts.arg = "contr.sum", intercept=FALSE
 summary(mod1)
 ## plot(mod1)
 
-\dontrun{
 ## for the example B is set to a small value so that bootstrap is fast
-val1 <- validateFDboost(mod, folds=cv(rep(1, 64), B=3) )
-## the same
-val1 <- validateFDboost(mod, folds=cvLong(unique(mod$id), B=3) )
-# plot(val1)
-mstop(val1)
+val1 <- validateFDboost(mod1, folds=cvLong(unique(mod1$id), B=3) )
 
+\dontrun{
+## the same, as folds are equal
+val1 <- validateFDboost(mod1, folds=cv(rep(1, 64), B=3) )
+# plot(val1)
+# plotPredCoef(val1)
+mstop(val1)
+}
+
+\dontrun{
 ## do a leaving-one-curve-out cross-validation, takes some time!
-val2 <- validateFDboost(mod, folds=cvLong(unique(mod$id), type="curves") )
+val2 <- validateFDboost(mod1, folds=cvLong(unique(mod1$id), type="curves") )
 plot(val2)
 plotPredCoef(val2)
+}
 
 ## find the optimal mstop over 5-fold bootstrap
 ## using the function cvrisk, offset is not refitted!
@@ -194,7 +199,6 @@ folds1 <- cvLong(id = mod1$id, weights = model.weights(mod1),
 cvm1 <- cvrisk(mod1, folds = folds1)
 ## plot(cvm1)
 mstop(cvm1)
-}
 }
 \seealso{
 \code{\link{cvrisk}} to perform cross-validation with scalar response.

@@ -133,18 +133,23 @@
 #' summary(mod1)
 #' ## plot(mod1)
 #'  
-#' \dontrun{
-#' ## for the example B is set to a small value so that bootstrap is fast               
-#' val1 <- validateFDboost(mod, folds=cv(rep(1, 64), B=3) ) 
-#' ## the same 
-#' val1 <- validateFDboost(mod, folds=cvLong(unique(mod$id), B=3) )
+#' ## for the example B is set to a small value so that bootstrap is fast   
+#' val1 <- validateFDboost(mod1, folds=cvLong(unique(mod1$id), B=3) )            
+#'
+#' \dontrun{  
+#' ## the same, as folds are equal 
+#' val1 <- validateFDboost(mod1, folds=cv(rep(1, 64), B=3) )
 #' # plot(val1)
+#' # plotPredCoef(val1)
 #' mstop(val1)
+#' }
 #' 
+#' \dontrun{ 
 #' ## do a leaving-one-curve-out cross-validation, takes some time!
-#' val2 <- validateFDboost(mod, folds=cvLong(unique(mod$id), type="curves") )
+#' val2 <- validateFDboost(mod1, folds=cvLong(unique(mod1$id), type="curves") )
 #' plot(val2)
 #' plotPredCoef(val2)
+#' }
 #' 
 #' ## find the optimal mstop over 5-fold bootstrap
 #' ## using the function cvrisk, offset is not refitted! 
@@ -153,7 +158,7 @@
 #' cvm1 <- cvrisk(mod1, folds = folds1)
 #' ## plot(cvm1)
 #' mstop(cvm1)
-#' }
+#' 
 #' 
 #' @aliases cvMa cvLong
 #' 
@@ -345,47 +350,57 @@ validateFDboost <- function(object, response=NULL,
     rm(resp0, meanResp)
     
     
-    ####### prediction for all observations, not only oob! 
-    # -> oob-predictions have to be merged out of predGrid
-    predGrid <- predict(mod, aggregate="cumsum", unlist=FALSE)
+    ### <TODO> if you want oob-predictions, redo this section 
+    predGrid <- NA
+    predOOB <- NA
+    respOOB <- NA
     
-    if(!any(class(object)=="FDboostLong")){
-      predGrid <- sapply(predGrid, function(x) as.vector(x) )[,grid] # save vectors of predictions in matrix
-    }else{
-      predGrid <- predGrid[,grid] # save vectors of predictions for grid in matrix
-    }
-    
-    ## <FIXME> are those calculations necessary?
-    if(!any(class(object)=="FDboostLong")){
-      # predict oob and save responses that were predicted
-      predOOB <- predict(mod, aggregate="cumsum", unlist=FALSE)
-      keepOOB <- matrix(oobweights, nObs, Gy)
-      keepRow <- apply(keepOOB, 1, function(x) any(x!=0))
-      if(any(keepRow)){
-        if( length(object$yind) > 1){ # functional response
-          predOOB <- sapply(predOOB, function(x) as.vector(x[keepRow, ]) )[,grid]
-        }else{ # scalar response
-          predOOB <- sapply(predOOB, function(x) as.vector(x[keepRow, ]) )[,grid]
-        }
-        respOOB <- as.vector(matrix(mod$response, nObs, Gy)[keepRow,] )
-        attr(respOOB, "curves") <- which(keepRow)
+    if(FALSE){
+      
+      ####### prediction for all observations, not only oob! 
+      # -> oob-predictions have to be merged out of predGrid
+      predGrid <- predict(mod, aggregate="cumsum", toFDboost=FALSE)
+      ## predGrid <- predGrid[,grid] # save vectors of predictions for grid in matrix
+      
+      if(!any(class(object)=="FDboostLong")){
+        predGrid <- sapply(predGrid, function(x) as.vector(x) )[,grid] # save vectors of predictions in matrix
       }else{
-        predOOB <- NULL
-        respOOB <- NULL
+        predGrid <- predGrid[,grid] # save vectors of predictions for grid in matrix
       }
-      ### <FIXME> compute those variables for response in long-format?
-    }else{
-      # predict oob and save responses that were predicted
-      predOOB <- predict(mod, aggregate="cumsum", unlist=FALSE)[,grid]
-      keepidOOB <- (oobweights!=0)[mod$id]
-      if(any(keepidOOB)){
-        predOOB <- predOOB[keepidOOB,]
-        respOOB <- mod$response[keepidOOB]
-        attr(respOOB, "curves") <- unique(mod$id[keepidOOB])
+      
+      ## <FIXME> are those calculations necessary?
+      if(!any(class(object)=="FDboostLong")){
+        # predict oob and save responses that were predicted
+        predOOB <- predict(mod, aggregate="cumsum", toFDboost=FALSE)
+        keepOOB <- matrix(oobweights, nObs, Gy)
+        keepRow <- apply(keepOOB, 1, function(x) any(x!=0))
+        if(any(keepRow)){
+          if( length(object$yind) > 1){ # functional response
+            predOOB <- sapply(predOOB, function(x) as.vector(x[keepRow, ]) )[,grid]
+          }else{ # scalar response
+            predOOB <- sapply(predOOB, function(x) as.vector(x[keepRow, ]) )[,grid]
+          }
+          respOOB <- as.vector(matrix(mod$response, nObs, Gy)[keepRow,] )
+          attr(respOOB, "curves") <- which(keepRow)
+        }else{
+          predOOB <- NULL
+          respOOB <- NULL
+        }
+        ### <FIXME> compute those variables for response in long-format?
       }else{
-        predOOB <- NULL
-        respOOB <- NULL
-      } 
+        # predict oob and save responses that were predicted
+        predOOB <- predict(mod, aggregate="cumsum", unlist=FALSE)[,grid]
+        keepidOOB <- (oobweights!=0)[mod$id]
+        if(any(keepidOOB)){
+          predOOB <- predOOB[keepidOOB,]
+          respOOB <- mod$response[keepidOOB]
+          attr(respOOB, "curves") <- unique(mod$id[keepidOOB])
+        }else{
+          predOOB <- NULL
+          respOOB <- NULL
+        } 
+      }
+      
     }
 
     if(showProgress) cat(".")
@@ -504,10 +519,10 @@ validateFDboost <- function(object, response=NULL,
   if(getCoefCV){
     
     if(riskopt=="median"){
-      print("median")
+      #print("median")
       optimalMstop <- grid[which.min(apply(oobrisk, 2, median))]
     }else{
-      print("mean")
+      #print("mean")
       optimalMstop <- grid[which.min(apply(oobrisk, 2, mean))]
     }  
     

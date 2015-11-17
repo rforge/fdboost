@@ -72,9 +72,11 @@
            \newline
 
 
+The results of this vignette together with more explanations can be found in Brockhaus et al. (2015). 
+
 \section{Descriptive analysis}
 
-Load FDboost package and useful functions for plotting.
+Load FDboost package and write useful functions for plotting.
 <<pkg-attach, echo = FALSE>>=
 library(FDboost)
 
@@ -350,6 +352,11 @@ dev.off()
 \end{center}
 \caption{Viscosity over time and estimated coefficient functions. On the left hand side the viscosity measures are plotted over time with temperature of tools ($T_C$) and temperature of resin ($T_A$) color-coded. On the right hand side the coefficient functions are plotted.}
 \end{figure} 
+
+\textbf{References}
+\begin{itemize}
+\item[] Brockhaus S, Scheipl, F., Hothor, T., and Greven, S. (2015), The functional linear array model, \textit{{Statistical Modelling}}, 15(3), 279-300. 
+\end{itemize}
 
 
 \end{document}

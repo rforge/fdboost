@@ -71,7 +71,8 @@
            \texttt{sarah.brockhaus@stat.uni-muenchen.de}
            \newline
 
-The analysis is based on the analysis in the online appendix of Scheipl et al. (2014).  
+The analysis is based on the analysis in the online appendix of Scheipl et al. (2015). 
+The results of this vigentte can be found in the web appendix of Brockhaus et al. (2015). 
 
 \section{Load and plot data}
 Load FDboost package.
@@ -206,7 +207,7 @@ mod3 <- FDboost(l10precip ~ bols(region, df=2.5, contrasts.arg = "contr.dummy")
                 + bolsc(place, df=2.5, K=P_nu.5, contrasts.arg = "contr.dummy"), 
                 timeformula=~bbs(month.t, knots=11, cyclic=TRUE, 
                                  df=3, boundary.knots=c(0.5,12.5)),
-                offset=0, offset_control = o_control(k_min=5), 
+                offset="scalar", offset_control = o_control(k_min=5), 
                 data=dataM)
 @
 
@@ -395,8 +396,8 @@ The locations of the weather stations are given in the map at the bottom.}
 
 \textbf{References}
 \begin{itemize}
-\item[] Scheipl, F., Staicu, A.-M., and Greven, S. (2014), Functional Additive Mixed Models, \textit{{Journal of Computational and Graphical Statistics}}, in press, 
-DOI 10.1080/10618600.2014.901914.
+\item[] Brockhaus S, Scheipl, F., Hothor, T., and Greven, S. (2015), The functional linear array model, \textit{{Statistical Modelling}}, 15(3), 279-300. 
+\item[] Scheipl, F., Staicu, A.-M., and Greven, S. (2015), Functional Additive Mixed Models, \textit{{Journal of Computational and Graphical Statistics}}, 24(2), 477-501.
 \end{itemize}
 
 

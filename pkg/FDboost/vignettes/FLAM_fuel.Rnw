@@ -71,9 +71,11 @@
            \texttt{sarah.brockhaus@stat.uni-muenchen.de}
            \newline
 
+The dataset was originally analyzed by Fuchs et al. (2015). 
+The results of this vignette together with more explanations can be found in Brockhaus et al. (2015).  
 
 \section{Load and plot data}
-Load FDboost package and useful functions for plotting.
+Load FDboost package.
 <<pkg-attach, echo = FALSE, fig=FALSE>>=
 library(FDboost)
 @
@@ -247,7 +249,11 @@ if(FALSE){
 
 % The gray lines show the estimates in the 50 bootstrap folds, the black line gives the mean estimated coefficient function over the bootstrap folds, the dashed red lines point-wise 5\% and 95\% values, the dotdashed blue lines give the estimated coefficients for the model on the whole dataset.
 
-
+\textbf{References}
+\begin{itemize}
+\item[] Brockhaus S, Scheipl, F., Hothor, T., and Greven, S. (2015), The functional linear array model, \textit{{Statistical Modelling}}, 15(3), 279-300. 
+\item[] Fuchs, K., Scheipl, F., and Greven, S. (2015), , \textit{{Computational Statistics and Data Analysis}}, 81, 38-51.
+\end{itemize}
 
 
 \end{document}
