@@ -322,9 +322,7 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, toFDboost=TRUE, 
         ## as offset is predicted and included in prediction 
         predMboost <- withCallingHandlers(predict(object=object, newdata=newdata, which=NULL, ...), 
                                            warning = muffleWarning1)
-        predOffsetLong <- predOffset
-        if(classObject[1]=="FDboost") predOffsetLong <- rep(predOffset, each=n)
-        predMboost <- predMboost + predOffsetLong
+        predMboost <- predMboost + predOffset
       }else{ # offset != NULL in FDboost -> treat offset like in mboost 
         predMboost <- predict(object=object, newdata=newdata, which=NULL, ...)
       }
