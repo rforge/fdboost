@@ -169,7 +169,10 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, toFDboost=TRUE, 
           }
         }
         ## in case of scalar response, set lenth of yindex to 1
-        if(object$ydim[2]==1) lengthYind <- 1; alllengthYind <- 1
+        if(object$ydim[2]==1){ 
+          lengthYind <- 1 
+          alllengthYind <- 1
+        } 
         
         if( length(unique(alln))>1 ) stop("The hmatrix-objects in newdata imply differing numbers of trajectories.")
         if( length(unique(alllengthYind))>1 ) stop("The hmatrix-objects in newdata imply differing times or do not match the time variable.")
@@ -223,7 +226,9 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, toFDboost=TRUE, 
     
     ### Predict effect of offset (scalar, regular, irregular):  
     # use the function predictOffset() on the new time-variable   
-    predOffset <- object$predictOffset(newdata[[nameyind]])  
+    predOffset <- object$predictOffset(newdata[[nameyind]]) 
+    # for regular response: repeat offset accordingly 
+    if(classObject[1]=="FDboost") predOffset <- rep(predOffset, each=n)
     
     ### In the case of bsignal(), bfpc(), bconcurrent() and bhist() it is necessary 
     # to add the index of the signal-matrix as attribute
