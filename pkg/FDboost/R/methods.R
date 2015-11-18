@@ -937,6 +937,7 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL,
         return(NULL)
       }
       
+      # browser()
       d <- makeDataGrid(trm)
       
       ### <FIXME> better solution for %X% in base-learner!!!

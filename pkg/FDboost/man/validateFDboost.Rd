@@ -100,6 +100,7 @@ The function \code{validateFDboost} returns a validateFDboost-object, which is a
 \item{oobmrd0}{the out-of-bag mean relative deviation (MRD) without consideration of integration weights}
 }
 \description{
+Function \code{validateFDboost()} is experimental.
 Cross-Validation and bootstrapping over curves to compute the empirical risk for
 hyper-parameter selection and to compute resampled coefficients and predictions for
 the models.
@@ -112,7 +113,7 @@ The weights (zero weights correspond to test cases) are defined via the folds ma
 see \code{\link[mboost]{cvrisk}} in package mboost.
 
 The function \code{validateFDboost} is especially suitable for models with functional response.
-Using the optiion \code{refitSmoothOffset} the offset is refitted on each fold.
+Using the option \code{refitSmoothOffset} the offset is refitted on each fold.
 Note, that the function \code{validateFDboost} expects folds that give weights
 per trajectory without considering integration weights. The integration weights of
 \code{object} are used to compute the empirical risk as integral. The argument \code{response}
@@ -180,8 +181,10 @@ val1 <- validateFDboost(mod1, folds=cvLong(unique(mod1$id), B=3) )
 \dontrun{
 ## the same, as folds are equal
 val1 <- validateFDboost(mod1, folds=cv(rep(1, 64), B=3) )
-# plot(val1)
-# plotPredCoef(val1)
+## plot the risk per fold against the number of boosting-iterations
+plot(val1)
+## plot the coefficients in the folds with point-wise intervals for base-learner 1
+plotPredCoef(val1, terms = FALSE, which=1)
 mstop(val1)
 }
 
@@ -189,7 +192,8 @@ mstop(val1)
 ## do a leaving-one-curve-out cross-validation, takes some time!
 val2 <- validateFDboost(mod1, folds=cvLong(unique(mod1$id), type="curves") )
 plot(val2)
-plotPredCoef(val2)
+plotPredCoef(val2, which=1) # plot oob predictions per fold
+plotPredCoef(val2, which=1, terms=FALSE) # plot coefficients per fold
 }
 
 ## find the optimal mstop over 5-fold bootstrap

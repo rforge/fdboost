@@ -205,7 +205,7 @@
 #' 
 #' ## only keep a quarter of the observation points
 #' set.seed(123)
-#' selectObs <- sample(x=1:(64*46), size=64*46/4, replace=FALSE)
+#' selectObs <- sort(sample(x=1:(64*46), size=64*46/4, replace=FALSE))
 #' dataIrregular <- with(viscosity, list(vis=c(vis)[selectObs], 
 #'                                       T_A=T_A, T_C=T_C,  
 #'                                       time=rep(time, each=64)[selectObs], 

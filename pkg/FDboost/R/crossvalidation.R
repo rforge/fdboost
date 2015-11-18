@@ -1,6 +1,7 @@
 
 #' Cross-Validation and Bootstrapping over Curves
 #' 
+#' Function \code{validateFDboost()} is experimental. 
 #' Cross-Validation and bootstrapping over curves to compute the empirical risk for 
 #' hyper-parameter selection and to compute resampled coefficients and predictions for
 #' the models. 
@@ -51,7 +52,7 @@
 #' see \code{\link[mboost]{cvrisk}} in package mboost.    
 #' 
 #' The function \code{validateFDboost} is especially suitable for models with functional response. 
-#' Using the optiion \code{refitSmoothOffset} the offset is refitted on each fold. 
+#' Using the option \code{refitSmoothOffset} the offset is refitted on each fold. 
 #' Note, that the function \code{validateFDboost} expects folds that give weights
 #' per trajectory without considering integration weights. The integration weights of 
 #' \code{object} are used to compute the empirical risk as integral. The argument \code{response} 
@@ -139,8 +140,10 @@
 #' \dontrun{  
 #' ## the same, as folds are equal 
 #' val1 <- validateFDboost(mod1, folds=cv(rep(1, 64), B=3) )
-#' # plot(val1)
-#' # plotPredCoef(val1)
+#' ## plot the risk per fold against the number of boosting-iterations
+#' plot(val1)
+#' ## plot the coefficients in the folds with point-wise intervals for base-learner 1
+#' plotPredCoef(val1, terms = FALSE, which=1)
 #' mstop(val1)
 #' }
 #' 
@@ -148,7 +151,8 @@
 #' ## do a leaving-one-curve-out cross-validation, takes some time!
 #' val2 <- validateFDboost(mod1, folds=cvLong(unique(mod1$id), type="curves") )
 #' plot(val2)
-#' plotPredCoef(val2)
+#' plotPredCoef(val2, which=1) # plot oob predictions per fold
+#' plotPredCoef(val2, which=1, terms=FALSE) # plot coefficients per fold
 #' }
 #' 
 #' ## find the optimal mstop over 5-fold bootstrap
@@ -349,59 +353,22 @@ validateFDboost <- function(object, response=NULL,
     
     rm(resp0, meanResp)
     
+    ####### prediction for all observations, not only oob! 
+    # the predictions are in a long vector for all model types (regular, irregular, scalar)
+    predGrid <- predict(mod, aggregate="cumsum", toFDboost=FALSE)
+    predGrid <- predGrid[,grid] # save vectors of predictions for grid in matrix
     
-    ### <TODO> if you want oob-predictions, redo this section 
-    predGrid <- NA
-    predOOB <- NA
-    respOOB <- NA
-    
-    if(FALSE){
-      
-      ####### prediction for all observations, not only oob! 
-      # -> oob-predictions have to be merged out of predGrid
-      predGrid <- predict(mod, aggregate="cumsum", toFDboost=FALSE)
-      ## predGrid <- predGrid[,grid] # save vectors of predictions for grid in matrix
-      
-      if(!any(class(object)=="FDboostLong")){
-        predGrid <- sapply(predGrid, function(x) as.vector(x) )[,grid] # save vectors of predictions in matrix
-      }else{
-        predGrid <- predGrid[,grid] # save vectors of predictions for grid in matrix
-      }
-      
-      ## <FIXME> are those calculations necessary?
-      if(!any(class(object)=="FDboostLong")){
-        # predict oob and save responses that were predicted
-        predOOB <- predict(mod, aggregate="cumsum", toFDboost=FALSE)
-        keepOOB <- matrix(oobweights, nObs, Gy)
-        keepRow <- apply(keepOOB, 1, function(x) any(x!=0))
-        if(any(keepRow)){
-          if( length(object$yind) > 1){ # functional response
-            predOOB <- sapply(predOOB, function(x) as.vector(x[keepRow, ]) )[,grid]
-          }else{ # scalar response
-            predOOB <- sapply(predOOB, function(x) as.vector(x[keepRow, ]) )[,grid]
-          }
-          respOOB <- as.vector(matrix(mod$response, nObs, Gy)[keepRow,] )
-          attr(respOOB, "curves") <- which(keepRow)
-        }else{
-          predOOB <- NULL
-          respOOB <- NULL
-        }
-        ### <FIXME> compute those variables for response in long-format?
-      }else{
-        # predict oob and save responses that were predicted
-        predOOB <- predict(mod, aggregate="cumsum", unlist=FALSE)[,grid]
-        keepidOOB <- (oobweights!=0)[mod$id]
-        if(any(keepidOOB)){
-          predOOB <- predOOB[keepidOOB,]
-          respOOB <- mod$response[keepidOOB]
-          attr(respOOB, "curves") <- unique(mod$id[keepidOOB])
-        }else{
-          predOOB <- NULL
-          respOOB <- NULL
-        } 
-      }
-      
-    }
+    # -> oob-predictions have to be merged out of predGrid
+    predOOB <- predGrid
+    keepidOOB <- (oobweights!=0)[mod$id]
+    if(any(keepidOOB)){
+      predOOB <- predOOB[keepidOOB,]
+      respOOB <- mod$response[keepidOOB]
+      attr(respOOB, "curves") <- unique(mod$id[keepidOOB])
+    }else{
+      predOOB <- NULL
+      respOOB <- NULL
+    } 
 
     if(showProgress) cat(".")
 
@@ -487,11 +454,18 @@ validateFDboost <- function(object, response=NULL,
     # predictions for each response are in a vector!
     # <FIXME> only works for regular response! implement depending on id!
     oobpreds0 <- lapply(modRisk, function(x) x$predGrid)
-    oobpreds <- matrix(nrow=nrow(oobpreds0[[1]]) , ncol=ncol(oobpreds0[[1]]))
-    for(j in 1:length(oobpreds0)){
-      oobpreds[folds[,j]==0] <- oobpreds0[[j]][folds[,j]==0] 
+    if(any(class(object)=="FDboostLong")){
+      oobpreds <- vector(length(oobpreds0), mode="list")
+      for(j in 1:length(oobpreds0)){
+        oobpreds[[which(folds[,j]==0)]] <- oobpreds0[[j]][id==which(folds[,j]==0),] 
+      }
+    }else{
+      oobpreds <- matrix(nrow=nrow(oobpreds0[[1]]), ncol=ncol(oobpreds0[[1]]))
+      for(j in 1:length(oobpreds0)){
+        oobpreds[folds[,j]==0] <- oobpreds0[[j]][folds[,j]==0] 
+      }
+      colnames(oobpreds) <- grid
     }
-    colnames(oobpreds) <- grid
     rm(oobpreds0)
     
   }else{
@@ -566,6 +540,7 @@ validateFDboost <- function(object, response=NULL,
     
     ### predictions of terms based on the coefficients for each model
     # only makes sense for type="curves" with leaving-out one curve per fold!!
+    #browser() 
     if(grepl( "curves", type)){
       for(l in 1:(length(modRisk[[1]]$mod$baselearner)+1)){
         predCV[[l]] <- t(sapply(1:length(modRisk), function(g){
@@ -576,7 +551,7 @@ validateFDboost <- function(object, response=NULL,
             if(!any(class(object)=="FDboostLong")){
               if( length(ret)==1 ) ret <- rep(ret, modRisk[[1]]$mod$ydim[2])
             # irregular data
-            }else{
+            }else{ 
               if( length(ret)==1 ){ ret <- rep(ret, sum(object$id==g)) }else{ ret <- ret[object$id==g] }
             }
           }else{ # other effects
@@ -591,7 +566,7 @@ validateFDboost <- function(object, response=NULL,
             if(!any(class(object)=="FDboostLong")){
               ret <- ret[g,] # save g-th row = preds for g-th observations
             }else{
-              ret <- ret[object$id==g,] # save preds of g-th observations
+              ret <- ret[object$id==g] # save preds of g-th observations
             } 
           }
           return(ret)
@@ -885,7 +860,7 @@ plotPredCoef <- function(x, which=NULL, pers=TRUE,
     }
     
     if( length(x$predCV)==0 ){
-      warning("terms=TRUE, but predCV is empty.")
+      warning("no bootstrapped predcition, set terms=FALSE, to plot bootstrapped coefficients.")
       return(NULL)
     }
     
@@ -897,22 +872,15 @@ plotPredCoef <- function(x, which=NULL, pers=TRUE,
     ### loop over base-learners
     for(l in which){
       
-      if( any(class(x)=="FDboostLong") ){
+      if( x$format=="FDboostLong" ){
         
-        if(length(x$yind)>1){
-          if(l==1 && length(x$yind)>1){ 
-            matplot(x$yind, t(x$predCV[[l]]), type="l", 
-                    main=names(x$predCV)[l], xlab=attr(x$yind, "nameyind"), ylab="coef", ylim=ylim, ...)
-          }else{
-            matplot(x$yind, t(x$predCV[[l]]), type="l", 
-                    main=names(x$predCV)[l], xlab=attr(x$yind, "nameyind"), ylab="coef", ylim=ylim, ...)
-            
-            if(showNumbers){
-              matplot(x$yind, t(x$predCV[[l]]), add=TRUE, ...)
-            }
+        funplot(x$yind, unlist(x$predCV[[l]]), id=x$id, col="white", 
+                main=names(x$predCV)[l], xlab=attr(x$yind, "nameyind"), ylab="coef", ylim=ylim, ...)
+        for(i in 1:length(x$predCV[[l]])){
+          lines(x$yind[x$id==i], x$predCV[[l]][[i]], lwd=1, col=i)
+          if(showNumbers){
+            points(x$yind[x$id==i], x$predCV[[l]][[i]], type="p", pch=paste0(i))
           }
-        }else{
-          plot(1:length(x$predCV[[l]]), x$predCV[[l]], main=names(x$predCV)[l], xlab="index", ylab="coef")
         }
         
       }else{
@@ -921,7 +889,7 @@ plotPredCoef <- function(x, which=NULL, pers=TRUE,
                 main=names(x$predCV)[l], xlab=attr(x$yind, "nameyind"), ylab="coef", ylim=ylim, ...)
         
         if(showNumbers){
-          points(x$yind, unlist(x$predCV[[l]]), type="p", pch=paste(x$id))
+          funplot(x$yind, unlist(x$predCV[[l]]), id=x$id, pch=paste0(x$id), add=TRUE, type="p")
         }
       } 
     } # end for-loop 
