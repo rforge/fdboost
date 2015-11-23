@@ -6,8 +6,8 @@
   \subsection{User-visible changes}{
     \itemize{
 	\item in function FDboost() the offset is supplied differently, for a scalar offset, use offset = "scalar", the default is still the same offset=NULL
-	\item predict.FDboost has new argument toFDboost (logical)
-	\item fitted.FDboost has argument toFDboost explicitly and not only in ...
+	\item predict.FDboost() has new argument toFDboost (logical)
+	\item fitted.FDboost() has argument toFDboost explicitly and not only in ...
     \item new base-learner bhistx() especially suited for effects with %X%, like bhistx %X% bolsc 
     \item coef.FDboost() and plot.FDboost() suited for effects like bhistx %X% bolsc
     \item for predict.FDboost() with effects bhistx() and newdata the latest mboostPatch is necessary
@@ -15,7 +15,7 @@
   }
     \subsection{Bug-fixes}{
     \itemize{
-      \item check for necessity of smooth offset works for missings in regular response 
+      \item check for necessity of smooth offset works for missings in regular response (spotted by Tore Erdmann) 
     }
   }
 }
@@ -46,7 +46,7 @@
 \section{Changes in FDboost version 0.0-10 (2015-04-16)}{
   \subsection{User-visible changes}{
     \itemize{
-    \item change the default in difference-penalties to first oder difference penalty
+    \item change the default in difference-penalties to first order difference penalty
     differences=1, as then the effects are better identifiable 
       \item new method cvrisk.FDboost() that uses per default 
       sampling on the levels of curves, which is important for functional response
