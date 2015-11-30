@@ -7,13 +7,14 @@
 #' only one observation. 
 #' This function is a wrapper for \code{mboost}'s \code{\link[mboost]{mboost}} and its 
 #' siblings to fit models of the general form 
-#' \cr \eqn{\xi(Y_i(t)) = \sum j h_j(x_i, t)}, i=1, ..., N, \cr
+#' \deqn{\xi(Y_i(t)|X_i=x_i) = \sum_{j} h_j(x_i, t), i=1, ..., N,} 
 #' with a functional (but not necessarily continuous) response \eqn{Y(t)}, 
 #' transformation function \eqn{\xi}, e.g., the expectation, the median or some quantile, 
 #' and partial effects \eqn{h_j(x_i, t)} depending on covariates 
 #' and the current index of the response. 
 #' Possible effects are, e.g., a smooth intercept \eqn{\beta_0(t)}, 
-#' effects of functional covariates \eqn{\int X_i(s)\beta(s,t)ds}, 
+#' a linear functional effect \eqn{\int x_i(s)\beta(s,t)ds}, 
+#' potentially with integration limints depending on \eqn{t}, 
 #' smooth and linear effects of scalar covariates \eqn{f(z_i)}, \eqn{z_i \beta(t)}. 
 #' 
 #' @param formula a symbolic description of the model to be fit. 

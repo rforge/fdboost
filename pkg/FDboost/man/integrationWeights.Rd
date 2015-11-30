@@ -14,7 +14,7 @@ integrationWeightsLeft(X1, xind, leftWeight = c("first", "mean", "zero"))
 
 \item{xind}{index of functional variable}
 
-\item{id}{defaults to NULL if X1 is a matrix. identity variable if X1 is in long format.}
+\item{id}{defaults to NULL if \code{X1} is a matrix. identity variable if \code{X1} is in long format.}
 
 \item{leftWeight}{one of \code{c("mean", "first", "zero")}. With left Riemann sums
 different assumptions for the weight of the first observation are possible.
