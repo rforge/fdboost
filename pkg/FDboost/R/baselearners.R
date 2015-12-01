@@ -1447,7 +1447,7 @@ X_fpc <- function(mf, vary, args) {
   ## do fPCA on X1 (code of refund::ffpc adapted)
   ## fPCA does not use xind!!
   if(is.null(args$klX)){
-    decomppars = list(pve = args$pve, npc = args$npc, useSymm = TRUE)
+    decomppars <- list(pve = args$pve, npc = args$npc, useSymm = TRUE)
     decomppars$Y <- X1
     ## functional covariate is per default centered per time-point
     klX <- do.call(fpca.sc, decomppars)
