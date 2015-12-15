@@ -1,6 +1,21 @@
 \name{NEWS}
 \title{News for Package 'FDboost'}
 
+\section{Changes in FDboost version 0.0-14 (2015-12-15)}{
+  \subsection{User-visible changes}{
+    \itemize{
+        \item add a new possibility for scalar-on-function regression: 
+          for timeformula=NULL, no Kronecker-product with 1 is used, which 
+          changes the penalty as otherwise in the direction of 1 is penalized as well. 
+    }
+  }
+  \subsection{Miscellaneous}{
+    \itemize{
+      \item use the argument 'prediction' in the internal computation of the base-learners (work in progress) 
+    }
+  }
+}
+
 
 \section{Changes in FDboost version 0.0-13 (2015-11-17)}{
   \subsection{User-visible changes}{

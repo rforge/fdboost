@@ -16,6 +16,15 @@
 #' a linear functional effect \eqn{\int x_i(s)\beta(s,t)ds}, 
 #' potentially with integration limints depending on \eqn{t}, 
 #' smooth and linear effects of scalar covariates \eqn{f(z_i)}, \eqn{z_i \beta(t)}. 
+#' \cr\cr
+#' The most important tuning parameter of component-wise gradient boosting 
+#' is the number of boosting iterations. Usually it is used as only tuning parameter, 
+#' fixing the step-length (e.g. nu=0.1) and setting the degrees of freedom per base-learner
+#' to a small equal value.  
+#' The stopping iteration is determined by resampling methods like
+#' cross-validation or bootstrapping, see \code{\link{cvrisk}}. 
+#' Note that the default number of boosting iterations is 100 which is arbitrary. Thus, 
+#' it is highly important to choose an optimal stopping iteration.  
 #' 
 #' @param formula a symbolic description of the model to be fit. 
 #' Per default no intercept is added, only a smooth offset, see argument \code{offset}. 
@@ -23,12 +32,12 @@
 #' @param timeformula formula for the expansion over the index of the response. 
 #' For a functional response \eqn{Y_i(t)} typically \code{~bbs(t)} to obtain a smooth 
 #' expansion of the effects along \code{t}. In the limiting case that \eqn{Y_i} is a scalar response
-#' use \code{~bols(1)}, which sets up a base-learner for the scalar 1.
+#' use \code{~bols(1)}, which sets up a base-learner for the scalar 1. 
+#' Or you can use \code{timeformula=NULL}, then the scalar response is treated as scalar. 
 #' @param id defaults to NULL which means that the response is a matrix with a regular time. 
 #' If the response is given in long format for irregular observations, \code{id} 
 #' contains the information which observations belong together and must be supplied as a formula, 
-#' \code{~nameid}, where the variable \code{nameid} should be contained in \code{nameid} 
-#' and contain integers 1, 2, 3, ..., N. 
+#' \code{~nameid}, where the variable \code{nameid} should contain integers 1, 2, 3, ..., N. 
 #' @param numInt integration scheme for the integration of the loss function.
 #' One of \code{c("equal", "Riemann")} meaning equal weights of 1 or 
 #' trapezoidal Riemann weights.
@@ -40,7 +49,7 @@
 #' (2) alternatively weights can be specified for single observations then
 #' \code{length(weights)} has to be \code{nrow(response)}*\code{ncol(response)}
 #' per default weights is constantly 1. 
-#' @param offset_control parameters for the calculation of the offset, 
+#' @param offset_control parameters for the estimation of the offset, 
 #' defaults to \code{o_control(k_min=20, silent=TRUE)}, see \code{\link{o_control}}.  
 #' @param offset a numeric vector to be used as offset over the index of the response (optional).
 #' If no offset is specified, per default \code{offset=NULL} which means that a 
@@ -55,23 +64,77 @@
 #' 
 #' @details The functional response and functional covariates have to be
 #' supplied as N by <number of evaluations> matrices, i.e., each row is one
-#' functional observation. For the model fit the matrix of the functional
+#' functional observation. For the model fit, the matrix of the functional
 #' response evaluations \eqn{Y_i(t)} are stacked into one long vector. 
+#' 
 #' If it is possible to represent the model as a generalized linear array model 
 #' (Currie et al., 2006), the array structure is used for an efficient implementation, 
 #' see \code{\link[mboost]{mboost}}. This is only possible if the design 
 #' matrix can be written as the Kronecker product of two marginal design 
-#' matrices, see Brockhaus et al. (2015) for details. 
-#' The Kronecker product of two marignal bases is implemented in R-package mboost 
+#' matrices yielding a functional linear array model (FLAM), 
+#' see Brockhaus et al. (2015) for details. 
+#' The Kronecker product of two marginal bases is implemented in R-package mboost 
 #' in the function \code{\%O\%}, see ?"\%O\%".  
-#' 
-#' If the response is observed irregularly or sparse it must be supplied  
+#' \cr\cr
+#' If the response is observed on irregular grids it must be supplied  
 #' as a vector in long format. In that case the argument \code{id} has  
 #' to be specified (as formula!) to define which observations belong to which curve. 
 #' In this case the base-learners are built as row tensor-products of marginal base-learners, 
 #' see Scheipl et al. (2015), for details on how to set up the effects. 
-#' The row tensor product of two marignal bases is implemented in R-package mboost 
-#' in the function \code{\%X\%}, see ?"\%X\%".
+#' The row tensor product of two marginal bases is implemented in R-package mboost 
+#' in the function \code{\%X\%}, see ?"\%X\%". 
+#' \cr\cr
+#' A scalar response can be seen as special case of a functional response with only
+#' one time-point, and thus it can be represented as FLAM with basis 1 in 
+#' time-direction, use \code{timeformula=~bols(1)}. In this case, a penalty in the 
+#' time-direction is used, see Brockhaus et al. (2015) for details.  
+#' Alternatively, the scalar response is fitted as scalar response, like in the function
+#' \code{\link[mboost]{mboost}} in package mboost. 
+#' The advantage of using \code{FDboost} in that case 
+#' is that methods for the functional base-learners are available, e.g. \code{plot}. 
+#' \cr\cr
+#' The desired regression type is specified by the \code{family}-argument, 
+#' see the help-page of \code{\link[mboost]{mboost}}. For example a mean regression model is obtained by  
+#' \code{family = Gaussian()} which is the default or median regression 
+#' by \code{family = QuantReg()}; 
+#' see \code{\link[mboost]{Family}} for a list of implemented families. 
+#' \cr\cr
+#' With \code{FDboost} the following covariate effects can be estimated (see \code{\link[refund]{pffr}}): 
+#' \itemize{
+#' \item Linear functional effect of scalar (numeric or factor) covariate \eqn{z} that varies 
+#'   smoothly over \eqn{t}, i.e. \eqn{z_i \beta_1(t)}, specified as
+#'   \code{~bolsc(z)}), see \code{\link{bolsc}}, 
+#'   or for a group effect with mean zero use \code{~brandom(z)}).  
+#' \item Nonlinear effects  of a scalar covariate that vary smoothly over the
+#'   index \eqn{t} of \eqn{Y(t)}, i.e. \eqn{f(z_i, t)}, specified as \code{bbsc(z)}, 
+#'   see \code{\link{bbsc}}. 
+#' \item (Nonlinear) effects of scalar covariates that are constant 
+#'   over \eqn{t}, e.g. \eqn{f(z_i)}, specified as \code{~c(bbs(z))}, 
+#'   or \eqn{\beta_3 z_i}, specified as \code{~c(bols(z))}. 
+#' \item Function-on-function regression terms of functional covariates \code{x}, 
+#'   e.g. \eqn{\int x_i(s)\beta(s,t)ds}, specified as \code{~bsignal(x, s=s)}, see
+#'   \code{\link{bsignal}}. 
+#'   Terms given by \code{\link{bfpc}} provide FPC-based effects of functional 
+#'   covariates, see \code{\link{bfpc}}. 
+#' \item Function-on-function regression terms of functional covariates \code{x} 
+#'   with integration limits \eqn{[l(t), u(t)]} depending on \eqn{t},  
+#'   e.g. \eqn{\int_[l(t), u(t)] x_i(s)\beta(s,t)ds}, specified as 
+#'   \code{~bhist(x, s=s, time=t, limits)}. The \code{limits} argument defaults to
+#'   \code{"s<=t"} which yields a hisotircal effect with limits \eqn{[min(t),t]}.
+#'    see \code{\link{bhist}}.
+#' \item Concurrent effects of functional covariates \code{x}
+#'   measured on the same grid as the response, i.e., \eqn{x_i(s)beta(t)}, 
+#'   are specified as \code{~bconcurrent(x, s=s, time=t)}, 
+#'   see \code{\link{bconcurrent}}. 
+#' \item interaction effects can be estimated as tensor product smooth, e.g., 
+#'   \eqn{ z \int x_i(s)\beta(s,t)ds} as \code{~bsignal(x, s=s) \%X\% bolsc(z)}
+#' \item For interaction effects with historical functional effects, e.g., 
+#'   \eqn{ \int_[l(t),u(t)] x_i(s)\beta(s,t)ds} the base-learner 
+#'   \code{~bhistx} should be used, e.g. \code{~bhistx(x, limits) \%X\% bolsc(z)}, 
+#'   should be used instead of \code{~bhist},  see \code{\link{bhistx}}.
+#' \item Generally the \code{c()}-notation can be used to get effects that are 
+#'   constant over the index of the functional response. 
+#' } 
 #' 
 #' @return on object of class \code{FDboost} that inherits from \code{mboost}.
 #' Special \code{\link{predict.FDboost}}, \code{\link{coef.FDboost}} and 
@@ -89,8 +152,10 @@
 #' \item{predictOffset}{the function to predict the smooth offset}
 #' \item{offsetVec}{the offset for one trajectory for regular response and 
 #' otherwise the offset for all trajectories}
+#' \item{offsetFDboost}{offset as specified in call to FDboost} 
+#' \item{offsetMboost}{offset as given to mboost}
 #' \item{call}{the call to \code{FDboost}}
-#' \item{callEval}{the evaluated function call}
+#' \item{callEval}{the evaluated function call to \code{FDboost} without data}
 #' \item{timeformula}{the time-formula}
 #' \item{formulaFDboost}{the formula with which \code{FDboost} was called}
 #' \item{formulaMboost}{the formula with which \code{mboost} was called within \code{FDboost}}
@@ -136,13 +201,11 @@
 #'                numInt="equal", family=QuantReg(),
 #'                offset=NULL, offset_control = o_control(k_min = 9),
 #'                data=viscosity, control=boost_control(mstop = 100, nu = 0.4))
-#' summary(mod1)
-#' ## plot(mod1)
-#' ## plotPredicted(mod1, lwdPred=2)
 #' 
 #' \dontrun{
 #' ## find optimal mstop over 5-fold bootstrap, small number of folds for example
 #' ## do the resampling on the level of curves
+#' set.seed(123)
 #' val1 <- validateFDboost(mod1, folds = cv(rep(1, length(unique(mod1$id))), B=5))
 #' ## plot(val1)
 #' mstop(val1)
@@ -156,6 +219,12 @@
 #' mstop(cvm1)
 #' }
 #' 
+#' ## look at the model
+#' summary(mod1)
+#' coef(mod1)
+#' ## plot(mod1)
+#' ## plotPredicted(mod1, lwdPred=2)
+#' 
 #' ######## Example for scalar-on-function-regression 
 #' data("fuelSubset", package = "FDboost")
 #' 
@@ -163,9 +232,24 @@
 #' fuelSubset$UVVIS <- scale(fuelSubset$UVVIS)
 #' fuelSubset$NIR <- scale(fuelSubset$NIR)
 #' 
+#' ## possibility 1: as FLAM model with the scalar response 
+#' ## adds a penalty over the index of the response
+#' ## thus, mod2f and mod2 have different panlties 
+#' mod2f <- FDboost(heatan ~ bsignal(UVVIS, uvvis.lambda, knots=40, df=4, check.ident=FALSE) 
+#'                + bsignal(NIR, nir.lambda, knots=40, df=4, check.ident=FALSE), 
+#'                timeformula=~bols(1), data=fuelSubset, control=boost_control(mstop=200))
+#' 
+#' ## possibility 2: with scalar response 
 #' mod2 <- FDboost(heatan ~ bsignal(UVVIS, uvvis.lambda, knots=40, df=4, check.ident=FALSE) 
 #'                + bsignal(NIR, nir.lambda, knots=40, df=4, check.ident=FALSE), 
-#'                timeformula=~bols(1), data=fuelSubset) 
+#'                timeformula=NULL, data=fuelSubset, control=boost_control(mstop=200)) 
+#'     
+#' ## bootstrap to find optimal mstop takes some time
+#' ## set.seed(123)           
+#' ## cvm2 <- cvrisk(mod2, folds = cv(weights = model.weights(mod2), B=10), grid = 1:1000)
+#' ## mstop(cvm2)
+#' mod2[327]
+#'                
 #' summary(mod2) 
 #' ## plot(mod2)
 #' 
@@ -186,8 +270,15 @@
 #'                            df=2.5, boundary.knots=c(0.5,12.5), check.ident=FALSE), 
 #'                  timeformula=~bbs(month.t, knots=11, cyclic=TRUE, 
 #'                                   df=3, boundary.knots=c(0.5,12.5)), 
-#'                                   offset=0, offset_control = o_control(k_min=5), 
-#'                   data=CanadianWeather)   
+#'                                   offset="scalar", offset_control = o_control(k_min=5), 
+#'                   data=CanadianWeather)  
+#'  ## find the optimal mstop over 5-fold bootstrap 
+#'  ## using the function cvrisk; be careful to do the resampling on the level of curves
+#'  ## set.seed(123)
+#'  ## cvm3 <- cvrisk(mod3, folds = cvLong(id = mod3$id, weights = model.weights(mod3), B=5), grid = 1:500)
+#'  ## mstop(cvm3)
+#'  mod3[64]
+#'    
 #'  summary(mod3)
 #'  ## plot(mod3, pers=TRUE)
 #' }
@@ -256,7 +347,7 @@
 #' @importFrom refund fpca.sc
 FDboost <- function(formula,          ### response ~ xvars
                     timeformula,      ### time
-                    id=NULL,          ### id variable if response in long format
+                    id=NULL,          ### id variable if response is in long format
                     numInt="equal",   ### option for approximation of integral over loss
                     data,             ### list of response, time, xvars
                     weights = NULL,   ### optional
@@ -313,17 +404,20 @@ FDboost <- function(formula,          ### response ~ xvars
   formulaFDboost <- formula
   
   stopifnot(class(formula)=="formula")
-  stopifnot(class(timeformula)=="formula")
+  if(!is.null(timeformula)) stopifnot(class(timeformula)=="formula")
   
   ### extract response; a numeric matrix or a vector
   yname <- all.vars(formula)[1]
   response <- data[[yname]]
   data[[yname]] <- NULL
   
-  ### for scalar response bols(1)
+  ### for scalar response ~bols(1) or NULL
   scalarResponse <- FALSE
-  if(timeformula == ~bols(1)){
+  scalarNoFLAM <- FALSE
+  if(is.null(timeformula) || timeformula == ~bols(1)){
+    
     scalarResponse <- TRUE
+    if(is.null(timeformula)) scalarNoFLAM <- TRUE
     
     if(grepl("df", formula[3]) | !grepl("lambda", formula[3]) ){
       timeformula <- ~bols(ONEtime, intercept=FALSE, df=1)
@@ -494,8 +588,16 @@ FDboost <- function(formula,          ### response ~ xvars
   # do not expand an effect bconcurrent() or bhist() by a Kronecker product
   if( length(c(grep("bconcurrent", tmp), grep("bhis", tmp)) ) > 0 ) 
     tmp[c(grep("bconcurrent", tmp), grep("bhis", tmp))] <- xfm[c(grep("bconcurrent", tmp), grep("bhis", tmp))]   
-  if(length(where.c) > 0) 
+  if(length(where.c) > 0){
     tmp[where.c] <- outer(xfm[where.c], cfm, function(x, y) paste(x, y, sep = "%O%"))
+  } 
+  
+  ## for scalar response without FLAM-model do not use the Kronecker product
+  if(scalarNoFLAM){
+    tmp <- xfm
+  } 
+  
+  ## put together the model formula 
   xpart <- paste(as.vector(tmp), collapse = " + ")
   fm <- as.formula(paste("dresponse ~ ", xpart))
   
@@ -683,7 +785,7 @@ FDboost <- function(formula,          ### response ~ xvars
         
         # no time-specific offset -> constant offset is estimated within mboost()
       }else{
-        stop("User specified offset must be of length 1 for irregulary observed response.") 
+        stop("User specified offset must be of length 1 for irregularly observed response.") 
       }
       
 
@@ -767,6 +869,7 @@ FDboost <- function(formula,          ### response ~ xvars
   
   # save formulas as character strings to save memory
   ret$timeformula <- paste(deparse(timeformula), collapse="")
+  if(scalarNoFLAM) ret$timeformula <- ""
   ret$formulaFDboost <- paste(deparse(formulaFDboost), collapse="")
   ret$formulaMboost <- paste(deparse(fm), collapse="")
   

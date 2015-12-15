@@ -246,9 +246,10 @@ hyper_signal <- function(mf, vary, inS="smooth", knots = 10, boundary.knots = NU
     stop("constraints not implemented for cyclic B-splines")
   stopifnot(is.numeric(deriv) & length(deriv) == 1)
   
+  ## prediction is usually set in/by newX()
   list(knots = ret, degree = degree, differences = differences,
        df = df, lambda = lambda, center = center, cyclic = cyclic,
-       Ts_constraint = constraint, deriv = deriv, 
+       Ts_constraint = constraint, deriv = deriv, prediction = FALSE, 
        Z = Z, penalty = penalty, check.ident = check.ident, s=s, inS=inS)
 }
 
@@ -940,9 +941,10 @@ hyper_hist <- function(mf, vary, knots = 10, boundary.knots = NULL, degree = 3,
     stop("constraints not implemented for cyclic B-splines")
   stopifnot(is.numeric(deriv) & length(deriv) == 1)
   
+  ## prediction is usually set in/by newX()
   list(knots = ret, degree = degree, differences = differences,
        df = df, lambda = lambda, center = center, cyclic = cyclic,
-       Ts_constraint = constraint, deriv = deriv, 
+       Ts_constraint = constraint, deriv = deriv, prediction = FALSE, 
        Z = Z, s = s, time = time, limits = limits, 
        standard = standard, intFun = intFun, 
        inS = inS, inTime = inTime, 
@@ -1421,9 +1423,9 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
 hyper_fpc <- function(mf, vary, df = 4, lambda = NULL, 
                       pve = 0.99, npc = NULL, npc.max = 15, getEigen=TRUE, 
                       s=NULL) {
-  
+  ## prediction is usually set in/by newX() 
   list(df = df, lambda = lambda, pve = pve, npc = npc, npc.max = npc.max, 
-       getEigen = getEigen, s=s)
+       getEigen = getEigen, s = s, prediction = FALSE)
 }
 
 ### model.matrix for fPCA based functional base-learner
@@ -1620,7 +1622,7 @@ bfpc <- function(x, s, index = NULL, df = 4,
 ### almost equal to X_bbs() of package mboost
 ### difference: implements sum-to-zero-constraint over index of response
 X_bbsc <- function(mf, vary, args) {
-  
+
   stopifnot(is.data.frame(mf))
   mm <- lapply(which(colnames(mf) != vary), function(i) {
     X <- bsplines(mf[[i]],
@@ -2221,10 +2223,14 @@ bolsc <- function(..., by = NULL, index = NULL, intercept = TRUE, df = NULL,
 ### hyper parameters for olsc base-learner
 # add the parameters Z and K
 hyper_olsc <- function(df = NULL, lambda = 0, K = NULL, intercept = TRUE,
-                       contrasts.arg = "contr.treatment", Z = NULL)
+                       contrasts.arg = "contr.treatment", Z = NULL){
+  
+  ## prediction is usually set in/by newX()
   list(df = df, lambda = lambda, K=K,
-       intercept = intercept, contrasts.arg = contrasts.arg,
+       intercept = intercept, contrasts.arg = contrasts.arg, prediction = FALSE, 
        Z = Z)
+}
+
 
 
 #' @rdname bbsc
