@@ -129,7 +129,7 @@
 #' \item interaction effects can be estimated as tensor product smooth, e.g., 
 #'   \eqn{ z \int x_i(s)\beta(s,t)ds} as \code{~bsignal(x, s=s) \%X\% bolsc(z)}
 #' \item For interaction effects with historical functional effects, e.g., 
-#'   \eqn{ \int_[l(t),u(t)] x_i(s)\beta(s,t)ds} the base-learner 
+#'   \eqn{ z \int_[l(t),u(t)] x_i(s)\beta(s,t)ds} the base-learner 
 #'   \code{~bhistx} should be used, e.g. \code{~bhistx(x, limits) \%X\% bolsc(z)}, 
 #'   should be used instead of \code{~bhist},  see \code{\link{bhistx}}.
 #' \item Generally the \code{c()}-notation can be used to get effects that are 
