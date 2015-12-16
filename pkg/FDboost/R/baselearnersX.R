@@ -433,15 +433,16 @@ X_histx <- function(mf, vary, args, getDesign=TRUE) {
 #'                              timeLab="tvals", idLab="wideIndex", xLab="myX", argvalsLab="svals"))
 #' dataList$X1h <- I(X1h)   
 #' dataList$svals <- attr(data1, "xindex")
-#' dataList$zlong <- factor(gl(n=2, k=n/2, length=n*nygrid), levels=1:3)  ## add a factor variable
+#' ## add a factor variable 
+#' dataList$zlong <- factor(gl(n=2, k=n/2, length=n*nygrid), levels=1:3)  
 #' dataList$z <- factor(gl(n=2, k=n/2, length=n), levels=1:3)
 #'
 #' ## do the model fit with main effect of bhistx() and interaction of bhistx and bolsc
 #' mod <- FDboost(Y ~ 1 + bhistx(x = X1h, df = 5) + bhistx(x = X1h, df = 5) %X% bolsc(zlong), 
 #'               timeformula=~bbs(tvals, knots=10), data=dataList)
 #'
-#' # find the optimal mstop over 10fold Bootstrap 
-#' cv <- cvrisk(mod, folds = cv(model.weights(mod), B=10))
+#' # find the optimal mstop over 5-fold bootstrap (small example to reduce run time)
+#' cv <- cvrisk(mod, folds = cv(model.weights(mod), B=5))
 #' mstop(cv)
 #' mod[mstop(cv)]
 #'

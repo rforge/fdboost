@@ -146,11 +146,11 @@ Use argument \code{mc.cores = 1L} to set the numbers of cores that is used in
 parallel computation. On Windows only 1 core is possible, \code{mc.cores = 1}, which is the default.
 }
 \examples{
-Ytest <- matrix(rnorm(15), ncol=3) # 5 trajectories, each with 3 observations
+Ytest <- matrix(rnorm(15), ncol = 3) # 5 trajectories, each with 3 observations
 Ylong <- as.vector(Ytest)
 ## 4-folds for bootstrap for the response in long format without integration weights
-cvMa(ydim=c(5,3), type="bootstrap", B=4)
-cvLong(id=rep(1:5, times=3), type="bootstrap", B=4)
+cvMa(ydim = c(5,3), type = "bootstrap", B = 4)
+cvLong(id = rep(1:5, times = 3), type = "bootstrap", B = 4)
 
 ## Example for function-on-scalar-regression to optimize mstop
 data("viscosity", package = "FDboost")
@@ -158,48 +158,48 @@ data("viscosity", package = "FDboost")
 interval <- "101"
 
 ## model time until "interval" and take log() of viscosity
-end <- which(viscosity$timeAll==as.numeric(interval))
+end <- which(viscosity$timeAll == as.numeric(interval))
 viscosity$vis <- log(viscosity$visAll[,1:end])
 viscosity$time <- viscosity$timeAll[1:end]
-# with(viscosity, funplot(time, vis, pch=16, cex=0.2))
+# with(viscosity, funplot(time, vis, pch = 16, cex = 0.2))
 
 ## fit median regression model with 100 boosting iterations,
 ## step-length 0.4 and smooth time-specific offset
 ## the factors are in effect coding -1, 1 for the levels
 mod1 <- FDboost(vis ~ 1 + bols(T_C, contrasts.arg = "contr.sum", intercept=FALSE)
                + bols(T_A, contrasts.arg = "contr.sum", intercept=FALSE),
-               timeformula=~bbs(time, lambda=100),
-               numInt="equal", family=QuantReg(),
-               offset=NULL, offset_control = o_control(k_min = 9),
-               data=viscosity, control=boost_control(mstop = 100, nu = 0.4))
+               timeformula = ~bbs(time, lambda=100),
+               numInt = "equal", family = QuantReg(),
+               offset = NULL, offset_control = o_control(k_min = 9),
+               data = viscosity, control = boost_control(mstop = 100, nu = 0.4))
 summary(mod1)
 ## plot(mod1)
 
 ## for the example B is set to a small value so that bootstrap is fast
-val1 <- validateFDboost(mod1, folds=cvLong(unique(mod1$id), B=3) )
+val1 <- validateFDboost(mod1, folds = cvLong(unique(mod1$id), B = 3) )
 
 \dontrun{
 ## the same, as folds are equal
-val1 <- validateFDboost(mod1, folds=cv(rep(1, 64), B=3) )
+val1 <- validateFDboost(mod1, folds = cv(rep(1, 64), B=3) )
 ## plot the risk per fold against the number of boosting-iterations
 plot(val1)
 ## plot the coefficients in the folds with point-wise intervals for base-learner 1
-plotPredCoef(val1, terms = FALSE, which=1)
+plotPredCoef(val1, terms = FALSE, which = 1)
 mstop(val1)
 }
 
 \dontrun{
 ## do a leaving-one-curve-out cross-validation, takes some time!
-val2 <- validateFDboost(mod1, folds=cvLong(unique(mod1$id), type="curves") )
+val2 <- validateFDboost(mod1, folds = cvLong(unique(mod1$id), type = "curves") )
 plot(val2)
-plotPredCoef(val2, which=1) # plot oob predictions per fold
-plotPredCoef(val2, which=1, terms=FALSE) # plot coefficients per fold
+plotPredCoef(val2, which = 1) # plot oob predictions per fold
+plotPredCoef(val2, which = 1, terms = FALSE) # plot coefficients per fold
 }
 
 ## find the optimal mstop over 5-fold bootstrap
 ## using the function cvrisk, offset is not refitted!
 folds1 <- cvLong(id = mod1$id, weights = model.weights(mod1),
-                 type = "bootstrap", B=5)
+                 type = "bootstrap", B = 5)
 cvm1 <- cvrisk(mod1, folds = folds1)
 ## plot(cvm1)
 mstop(cvm1)

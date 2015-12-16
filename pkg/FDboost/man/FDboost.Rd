@@ -124,19 +124,19 @@ in the function \code{\%X\%}, see ?"\%X\%".
 
 A scalar response can be seen as special case of a functional response with only
 one time-point, and thus it can be represented as FLAM with basis 1 in
-time-direction, use \code{timeformula=~bols(1)}. In this case, a penalty in the
+time-direction, use \code{timeformula = ~bols(1)}. In this case, a penalty in the
 time-direction is used, see Brockhaus et al. (2015) for details.
 Alternatively, the scalar response is fitted as scalar response, like in the function
 \code{\link[mboost]{mboost}} in package mboost.
 The advantage of using \code{FDboost} in that case
 is that methods for the functional base-learners are available, e.g. \code{plot}.
-\cr\cr
+
 The desired regression type is specified by the \code{family}-argument,
 see the help-page of \code{\link[mboost]{mboost}}. For example a mean regression model is obtained by
 \code{family = Gaussian()} which is the default or median regression
 by \code{family = QuantReg()};
 see \code{\link[mboost]{Family}} for a list of implemented families.
-\cr\cr
+
 With \code{FDboost} the following covariate effects can be estimated
 (similar to function \code{\link[refund]{pffr}} in R-package \code{\link[refund]{refund}}):
 \itemize{
@@ -151,22 +151,22 @@ With \code{FDboost} the following covariate effects can be estimated
   over \eqn{t}, e.g. \eqn{f(z_i)}, specified as \code{~c(bbs(z))},
   or \eqn{\beta_3 z_i}, specified as \code{~c(bols(z))}.
 \item Function-on-function regression terms of functional covariates \code{x},
-  e.g. \eqn{\int x_i(s)\beta(s,t)ds}, specified as \code{~bsignal(x, s=s)}, see
+  e.g. \eqn{\int x_i(s)\beta(s,t)ds}, specified as \code{~bsignal(x, s = s)}, see
   \code{\link{bsignal}}.
   Terms given by \code{\link{bfpc}} provide FPC-based effects of functional
   covariates, see \code{\link{bfpc}}.
 \item Function-on-function regression terms of functional covariates \code{x}
   with integration limits \eqn{[l(t), u(t)]} depending on \eqn{t},
   e.g. \eqn{\int_[l(t), u(t)] x_i(s)\beta(s,t)ds}, specified as
-  \code{~bhist(x, s=s, time=t, limits)}. The \code{limits} argument defaults to
+  \code{~bhist(x, s = s, time = t, limits)}. The \code{limits} argument defaults to
   \code{"s<=t"} which yields a hisotircal effect with limits \eqn{[min(t),t]}.
    see \code{\link{bhist}}.
 \item Concurrent effects of functional covariates \code{x}
   measured on the same grid as the response, i.e., \eqn{x_i(s)beta(t)},
-  are specified as \code{~bconcurrent(x, s=s, time=t)},
+  are specified as \code{~bconcurrent(x, s = s, time = t)},
   see \code{\link{bconcurrent}}.
 \item interaction effects can be estimated as tensor product smooth, e.g.,
-  \eqn{ z \int x_i(s)\beta(s,t)ds} as \code{~bsignal(x, s=s) \%X\% bolsc(z)}
+  \eqn{ z \int x_i(s)\beta(s,t)ds} as \code{~bsignal(x, s = s) \%X\% bolsc(z)}
 \item For interaction effects with historical functional effects, e.g.,
   \eqn{ z \int_[l(t),u(t)] x_i(s)\beta(s,t)ds} the base-learner
   \code{~bhistx} should be used, e.g. \code{~bhistx(x, limits) \%X\% bolsc(z)},
@@ -174,18 +174,18 @@ With \code{FDboost} the following covariate effects can be estimated
 \item Generally the \code{c()}-notation can be used to get effects that are
   constant over the index of the functional response.
 }
-\cr
+
 In order to obtain a fair selection of base-learners, the same  degrees of freedom (df)
 should be specified for all baselearners. It is recommended to use
 a rather small number of df for all base-learners.
 It is not possible to specify df larger than the rank of the design matrix.
 For base-learners with rank-deficient penalty it is not possible to specify df smaller than the
 rank of the null space of the penalty (e.g., in \code{bbs} unpenalized part of P-splines).
-\cr\cr
+
 The most important tuning parameter of component-wise gradient boosting
 is the number of boosting iterations. It is recommended to use the number of
 boosting iterations as only tuning parameter,
-fixing the step-length at a small value (e.g. nu=0.1).
+fixing the step-length at a small value (e.g. nu = 0.1).
 Note that the default number of boosting iterations is 100 which is arbitrary and in most
 cases not adequate (the optimal number of boosting iterations can considerably exceed 100).
 The optimal stopping iteration can be determined by resampling methods like
@@ -199,35 +199,35 @@ data("viscosity", package = "FDboost")
 interval <- "101"
 
 ## model time until "interval" and take log() of viscosity
-end <- which(viscosity$timeAll==as.numeric(interval))
+end <- which(viscosity$timeAll == as.numeric(interval))
 viscosity$vis <- log(viscosity$visAll[,1:end])
 viscosity$time <- viscosity$timeAll[1:end]
-# with(viscosity, funplot(time, vis, pch=16, cex=0.2))
+# with(viscosity, funplot(time, vis, pch = 16, cex = 0.2))
 
 ## fit median regression model with 100 boosting iterations,
 ## step-length 0.4 and smooth time-specific offset
 ## the factors are in effect coding -1, 1 for the levels
 ## no integration weights are used!
-mod1 <- FDboost(vis ~ 1 + bols(T_C, contrasts.arg = "contr.sum", intercept=FALSE)
-               + bols(T_A, contrasts.arg = "contr.sum", intercept=FALSE),
-               timeformula=~bbs(time, lambda=100),
-               numInt="equal", family=QuantReg(),
-               offset=NULL, offset_control = o_control(k_min = 9),
-               data=viscosity, control=boost_control(mstop = 100, nu = 0.4))
+mod1 <- FDboost(vis ~ 1 + bols(T_C, contrasts.arg = "contr.sum", intercept = FALSE)
+               + bols(T_A, contrasts.arg = "contr.sum", intercept = FALSE),
+               timeformula = ~bbs(time, lambda = 100),
+               numInt = "equal", family = QuantReg(),
+               offset = NULL, offset_control = o_control(k_min = 9),
+               data = viscosity, control=boost_control(mstop = 100, nu = 0.4))
 
 \dontrun{
 ## find optimal mstop over 5-fold bootstrap, small number of folds for example
 ## do the resampling on the level of curves
 set.seed(123)
-val1 <- validateFDboost(mod1, folds = cv(rep(1, length(unique(mod1$id))), B=5))
+val1 <- validateFDboost(mod1, folds = cv(rep(1, length(unique(mod1$id))), B = 5))
 ## plot(val1)
 mstop(val1)
 mod1[mstop(val1)]
 
 ## find the optimal mstop over 5-fold bootstrap
 ## using the function cvrisk; be careful to do the resampling on the level of curves
-cvm1 <- cvrisk(mod1, folds = cvLong(id = mod1$id, weights = model.weights(mod1), B=5),
-               grid = 1:100)
+folds1 <- cvLong(id = mod1$id, weights = model.weights(mod1), B = 5)
+cvm1 <- cvrisk(mod1, folds = folds1, grid = 1:100)
 ## plot(cvm1)
 mstop(cvm1)
 }
@@ -236,7 +236,7 @@ mstop(cvm1)
 summary(mod1)
 coef(mod1)
 ## plot(mod1)
-## plotPredicted(mod1, lwdPred=2)
+## plotPredicted(mod1, lwdPred = 2)
 
 ######## Example for scalar-on-function-regression
 data("fuelSubset", package = "FDboost")
@@ -248,18 +248,19 @@ fuelSubset$NIR <- scale(fuelSubset$NIR)
 ## possibility 1: as FLAM model with the scalar response
 ## adds a penalty over the index of the response
 ## thus, mod2f and mod2 have different panlties
-mod2f <- FDboost(heatan ~ bsignal(UVVIS, uvvis.lambda, knots=40, df=4, check.ident=FALSE)
-               + bsignal(NIR, nir.lambda, knots=40, df=4, check.ident=FALSE),
-               timeformula=~bols(1), data=fuelSubset, control=boost_control(mstop=200))
+mod2f <- FDboost(heatan ~ bsignal(UVVIS, uvvis.lambda, knots = 40, df = 4, check.ident = FALSE)
+               + bsignal(NIR, nir.lambda, knots = 40, df = 4, check.ident = FALSE),
+               timeformula = ~bols(1), data = fuelSubset, control = boost_control(mstop = 200))
 
 ## possibility 2: with scalar response
-mod2 <- FDboost(heatan ~ bsignal(UVVIS, uvvis.lambda, knots=40, df=4, check.ident=FALSE)
-               + bsignal(NIR, nir.lambda, knots=40, df=4, check.ident=FALSE),
-               timeformula=NULL, data=fuelSubset, control=boost_control(mstop=200))
+mod2 <- FDboost(heatan ~ bsignal(UVVIS, uvvis.lambda, knots = 40, df = 4, check.ident = FALSE)
+               + bsignal(NIR, nir.lambda, knots = 40, df = 4, check.ident = FALSE),
+               timeformula = NULL, data = fuelSubset, control = boost_control(mstop = 200))
 
 ## bootstrap to find optimal mstop takes some time
 ## set.seed(123)
-## cvm2 <- cvrisk(mod2, folds = cv(weights = model.weights(mod2), B=10), grid = 1:1000)
+## folds2 <- cv(weights = model.weights(mod2), B = 10)
+## cvm2 <- cvrisk(mod2, folds = folds2, grid = 1:1000)
 ## mstop(cvm2)
 mod2[327]
 
@@ -268,32 +269,33 @@ summary(mod2)
 
 ## Example for function-on-function-regression
 if(require(fda)){
-  data("CanadianWeather", package="fda")
+  data("CanadianWeather", package = "fda")
   CanadianWeather$l10precip <- t(log(CanadianWeather$monthlyPrecip))
   CanadianWeather$temp <- t(CanadianWeather$monthlyTemp)
   CanadianWeather$region <- factor(CanadianWeather$region)
   CanadianWeather$month.s <- CanadianWeather$month.t <- 1:12
 
   ## center the temperature curves per time-point
-  CanadianWeather$temp <- scale(CanadianWeather$temp, scale=FALSE)
+  CanadianWeather$temp <- scale(CanadianWeather$temp, scale = FALSE)
 
   ## fit model with cyclic splines over the year
-  mod3 <- FDboost(l10precip ~ bols(region, df=2.5, contrasts.arg = "contr.dummy")
-                 + bsignal(temp, month.s, knots=11, cyclic=TRUE,
-                           df=2.5, boundary.knots=c(0.5,12.5), check.ident=FALSE),
-                 timeformula=~bbs(month.t, knots=11, cyclic=TRUE,
-                                  df=3, boundary.knots=c(0.5,12.5)),
-                                  offset="scalar", offset_control = o_control(k_min=5),
-                  data=CanadianWeather)
+  mod3 <- FDboost(l10precip ~ bols(region, df = 2.5, contrasts.arg = "contr.dummy")
+                 + bsignal(temp, month.s, knots = 11, cyclic = TRUE,
+                           df = 2.5, boundary.knots = c(0.5,12.5), check.ident = FALSE),
+                 timeformula = ~bbs(month.t, knots = 11, cyclic = TRUE,
+                                  df = 3, boundary.knots = c(0.5,12.5)),
+                                  offset = "scalar", offset_control = o_control(k_min = 5),
+                  data = CanadianWeather)
  ## find the optimal mstop over 5-fold bootstrap
  ## using the function cvrisk; be careful to do the resampling on the level of curves
  ## set.seed(123)
- ## cvm3 <- cvrisk(mod3, folds = cvLong(id = mod3$id, weights = model.weights(mod3), B=5), grid = 1:500)
+ ## folds3 <- cvLong(id = mod3$id, weights = model.weights(mod3), B = 5)
+ ## cvm3 <- cvrisk(mod3, folds = folds3, grid = 1:500)
  ## mstop(cvm3)
  mod3[64]
 
  summary(mod3)
- ## plot(mod3, pers=TRUE)
+ ## plot(mod3, pers = TRUE)
 }
 
 ######## Example for functional response observed on irregular grid
@@ -303,37 +305,38 @@ data("viscosity", package = "FDboost")
 interval <- "101"
 
 ## model time until "interval" and take log() of viscosity
-end <- which(viscosity$timeAll==as.numeric(interval))
+end <- which(viscosity$timeAll == as.numeric(interval))
 viscosity$vis <- log(viscosity$visAll[,1:end])
 viscosity$time <- viscosity$timeAll[1:end]
-# with(viscosity, funplot(time, vis, pch=16, cex=0.2))
+# with(viscosity, funplot(time, vis, pch = 16, cex = 0.2))
 
 ## only keep a quarter of the observation points
 set.seed(123)
-selectObs <- sort(sample(x=1:(64*46), size=64*46/4, replace=FALSE))
-dataIrregular <- with(viscosity, list(vis=c(vis)[selectObs],
-                                      T_A=T_A, T_C=T_C,
-                                      time=rep(time, each=64)[selectObs],
-                                      id=rep(1:64, 46)[selectObs]))
+selectObs <- sort(sample(x = 1:(64*46), size = 64*46/4, replace = FALSE))
+dataIrregular <- with(viscosity, list(vis = c(vis)[selectObs],
+                                      T_A = T_A, T_C = T_C,
+                                      time = rep(time, each = 64)[selectObs],
+                                      id = rep(1:64, 46)[selectObs]))
 
 ## fit median regression model with 100 boosting iterations,
 ## step-length 0.4 and smooth time-specific offset
 ## the factors are in effect coding -1, 1 for the levels
 ## no integration weights are used!
-mod4 <- FDboost(vis ~ 1 + bols(T_C, contrasts.arg = "contr.sum", intercept=FALSE)
+mod4 <- FDboost(vis ~ 1 + bols(T_C, contrasts.arg = "contr.sum", intercept = FALSE)
                 + bols(T_A, contrasts.arg = "contr.sum", intercept=FALSE),
-                timeformula=~bbs(time, lambda=100), id=~id,
-                numInt="equal", family=QuantReg(),
-                offset=NULL, offset_control = o_control(k_min = 9),
-                data=dataIrregular, control=boost_control(mstop = 100, nu = 0.4))
+                timeformula = ~bbs(time, lambda=100), id = ~id,
+                numInt = "equal", family = QuantReg(),
+                offset = NULL, offset_control = o_control(k_min = 9),
+                data = dataIrregular, control = boost_control(mstop = 100, nu = 0.4))
 summary(mod4)
 ## plot(mod4)
-## plotPredicted(mod4, lwdPred=2)
+## plotPredicted(mod4, lwdPred = 2)
 
 ## Find optimal mstop, small grid/low B for a fast example
-cvm4 <- cvrisk(mod4, folds = cvLong(id = mod4$id, weights = model.weights(mod4), B=5), grid = 1:100)
+folds4 <- cvLong(id = mod4$id, weights = model.weights(mod4), B = 5)
+cvm4 <- cvrisk(mod4, folds = folds4, grid = 1:100)
 mstop(cvm4)
-## val4 <- validateFDboost(mod4, folds = cv(rep(1, length(unique(mod4$id))), B=5))
+## val4 <- validateFDboost(mod4, folds = cv(rep(1, length(unique(mod4$id))), B = 5))
 
 ## Be careful if you want to predict newdata with irregular response,
 ## as the argument index is not considered in the prediction of newdata.
@@ -341,13 +344,15 @@ mstop(cvm4)
 ## in each response trajectroy.
 ## Predict four response curves with full time-observations
 ## for the four combinations of T_A and T_C.
-newd <- list(T_A=factor(c(1,1,2,2), levels=1:2, labels=c("low", "high"))[rep(1:4, length(viscosity$time))],
-             T_C=factor(c(1,2,1,2), levels=1:2, labels=c("low", "high"))[rep(1:4, length(viscosity$time))],
-             time=rep(viscosity$time, 4))
+newd <- list(T_A = factor(c(1,1,2,2), levels = 1:2,
+                        labels = c("low", "high"))[rep(1:4, length(viscosity$time))],
+             T_C = factor(c(1,2,1,2), levels = 1:2,
+                        labels = c("low", "high"))[rep(1:4, length(viscosity$time))],
+             time = rep(viscosity$time, 4))
 
 # needs mboostPatch of mboost 2.5-0 to work
-#pred <- predict(mod4, newdata=newd)
-## funplot(x=rep(viscosity$time, 4), y=pred, id=rep(1:4, length(viscosity$time)))
+#pred <- predict(mod4, newdata = newd)
+## funplot(x = rep(viscosity$time, 4), y = pred, id = rep(1:4, length(viscosity$time)))
 }
 \author{
 Sarah Brockhaus, Torsten Hothorn
