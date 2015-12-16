@@ -11,23 +11,26 @@ FDboost(formula, timeformula, id = NULL, numInt = "equal", data,
 \arguments{
 \item{formula}{a symbolic description of the model to be fit.
 Per default no intercept is added, only a smooth offset, see argument \code{offset}.
-To add a smooth intercept, use 1, e.g. y ~ 1 for a pure intercept model.}
+To add a smooth intercept, use 1, e.g. \code{y ~ 1} for a pure intercept model.}
 
-\item{timeformula}{formula for the expansion over the index of the response.
-For a functional response \eqn{Y_i(t)} typically \code{~bbs(t)} to obtain a smooth
-expansion of the effects along \code{t}. In the limiting case that \eqn{Y_i} is a scalar response
+\item{timeformula}{formula for the specification of the effects over the index of the response.
+For a functional response \eqn{Y_i(t)} typically use \code{~bbs(t)} to obtain smooth
+effects over \eqn{t}.
+In the limiting case of \eqn{Y_i} being a scalar response,
 use \code{~bols(1)}, which sets up a base-learner for the scalar 1.
 Or you can use \code{timeformula=NULL}, then the scalar response is treated as scalar.}
 
-\item{id}{defaults to NULL which means that the response is a matrix with a regular time.
-If the response is given in long format for irregular observations, \code{id}
-contains the information which observations belong together and must be supplied as a formula,
-\code{~nameid}, where the variable \code{nameid} should contain integers 1, 2, 3, ..., N.}
+\item{id}{defaults to NULL which means that all response trajectories are observed
+on a common grid allowing to represent the response as a matrix.
+If the response is given in long format for observation-specific grids, \code{id}
+contains the information which observations belong to the same trajectory and must
+be supplied as a formula, \code{~nameid}, where the variable \code{nameid} should
+contain integers 1, 2, 3, ..., N.}
 
 \item{numInt}{integration scheme for the integration of the loss function.
 One of \code{c("equal", "Riemann")} meaning equal weights of 1 or
 trapezoidal Riemann weights.
-Alternatively a vector of length \code{nrow(response)} containing arbitrary
+Alternatively a vector of length \code{nrow(response)} containing
 positive weights can be specified.}
 
 \item{data}{a data frame or list containing the variables in the model.}
@@ -55,7 +58,7 @@ check the fitted effects for the sum-to-zero constraint
 including, \code{family} and \code{control}.}
 }
 \value{
-on object of class \code{FDboost} that inherits from \code{mboost}.
+An object of class \code{FDboost} that inherits from \code{mboost}.
 Special \code{\link{predict.FDboost}}, \code{\link{coef.FDboost}} and
 \code{\link{plot.FDboost}} methods are available.
 The methods of \code{\link[mboost]{mboost}} are available as well,
@@ -81,7 +84,7 @@ otherwise the offset for all trajectories}
 }
 \description{
 Gradient boosting for optimizing arbitrary loss functions, where component-wise models
-are utilized as base-learners in the case of functional response.
+are utilized as base-learners in the case of functional responses.
 Scalar responses are treated as the special case where each functional response has
 only one observation.
 This function is a wrapper for \code{mboost}'s \code{\link[mboost]{mboost}} and its
@@ -95,15 +98,6 @@ Possible effects are, e.g., a smooth intercept \eqn{\beta_0(t)},
 a linear functional effect \eqn{\int x_i(s)\beta(s,t)ds},
 potentially with integration limints depending on \eqn{t},
 smooth and linear effects of scalar covariates \eqn{f(z_i)}, \eqn{z_i \beta(t)}.
-\cr\cr
-The most important tuning parameter of component-wise gradient boosting
-is the number of boosting iterations. Usually it is used as only tuning parameter,
-fixing the step-length (e.g. nu=0.1) and setting the degrees of freedom per base-learner
-to a small equal value.
-The stopping iteration is determined by resampling methods like
-cross-validation or bootstrapping, see \code{\link{cvrisk}}.
-Note that the default number of boosting iterations is 100 which is arbitrary. Thus,
-it is highly important to choose an optimal stopping iteration.
 }
 \details{
 The functional response and functional covariates have to be
@@ -119,15 +113,15 @@ matrices yielding a functional linear array model (FLAM),
 see Brockhaus et al. (2015) for details.
 The Kronecker product of two marginal bases is implemented in R-package mboost
 in the function \code{\%O\%}, see ?"\%O\%".
-\cr\cr
-If the response is observed on irregular grids it must be supplied
-as a vector in long format. In that case the argument \code{id} has
+
+If the response is observed on curve-specific grids it must be supplied
+as a vector in long format and the argument \code{id} has
 to be specified (as formula!) to define which observations belong to which curve.
 In this case the base-learners are built as row tensor-products of marginal base-learners,
 see Scheipl et al. (2015), for details on how to set up the effects.
 The row tensor product of two marginal bases is implemented in R-package mboost
 in the function \code{\%X\%}, see ?"\%X\%".
-\cr\cr
+
 A scalar response can be seen as special case of a functional response with only
 one time-point, and thus it can be represented as FLAM with basis 1 in
 time-direction, use \code{timeformula=~bols(1)}. In this case, a penalty in the
@@ -143,7 +137,8 @@ see the help-page of \code{\link[mboost]{mboost}}. For example a mean regression
 by \code{family = QuantReg()};
 see \code{\link[mboost]{Family}} for a list of implemented families.
 \cr\cr
-With \code{FDboost} the following covariate effects can be estimated (see \code{\link[refund]{pffr}}):
+With \code{FDboost} the following covariate effects can be estimated
+(similar to function \code{\link[refund]{pffr}} in R-package \code{\link[refund]{refund}}):
 \itemize{
 \item Linear functional effect of scalar (numeric or factor) covariate \eqn{z} that varies
   smoothly over \eqn{t}, i.e. \eqn{z_i \beta_1(t)}, specified as
@@ -179,6 +174,23 @@ With \code{FDboost} the following covariate effects can be estimated (see \code{
 \item Generally the \code{c()}-notation can be used to get effects that are
   constant over the index of the functional response.
 }
+\cr
+In order to obtain a fair selection of base-learners, the same  degrees of freedom (df)
+should be specified for all baselearners. It is recommended to use
+a rather small number of df for all base-learners.
+It is not possible to specify df larger than the rank of the design matrix.
+For base-learners with rank-deficient penalty it is not possible to specify df smaller than the
+rank of the null space of the penalty (e.g., in \code{bbs} unpenalized part of P-splines).
+\cr\cr
+The most important tuning parameter of component-wise gradient boosting
+is the number of boosting iterations. It is recommended to use the number of
+boosting iterations as only tuning parameter,
+fixing the step-length at a small value (e.g. nu=0.1).
+Note that the default number of boosting iterations is 100 which is arbitrary and in most
+cases not adequate (the optimal number of boosting iterations can considerably exceed 100).
+The optimal stopping iteration can be determined by resampling methods like
+cross-validation or bootstrapping, see the function \code{\link{cvrisk}} which searches
+the optimal stopping iteration on a grid, which in many cases has to be extended.
 }
 \examples{
 ######## Example for function-on-scalar-regression

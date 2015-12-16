@@ -875,7 +875,10 @@ trace_lv <- function(A, B, tol=1e-10){
 
 
 ## use a penalty matrix with full rank, so-called "shrinkage approach" 
-## after Marra and Wood 2011  
+## after Marra and Wood (2011) Practical variable selection for generalized additive models. 
+## code taken from smooth.construct.pss.smooth.spec() in package refund (written by Fabian Scheipl)
+## which is based on mgcv of Simon Wood, e.g. smooth.construct.tp.smooth.spec() 
+## function with the following arguments 
 # K sqaured differences penalty matrix
 # difference degree of difference
 # shrink shrinkage parameter 
