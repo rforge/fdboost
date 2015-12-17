@@ -701,7 +701,7 @@ check_ident <- function(X1, L, Bs, K, xname, penalty,
         # only keep columns that are not completely 0, otherwise matrix is always rank deficient
         # idea: only this part is used to model y(t) at this point
         # also delete if not perfectly but almost zero, for all spline bases
-        Ds_t <- Ds_t[ , apply(ind0Bs_t, 2, function(x) !all(abs(x)<10^-1) ) ]
+        Ds_t <- Ds_t[ , apply(ind0Bs_t, 2, function(x) !all(abs(x)<10^-1) ), drop = FALSE ]
         
         if(dim(Ds_t)[2]!=0){ # for matrix with 0 columns does not make sense
           DstDs_t <- crossprod(Ds_t)
@@ -718,10 +718,10 @@ check_ident <- function(X1, L, Bs, K, xname, penalty,
       
       ### implementation for seriously irregular observation points t
     }else{
-      # use the mean number grid points, in the case of irregular t
-      #t_unique <- seq(min(yind), max(yind), length=round(mean(table(id))))
+      ## use the mean number of grid points, in the case of irregular t
+      # t_unique <- seq(min(yind), max(yind), length=round(mean(table(id))))
       ### use quantiles of yind, as only at places with observations effect can be identifiable
-      ### using quntiles prevents Ds_t from beeing completely empty
+      ### using quantiles prevents Ds_t from beeing completely empty
       if(is.null(t_unique))  t_unique <- quantile(yind, probs=seq(0,1,length=round(mean(table(id)))) )
       names(t_unique) <- NULL
       logCondDs_hist <- rep(NA, length=length(t_unique)-1)
@@ -737,7 +737,7 @@ check_ident <- function(X1, L, Bs, K, xname, penalty,
         # only keep columns that are not completely 0, otherwise matrix is always rank deficient
         # idea: only this part is used to model y(t) at this point
         # also delete if not perfectly but almost zero, for all spline bases
-        Ds_t <- Ds_t[ , apply(ind0Bs_t, 2, function(x) !all(abs(x)<10^-1) )] 
+        Ds_t <- Ds_t[ , apply(ind0Bs_t, 2, function(x) !all(abs(x)<10^-1) ), drop = FALSE] 
         
         if(dim(Ds_t)[2]!=0){ # for matrix with 0 columns does not make sense
           DstDs_t <- crossprod(Ds_t)
