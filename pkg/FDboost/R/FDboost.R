@@ -564,7 +564,7 @@ FDboost <- function(formula,          ### response ~ xvars
   xfm <- trmstrings
   ### replace "1" with intercept base learner
   if ( any( gsub(" ", "", strsplit(cfm[2], "\\+")[[1]]) ==  "1")){
-    if(length(time) == 1) warning("Smooth intercept may not be sensitive for scalar response.")
+    ## if(length(time) == 1) warning("Smooth intercept may not be sensitive for scalar response.")
     if( grepl("lambda", deparse(timeformula)) || 
          ( grepl("bols", deparse(timeformula)) &  !grepl("df", deparse(timeformula))) ){
       xfm <- c("bols(ONEx, intercept = FALSE)", xfm)

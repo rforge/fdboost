@@ -528,7 +528,7 @@ X_bsignal <- function(mf, vary, args) {
 #' 
 #' mod2 <- FDboost(heatan ~ bsignal(UVVIS, uvvis.lambda, knots=40, df=4, check.ident=FALSE) 
 #'                + bsignal(NIR, nir.lambda, knots=40, df=4, check.ident=FALSE), 
-#'                timeformula=~bols(1), data=fuelSubset) 
+#'                timeformula=NULL, data=fuelSubset) 
 #' summary(mod2) 
 #' ## plot(mod2)
 #' @export
