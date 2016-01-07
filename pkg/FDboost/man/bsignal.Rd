@@ -179,10 +179,10 @@ summary(mod2)
 Brockhaus, S., Scheipl, F., Hothorn, T. and Greven, S. (2015):
 The functional linear array model. Statistical Modelling, 15(3), 279-300.
 
-Marra, G., and Wood, S.N. (2011): Practical variable selection for generalized additive models.
+Marra, G. and Wood, S.N. (2011): Practical variable selection for generalized additive models.
 Computational Statistics & Data Analysis, 55, 2372-2387.
 
-Scheipl, F., Staicu, A.-M., and Greven, S. (2015a):
+Scheipl, F., Staicu, A.-M. and Greven, S. (2015a):
 Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 24(2), 477-501.
 
 Scheipl, F. and Greven, S. (2015b): Identifiability in penalized function-on-function regression models.

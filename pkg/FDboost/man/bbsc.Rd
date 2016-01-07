@@ -93,10 +93,10 @@ constraints.
 Cannot deal with any missing values in the covariates.
 }
 \references{
-Brockhaus, S., Scheipl, F., Hothorn, T. and Greven, S. (2015).
+Brockhaus, S., Scheipl, F., Hothorn, T. and Greven, S. (2015):
 The functional linear array model. Statistical Modelling, 15(3), 279-300.
 
-Scheipl, F., Staicu, A.-M., and Greven, S. (2015),
+Scheipl, F., Staicu, A.-M. and Greven, S. (2015):
 Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 24(2), 477-501.
 }
 \seealso{

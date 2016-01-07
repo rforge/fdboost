@@ -412,10 +412,10 @@ X_histx <- function(mf, vary, args, getDesign=TRUE) {
 #' @keywords models
 #' 
 #' @references 
-#' Marra, G., and Wood, S.N. (2011): Practical variable selection for generalized additive models. 
+#' Marra, G. and Wood, S.N. (2011): Practical variable selection for generalized additive models. 
 #' Computational Statistics & Data Analysis, 55, 2372-2387.
 #' 
-#' Scheipl, F., Staicu, A.-M., and Greven, S. (2015a): 
+#' Scheipl, F., Staicu, A.-M. and Greven, S. (2015a): 
 #' Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 24(2), 477-501.
 #' \url{http://arxiv.org/abs/1207.5947} 
 #' 
