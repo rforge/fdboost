@@ -52,7 +52,7 @@ defaults to \code{o_control(k_min=20, silent=TRUE)}, see \code{\link{o_control}}
 
 \item{check0}{logical, for response observed on a common grid,
 check the fitted effects for the sum-to-zero constraint
-\eqn{h_j(x_i)(t) = 0} for all \eqn{t} and give warning if it is not fulfilled. Defaults to TRUE.}
+\eqn{h_j(x_i)(t) = 0} for all \eqn{t} and give warning if it is not fulfilled. Defaults to \code{TRUE}.}
 
 \item{...}{additional arguments passed to \code{\link[mboost]{mboost}},
 including, \code{family} and \code{control}.}
@@ -358,14 +358,14 @@ newd <- list(T_A = factor(c(1,1,2,2), levels = 1:2,
 Sarah Brockhaus, Torsten Hothorn
 }
 \references{
-Brockhaus, S., Scheipl, F., Hothorn, T. and Greven, S. (2015).
+Brockhaus, S., Scheipl, F., Hothorn, T. and Greven, S. (2015):
 The functional linear array model. Statistical Modelling, 15(3), 279-300.
 
-Currie, I.D., Durban, M., and Eilers P.H.C. (2006),
+Currie, I.D., Durban, M., and Eilers P.H.C. (2006):
 Generalized linear array models with applications to multidimensional smoothing.
 Journal of the Royal Statistical Society, Series B-Statistical Methodology, 68(2), 259-280.
 
-Scheipl, F., Staicu, A.-M., and Greven, S. (2015),
+Scheipl, F., Staicu, A.-M., and Greven, S. (2015):
 Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 24(2), 477-501.
 }
 \seealso{

@@ -17,14 +17,14 @@ the design matrix)}
 
 \item{asmatrix}{a logical indicating whether the the returned matrix should be
 coerced to a matrix (default) or if the returned object stays as it is
-(i.e., potentially a sparse matrix). This option is only applicable if extract
-returns matrices, i.e., what = "design" or what = "penalty".}
+(i.e., potentially a sparse matrix). This option is only applicable if \code{extract}
+returns matrices, i.e., \code{what = "design"} or \code{what = "penalty"}.}
 
 \item{expand}{a logical indicating whether the design matrix should be expanded
-(default: FALSE). This is useful if ties where taken into account either manually
-(via argument index in a base-learner) or automatically for data sets with many
-observations. expand = TRUE is equivalent to extract(B)[extract(B, what = "index"),]
-for a base-learner B.}
+(default: \code{FALSE}). This is useful if ties were taken into account either manually
+(via argument \code{index} in a base-learner) or automatically for data sets with many
+observations. \code{expand = TRUE} is equivalent to \code{extract(B)[extract(B, what = "index"),]}
+for a base-learner \code{B}.}
 
 \item{...}{currently not used}
 }
@@ -32,6 +32,6 @@ for a base-learner B.}
 Takes a base-learner and extracts information.
 }
 \seealso{
-\code{\link[mboost]{extract}} for the extract functions of the package mboost
+\code{\link[mboost]{extract}} for the \code{extract} function of the package mboost
 }
 

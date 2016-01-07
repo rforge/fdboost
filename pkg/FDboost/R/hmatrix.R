@@ -210,7 +210,7 @@ is.hmatrix <- function(object){
 #' vectors or empty (missing) or NULL. Numeric values are coerced to integer as by as.integer 
 #' (and hence truncated towards zero). 
 #' @param ... not used
-#' @param drop  If TRUE the result is coerced to the lowest possible dimension 
+#' @param drop  If \code{TRUE} the result is coerced to the lowest possible dimension 
 #' (or just a matrix). This only works for extracting elements, not for the 
 #' replacement, defaults to \code{FALSE}.
 #' 

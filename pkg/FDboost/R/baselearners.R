@@ -422,7 +422,7 @@ X_bsignal <- function(mf, vary, args) {
 #' @param penalty by default, \code{penalty="ps"}, the difference penalty for P-splines is used, 
 #' for \code{penalty="pss"} the penalty matrix is transformed to have full rank, 
 #' so called shrinkage approach by Marra and Wood (2011)
-#' @param check.ident use checks for identifiability of the effect, based on Scheipl and Greven (2015)
+#' @param check.ident use checks for identifiability of the effect, based on Scheipl and Greven (2015b)
 #' @param standard the historical effect can be standardized with a factor. 
 #' "no" means no standardization, "time" standardizes with the current value of time and 
 #' "lenght" standardizes with the lenght of the integral 
@@ -440,8 +440,8 @@ X_bsignal <- function(mf, vary, args) {
 #' the given \eqn{t}.  
 #' @param pve proportion of variance explained: used to choose the number of principal components.
 #' @param npc prespecified value for the number of principal components (if given, this overrides pve).
-#' @param npc.max maximal number K of FPCs to use, regardless of decomppars; defaults to 15
-#' @param getEigen save the eigenvalues and eigenvectors, defaults to TRUE
+#' @param npc.max maximal number K of FPCs to use, regardless of decomppars; defaults to 15. 
+#' @param getEigen save the eigenvalues and eigenvectors, defaults to \code{TRUE}. 
 #' 
 #' @aliases bconcurrent bhist bfpc 
 #' 
@@ -478,7 +478,7 @@ X_bsignal <- function(mf, vary, args) {
 #' functional principal component analysis (fPCA). The functional covariate
 #' \eqn{x(s)} is decomposed into \eqn{x(s) \approx \sum_{k=1}^K \xi_{ik} \Phi_k(s)} using 
 #' \code{\link[refund]{fpca.sc}} and represents \eqn{\beta(s)} in the function
-#' space spanned by \eqn{\Phi_k(s)}, see Scheipl et al. (2015) for details. 
+#' space spanned by \eqn{\Phi_k(s)}, see Scheipl et al. (2015a) for details. 
 #' The implementation is similar to \code{\link[refund]{ffpc}}.  
 #' This is an experimental base-learner and not well tested yet. 
 #' The functional variable must be observed on a regular grid \code{s}, 
@@ -506,16 +506,16 @@ X_bsignal <- function(mf, vary, args) {
 #' @keywords models
 #' 
 #' @references 
-#' Brockhaus, S., Scheipl, F., Hothorn, T. and Greven, S. (2015). 
+#' Brockhaus, S., Scheipl, F., Hothorn, T. and Greven, S. (2015): 
 #' The functional linear array model. Statistical Modelling, 15(3), 279-300.
 #' 
-#' Marra, G., and Wood, S.N., (2011) Practical variable selection for generalized additive models. 
+#' Marra, G., and Wood, S.N. (2011): Practical variable selection for generalized additive models. 
 #' Computational Statistics & Data Analysis, 55, 2372-2387.
 #' 
-#' Scheipl, F., Staicu, A.-M., and Greven, S. (2015), 
+#' Scheipl, F., Staicu, A.-M., and Greven, S. (2015a): 
 #' Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 24(2), 477-501. 
 #' 
-#' Scheipl, F., Greven, S. (2015): Identifiability in penalized function-on-function regression models. 
+#' Scheipl, F. and Greven, S. (2015b): Identifiability in penalized function-on-function regression models. 
 #' Technical Report 125, Department of Statistics, LMU Muenchen.
 #'  
 #' @examples 
@@ -1864,7 +1864,7 @@ hyper_bbsc <- function(Z, ...){
 #' dummy coding as returned by \code{model.matrix(~ x - 1)} were the 
 #' intercept is implicitly included but each factor level gets a 
 #' separate effect estimate (for more details see \code{\link[mboost]{brandom}}).
-#' @param intercept if intercept = TRUE an intercept is added to the design matrix 
+#' @param intercept if \code{intercept = TRUE} an intercept is added to the design matrix 
 #' of a linear base-learner. 
 #' 
 #' @details The base-learners \code{bbsc}, \code{bolsc} and \code{brandomc} are 

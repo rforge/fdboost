@@ -28,40 +28,41 @@ cvMa(ydim, weights = rep(1, l = ydim[1] * ydim[2]), type = c("bootstrap",
 \item{object}{fitted FDboost-object}
 
 \item{response}{you can specify a response vector to calculate predictions errors.
-Defaults to NULL which means that the response of the fitted model is used.}
+Defaults to \code{NULL} which means that the response of the fitted model is used.}
 
 \item{folds}{a weight matrix with number of rows equal to the number of observed trajectories.}
 
-\item{grid}{the grid over which the optimal mstop is searched}
+\item{grid}{the grid over which the optimal number of boosting iterations (mstop) is searched.}
 
-\item{getCoefCV}{logical, defaults to TRUE Should the coefficients and predictions
+\item{getCoefCV}{logical, defaults to \code{TRUE}. Should the coefficients and predictions
 be computed for all the models on the sampled data?}
 
 \item{riskopt}{how is the optimal stopping iteration determined. Defaults to the mean
 but median is possible as well.}
 
-\item{mrdDelete}{Delete values that are mrdDelete percent smaller then the mean
+\item{mrdDelete}{Delete values that are \code{mrdDelete} percent smaller than the mean
 of the response. Defaults to 0 which means that only response values being 0
-are not used in the calculation of the MRD (= mean relative deviation)}
+are not used in the calculation of the MRD (= mean relative deviation).}
 
 \item{refitSmoothOffset}{logical, should the offset be refitted in each learning sample?
-Defaults to TRUE. In \code{\link[mboost]{cvrisk}} the offset of the original model
+Defaults to \code{TRUE}. In \code{\link[mboost]{cvrisk}} the offset of the original model fit in
 \code{object} is used in all folds.}
 
-\item{showProgress}{logical, default to TRUE}
+\item{showProgress}{logical, defaults to \code{TRUE}.}
 
-\item{...}{further arguments passed to mclapply.}
+\item{...}{further arguments passed to \code{\link[parallel]{mclapply}}}
 
-\item{papply}{(parallel) apply function, defaults to mclapply,
-see \code{\link[mboost]{cvrisk}} for details}
+\item{papply}{(parallel) apply function, defaults to \code{\link[parallel]{mclapply}},
+see \code{\link[mboost]{cvrisk}} for details.}
 
-\item{fun}{if fun is NULL, the out-of-sample risk is returned. fun, as a function of object,
+\item{fun}{if \code{fun} is \code{NULL}, the out-of-sample risk is returned.
+\code{fun}, as a function of \code{object},
 may extract any other characteristic of the cross-validated models. These are returned as is.}
 
 \item{corrected}{see \code{\link[mboost]{cvrisk}}.}
 
 \item{id}{the id-vector as integers 1, 2, ... specifying which observations belong to the same curve,
-deprecated in \code{cvMa()}}
+deprecated in \code{cvMa()}.}
 
 \item{weights}{a numeric vector of (integration) weights, defaults to 1.}
 
@@ -87,8 +88,8 @@ The function \code{validateFDboost} returns a validateFDboost-object, which is a
 \item{id}{the id variable of the response}
 \item{folds}{folds that were used}
 \item{grid}{grid of possible numbers of boosting iterations}
-\item{coefCV}{if \code{getCoefCV} is TRUE the estimated coefficient functions in the folds}
-\item{predCV}{if \code{getCoefCV} is TRUE the out-of-bag predicted values of the response}
+\item{coefCV}{if \code{getCoefCV} is \code{TRUE} the estimated coefficient functions in the folds}
+\item{predCV}{if \code{getCoefCV} is \code{TRUE} the out-of-bag predicted values of the response}
 \item{oobpreds}{if the type of folds is curves the out-of-bag predictions for each trajectory}
 \item{oobrisk}{the out-of-bag risk}
 \item{oobriskMean}{the out-of-bag risk at the minimal mean risk}

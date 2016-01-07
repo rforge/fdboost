@@ -9,7 +9,7 @@
 \arguments{
 \item{object}{a fitted \code{FDboost}-object}
 
-\item{toFDboost}{logical, defaults to TRUE. In case of regular response in wide format
+\item{toFDboost}{logical, defaults to \code{TRUE}. In case of regular response in wide format
 (i.e. response is supplied as matrix): should the predictions be returned as matrix, or list
 of matrices instead of vectors}
 

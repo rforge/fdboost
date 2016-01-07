@@ -22,7 +22,7 @@ one observed function.}
 or coefficients. If which is given (as an integer vector corresponding to base-learners)
 a list is returned.}
 
-\item{toFDboost}{logical, defaults to TRUE. In case of regular response in wide format
+\item{toFDboost}{logical, defaults to \code{TRUE}. In case of regular response in wide format
 (i.e. response is supplied as matrix): should the predictions be returned as matrix, or list
 of matrices instead of vectors}
 

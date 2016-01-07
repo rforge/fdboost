@@ -49,7 +49,7 @@ large amount of smoothing and thus to "weaker" base-learners.}
 \item{cyclic}{if \code{cyclic = TRUE} the fitted values coincide at
 the boundaries (useful for cyclic covariates such as day time etc.).}
 
-\item{intercept}{if intercept = TRUE an intercept is added to the design matrix
+\item{intercept}{if \code{intercept = TRUE} an intercept is added to the design matrix
 of a linear base-learner.}
 
 \item{K}{in \code{bolsc} it is possible to specify the penalty matrix K}

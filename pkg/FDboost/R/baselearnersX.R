@@ -352,7 +352,7 @@ X_histx <- function(mf, vary, args, getDesign=TRUE) {
 #' For expert use only! May show unexpected behaviour 
 #' compared to other base-learners for functional data!
 #' 
-#' @param x object of type hmatrix containing time, index and functional covariate
+#' @param x object of type \code{hmatrix} containing time, index and functional covariate
 #' @param knots either the number of knots or a vector of the positions 
 #' of the interior knots (for more details see \code{\link[mboost]{bbs})}.
 #' @param boundary.knots boundary points at which to anchor the B-spline basis 
@@ -369,7 +369,7 @@ X_histx <- function(mf, vary, args, getDesign=TRUE) {
 #' @param penalty by default, \code{penalty="ps"}, the difference penalty for P-splines is used, 
 #' for \code{penalty="pss"} the penalty matrix is transformed to have full rank, 
 #' so called shrinkage approach by Marra and Wood (2011)
-#' @param check.ident use checks for identifiability of the effect, based on Scheipl and Greven (2012)
+#' @param check.ident use checks for identifiability of the effect, based on Scheipl and Greven (2015b)
 #' @param standard the historical effect can be standardized with a factor. 
 #' "no" means no standardization, "time" standardizes with the current value of time and 
 #' "lenght" standardizes with the lenght of the integral 
@@ -396,7 +396,7 @@ X_histx <- function(mf, vary, args, getDesign=TRUE) {
 #' \code{bhistx} can only be used if \eqn{Y(t)} and \eqn{x(s)} are observd over
 #' the same domain \eqn{s,t \in [t_0, T]}. 
 #' 
-#' Note that the data has to be supplied as a  \code{hmatrix} object for 
+#' Note that the data has to be supplied as a \code{hmatrix} object for 
 #' model fit and predictions. 
 #' 
 #' @return Equally to the base-learners of package mboost: 
@@ -412,9 +412,15 @@ X_histx <- function(mf, vary, args, getDesign=TRUE) {
 #' @keywords models
 #' 
 #' @references 
-#' Scheipl, F., Staicu, A.-M., and Greven, S. (2015), 
+#' Marra, G., and Wood, S.N. (2011): Practical variable selection for generalized additive models. 
+#' Computational Statistics & Data Analysis, 55, 2372-2387.
+#' 
+#' Scheipl, F., Staicu, A.-M., and Greven, S. (2015a): 
 #' Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 24(2), 477-501.
 #' \url{http://arxiv.org/abs/1207.5947} 
+#' 
+#' Scheipl, F. and Greven, S. (2015b): Identifiability in penalized function-on-function regression models. 
+#' Technical Report 125, Department of Statistics, LMU Muenchen.
 #'  
 #' @examples 
 #' if(require(refund)){

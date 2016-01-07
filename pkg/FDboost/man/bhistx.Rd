@@ -11,7 +11,7 @@ bhistx(x, limits = "s<=t", standard = c("no", "time", "length"),
   lambda = NULL, penalty = c("ps", "pss"), check.ident = FALSE)
 }
 \arguments{
-\item{x}{object of type hmatrix containing time, index and functional covariate}
+\item{x}{object of type \code{hmatrix} containing time, index and functional covariate}
 
 \item{limits}{defaults to \code{"s<=t"} for an historical effect with s<=t,
 otherwise specifies the integration limits s_{hi, i}, s_{lo, i}:
@@ -56,7 +56,7 @@ large amount of smoothing and thus to "weaker" base-learners.}
 for \code{penalty="pss"} the penalty matrix is transformed to have full rank,
 so called shrinkage approach by Marra and Wood (2011)}
 
-\item{check.ident}{use checks for identifiability of the effect, based on Scheipl and Greven (2012)}
+\item{check.ident}{use checks for identifiability of the effect, based on Scheipl and Greven (2015b)}
 }
 \value{
 Equally to the base-learners of package mboost:
@@ -85,7 +85,7 @@ where \eqn{t0} is the minimal index of \eqn{t} of the response \eqn{Y(t)}.
 \code{bhistx} can only be used if \eqn{Y(t)} and \eqn{x(s)} are observd over
 the same domain \eqn{s,t \in [t_0, T]}.
 
-Note that the data has to be supplied as a  \code{hmatrix} object for
+Note that the data has to be supplied as a \code{hmatrix} object for
 model fit and predictions.
 }
 \examples{
@@ -123,9 +123,15 @@ mod[mstop(cv)]
 }
 }
 \references{
-Scheipl, F., Staicu, A.-M., and Greven, S. (2015),
+Marra, G., and Wood, S.N. (2011): Practical variable selection for generalized additive models.
+Computational Statistics & Data Analysis, 55, 2372-2387.
+
+Scheipl, F., Staicu, A.-M., and Greven, S. (2015a):
 Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 24(2), 477-501.
 \url{http://arxiv.org/abs/1207.5947}
+
+Scheipl, F. and Greven, S. (2015b): Identifiability in penalized function-on-function regression models.
+Technical Report 125, Department of Statistics, LMU Muenchen.
 }
 \seealso{
 \code{\link{FDboost}} for the model fit.

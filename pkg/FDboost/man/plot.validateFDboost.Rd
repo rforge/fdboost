@@ -27,7 +27,7 @@ defaults to the mean, can be changed to the median.}
 
 \item{...}{additional arguments passed to callies.}
 
-\item{x}{an object of class validateFDboost}
+\item{x}{an object of class\code{validateFDboost}.}
 
 \item{which}{In the case of \code{plotPredCoef} the subset of base-learners to take into account for plotting.
 In the case of \code{plot.validateFDboost} the diagnostic plots that are given
@@ -39,21 +39,21 @@ In the case of \code{plot.validateFDboost} the diagnostic plots that are given
 \item{modObject}{if the original model object of class \code{FDboost} is given
 predicted values of the whole model can be compared to the predictions of the cross-validated models}
 
-\item{predictNA}{should missing values in the response be predicted? Defaults to FALSE.}
+\item{predictNA}{should missing values in the response be predicted? Defaults to \code{FALSE}.}
 
 \item{names.arg}{names of the observed curves}
 
-\item{ask}{defaults to TRUE, ask for next plot using par(ask=ask)?}
+\item{ask}{defaults to \code{TRUE}, ask for next plot using par(ask=ask)?}
 
-\item{pers}{plot coefficient surfaces as persp-plots? Defaults to TRUE.}
+\item{pers}{plot coefficient surfaces as persp-plots? Defaults to \code{TRUE}.}
 
-\item{commonRange,}{plot predicted coefficients on a common range, defaults to TRUE}
+\item{commonRange,}{plot predicted coefficients on a common range, defaults to \code{TRUE}.}
 
-\item{showNumbers}{show number of curve in plot of predicted coefficients, defaults to FALSE}
+\item{showNumbers}{show number of curve in plot of predicted coefficients, defaults to \code{FALSE}}
 
-\item{showQuantiles}{plot the 0.05 and the 0.95 Quantile of coefficients in 1-dim effects}
+\item{showQuantiles}{plot the 0.05 and the 0.95 Quantile of coefficients in 1-dim effects.}
 
-\item{terms}{logical, defaults to TRUE; plot the added terms (default) or the coefficients?}
+\item{terms}{logical, defaults to \code{TRUE}; plot the added terms (default) or the coefficients?}
 
 \item{probs}{vector of quantiles to be used in the plotting of 2-dimensional coefficients surfaces,
 defaults to \code{probs=c(0.25, 0.5, 0.75)}}
@@ -69,7 +69,7 @@ The function \code{mstop.validateFDboost} extracts the optimal mstop by minimizi
 mean (or the median) risk.
 \code{plot.validateFDboost} plots cross-validated risk, RMSE, MRD, measured and predicted values
 and residuals as determined by \code{validateFDboost}. The function \code{plotPredCoef} plots the
-coefficients that were estimated in the folds - only possible if the argument getCoefCV is TRUE in
+coefficients that were estimated in the folds - only possible if the argument getCoefCV is \code{TRUE} in
 the call to \code{validateFDboost}.
 }
 

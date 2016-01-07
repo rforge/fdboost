@@ -18,21 +18,21 @@ plotResiduals(x, subset = NULL, posLegend = "topleft", ...)
 \arguments{
 \item{x}{a fitted \code{FDboost}-object}
 
-\item{raw}{logical defaults to FALSE.
-If raw=FALSE for each effect the estimated function/surface is calculated
-If raw=TRUE the coefficients of the model are returned.}
+\item{raw}{logical defaults to \code{FALSE}.
+If \code{raw = FALSE} for each effect the estimated function/surface is calculated.
+If \code{raw = TRUE} the coefficients of the model are returned.}
 
-\item{rug}{when TRUE (default) then the covariate to which the plot applies is
+\item{rug}{when \code{TRUE} (default) then the covariate to which the plot applies is
 displayed as a rug plot at the foot of each plot of a 1-d smooth,
 and the locations of the covariates are plotted as points on the contour plot
 representing a 2-d smooth.}
 
 \item{which}{a subset of base-learners to take into account for plotting.}
 
-\item{includeOffset}{logical, defaults to TRUE. Should the offset be included in the plot of the intercept (default)
-or should it be plotted separately.}
+\item{includeOffset}{logical, defaults to \code{TRUE}. Should the offset be included in
+the plot of the intercept (default) or should it be plotted separately.}
 
-\item{ask}{logical, defaults to TRUE, if several effects are plotted the user
+\item{ask}{logical, defaults to \code{TRUE}, if several effects are plotted the user
 has to hit Return to see next plot.}
 
 \item{n1}{see below}
@@ -45,17 +45,17 @@ covariates at which the estimated effects are evaluated.}
 
 \item{n4}{gives the number of points for the third dimension in a 3-dimensional smooth term}
 
-\item{onlySelected,}{logical, defaults to TRUE. Only plot effects that were
-selected in at least one boosting iteration}
+\item{onlySelected,}{logical, defaults to \code{TRUE}. Only plot effects that where
+selected in at least one boosting iteration.}
 
-\item{pers}{logical, defaults to FALSE,
-If TRUE, perspective plots (\code{\link[graphics]{persp}}) for
+\item{pers}{logical, defaults to \code{FALSE},
+If \code{TRUE}, perspective plots (\code{\link[graphics]{persp}}) for
 2- and 3-dimensional effects are drawn.
-If FALSE, image/contour-plots (\code{\link[graphics]{image}},
+If \code{FALSE}, image/contour-plots (\code{\link[graphics]{image}},
 \code{\link[graphics]{contour}}) are drawn for 2- and 3-dimensional effects.}
 
-\item{commonRange}{logical, defaults to FALSE,
-if TRUE the range over all effects is the same (so far not implemented)}
+\item{commonRange}{logical, defaults to \code{FALSE},
+if \code{TRUE} the range over all effects is the same (so far not implemented).}
 
 \item{...}{other arguments, passed to \code{funplot} (only used in plotPredicted)}
 

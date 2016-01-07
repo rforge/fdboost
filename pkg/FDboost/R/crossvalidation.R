@@ -8,30 +8,31 @@
 #' 
 #' @param object fitted FDboost-object
 #' @param response you can specify a response vector to calculate predictions errors. 
-#' Defaults to NULL which means that the response of the fitted model is used.
+#' Defaults to \code{NULL} which means that the response of the fitted model is used.
 #' @param folds a weight matrix with number of rows equal to the number of observed trajectories.  
-#' @param grid the grid over which the optimal mstop is searched 
-#' @param getCoefCV logical, defaults to TRUE Should the coefficients and predictions
+#' @param grid the grid over which the optimal number of boosting iterations (mstop) is searched.  
+#' @param getCoefCV logical, defaults to \code{TRUE}. Should the coefficients and predictions
 #' be computed for all the models on the sampled data?
 #' @param riskopt how is the optimal stopping iteration determined. Defaults to the mean
 #' but median is possible as well. 
-#' @param mrdDelete Delete values that are mrdDelete percent smaller then the mean
+#' @param mrdDelete Delete values that are \code{mrdDelete} percent smaller than the mean
 #' of the response. Defaults to 0 which means that only response values being 0 
-#' are not used in the calculation of the MRD (= mean relative deviation) 
+#' are not used in the calculation of the MRD (= mean relative deviation).  
 #' @param refitSmoothOffset logical, should the offset be refitted in each learning sample? 
-#' Defaults to TRUE. In \code{\link[mboost]{cvrisk}} the offset of the original model 
+#' Defaults to \code{TRUE}. In \code{\link[mboost]{cvrisk}} the offset of the original model fit in  
 #' \code{object} is used in all folds.
-#' @param showProgress logical, default to TRUE
+#' @param showProgress logical, defaults to \code{TRUE}.
 #' 
-#' @param papply (parallel) apply function, defaults to mclapply, 
-#' see \code{\link[mboost]{cvrisk}} for details 
-#' @param fun if fun is NULL, the out-of-sample risk is returned. fun, as a function of object, 
+#' @param papply (parallel) apply function, defaults to \code{\link[parallel]{mclapply}}, 
+#' see \code{\link[mboost]{cvrisk}} for details.  
+#' @param fun if \code{fun} is \code{NULL}, the out-of-sample risk is returned. 
+#' \code{fun}, as a function of \code{object}, 
 #' may extract any other characteristic of the cross-validated models. These are returned as is.
 #' @param corrected see \code{\link[mboost]{cvrisk}}. 
-#' @param ... further arguments passed to mclapply. 
+#' @param ... further arguments passed to \code{\link[parallel]{mclapply}} 
 #' 
 #' @param id the id-vector as integers 1, 2, ... specifying which observations belong to the same curve, 
-#' deprecated in \code{cvMa()}
+#' deprecated in \code{cvMa()}. 
 #' @param weights a numeric vector of (integration) weights, defaults to 1.
 #' @param type character argument for specifying the cross-validation 
 #' method. Currently (stratified) bootstrap, k-fold cross-validation, subsampling and 
@@ -92,8 +93,8 @@
 #' \item{id}{the id variable of the response}
 #' \item{folds}{folds that were used}
 #' \item{grid}{grid of possible numbers of boosting iterations}
-#' \item{coefCV}{if \code{getCoefCV} is TRUE the estimated coefficient functions in the folds}
-#' \item{predCV}{if \code{getCoefCV} is TRUE the out-of-bag predicted values of the response}
+#' \item{coefCV}{if \code{getCoefCV} is \code{TRUE} the estimated coefficient functions in the folds}
+#' \item{predCV}{if \code{getCoefCV} is \code{TRUE} the out-of-bag predicted values of the response}
 #' \item{oobpreds}{if the type of folds is curves the out-of-bag predictions for each trajectory}
 #' \item{oobrisk}{the out-of-bag risk}
 #' \item{oobriskMean}{the out-of-bag risk at the minimal mean risk}
@@ -654,10 +655,10 @@ print.validateFDboost <- function(x, ...){
 #' @param riskopt how the risk is minimized to obtain the optimal stopping iteration; 
 #' defaults to the mean, can be changed to the median.
 #' 
-#' @param x an object of class validateFDboost
+#' @param x an object of class\code{validateFDboost}. 
 #' @param modObject if the original model object of class \code{FDboost} is given 
 #' predicted values of the whole model can be compared to the predictions of the cross-validated models
-#' @param predictNA should missing values in the response be predicted? Defaults to FALSE. 
+#' @param predictNA should missing values in the response be predicted? Defaults to \code{FALSE}. 
 #' @param which In the case of \code{plotPredCoef} the subset of base-learners to take into account for plotting. 
 #' In the case of \code{plot.validateFDboost} the diagnostic plots that are given 
 #' (1: empirical risk per fold as a funciton of the boosting iterations, 
@@ -665,12 +666,12 @@ print.validateFDboost <- function(x, ...){
 #' 4: observed and predicted values, 5: residuals; 
 #' 2-5 for the model with the optimal number of boosting iterations). 
 #' @param names.arg names of the observed curves
-#' @param ask defaults to TRUE, ask for next plot using par(ask=ask)? 
-#' @param pers plot coefficient surfaces as persp-plots? Defaults to TRUE.
-#' @param commonRange, plot predicted coefficients on a common range, defaults to TRUE
-#' @param showQuantiles plot the 0.05 and the 0.95 Quantile of coefficients in 1-dim effects
-#' @param showNumbers show number of curve in plot of predicted coefficients, defaults to FALSE
-#' @param terms logical, defaults to TRUE; plot the added terms (default) or the coefficients?
+#' @param ask defaults to \code{TRUE}, ask for next plot using par(ask=ask)? 
+#' @param pers plot coefficient surfaces as persp-plots? Defaults to \code{TRUE}.
+#' @param commonRange, plot predicted coefficients on a common range, defaults to \code{TRUE}.
+#' @param showQuantiles plot the 0.05 and the 0.95 Quantile of coefficients in 1-dim effects.
+#' @param showNumbers show number of curve in plot of predicted coefficients, defaults to \code{FALSE}
+#' @param terms logical, defaults to \code{TRUE}; plot the added terms (default) or the coefficients?
 #' @param probs vector of quantiles to be used in the plotting of 2-dimensional coefficients surfaces,
 #' defaults to \code{probs=c(0.25, 0.5, 0.75)}
 #' @param ylim values for limits of y-axis
@@ -680,7 +681,7 @@ print.validateFDboost <- function(x, ...){
 #' mean (or the median) risk. 
 #' \code{plot.validateFDboost} plots cross-validated risk, RMSE, MRD, measured and predicted values 
 #' and residuals as determined by \code{validateFDboost}. The function \code{plotPredCoef} plots the 
-#' coefficients that were estimated in the folds - only possible if the argument getCoefCV is TRUE in 
+#' coefficients that were estimated in the folds - only possible if the argument getCoefCV is \code{TRUE} in 
 #' the call to \code{validateFDboost}. 
 #' 
 #' @aliases mstop.validateFDboost

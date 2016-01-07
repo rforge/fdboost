@@ -87,7 +87,7 @@ print.FDboost <- function(x, ...) {
 #' @param which a subset of base-learners to take into account for computing predictions 
 #' or coefficients. If which is given (as an integer vector corresponding to base-learners) 
 #' a list is returned. 
-#' @param toFDboost logical, defaults to TRUE. In case of regular response in wide format 
+#' @param toFDboost logical, defaults to \code{TRUE}. In case of regular response in wide format 
 #' (i.e. response is supplied as matrix): should the predictions be returned as matrix, or list 
 #' of matrices instead of vectors
 #' @param ...  additional arguments passed on to \code{\link[mboost]{predict.mboost}()}.
@@ -99,7 +99,7 @@ print.FDboost <- function(x, ...) {
 #' @export
 # predict function: wrapper for predict.mboost()
 ## <TODO> check which
-predict.FDboost <- function(object, newdata = NULL, which=NULL, toFDboost=TRUE, ...){
+predict.FDboost <- function(object, newdata = NULL, which = NULL, toFDboost = TRUE, ...){
   
   stopifnot(any(class(object)=="FDboost")) 
   # print("Prediction FDboost") 
@@ -445,7 +445,7 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, toFDboost=TRUE, 
 #'  Takes a fitted \code{FDboost}-object and computes the fitted values.
 #' 
 #' @param object a fitted \code{FDboost}-object
-#' @param toFDboost logical, defaults to TRUE. In case of regular response in wide format 
+#' @param toFDboost logical, defaults to \code{TRUE}. In case of regular response in wide format 
 #' (i.e. response is supplied as matrix): should the predictions be returned as matrix, or list 
 #' of matrices instead of vectors
 #' @param ... additional arguments passed on to \code{\link{predict.FDboost}}
@@ -455,7 +455,7 @@ predict.FDboost <- function(object, newdata = NULL, which=NULL, toFDboost=TRUE, 
 #' @method fitted FDboost
 #' @export
 ### similar to fitted.mboost() but returns the fitted values as matrix
-fitted.FDboost <- function(object, toFDboost=TRUE, ...) {
+fitted.FDboost <- function(object, toFDboost = TRUE, ...) {
 
   args <- list(...)
   
@@ -507,14 +507,14 @@ residuals.FDboost <- function(object, ...){
 #' Not implemented for smooths in more than 3 dimensions.
 #' 
 #' @param object a fitted \code{FDboost}-object
-#' @param raw logical defaults to FALSE.
-#' If raw=FALSE for each effect the estimated function/surface is calculated
-#' If raw=TRUE the coefficients of the model are returned. 
+#' @param raw logical defaults to \code{FALSE}.
+#' If \code{raw = FALSE} for each effect the estimated function/surface is calculated. 
+#' If \code{raw = TRUE} the coefficients of the model are returned. 
 #' @param which a subset of base-learners for which the coefficients
 #' should be computed (numeric vector), 
 #' defaults to NULL which is the same as \code{which=1:length(object$baselearner)}.
 #' In the special case of \code{which=0}, only the coefficients of the offset are returned.
-#' @param computeCoef defaults to TRUE, if FALSE only the names of the terms are returned
+#' @param computeCoef defaults to \code{TRUE}, if \code{FALSE} only the names of the terms are returned
 #' @param returnData return the dataset which is used to get the coefficient estimates as 
 #' predictions, see Details. 
 #' @param n1 see below
@@ -525,9 +525,9 @@ residuals.FDboost <- function(object, ...){
 #' @param n4 gives the number of points for the third dimension in a 3-dimensional smooth term
 #' @param ... other arguments, not used.
 #' 
-#' @return If \code{raw=FALSE}, a list containing 
+#' @return If \code{raw = FALSE}, a list containing 
 #' \itemize{
-#'  \item \code{pterms} a matrix containing the parametric / non-functional coefficients 
+#'  \item \code{pterms} a matrix containing the parametric / non-functional coefficients. 
 #'  \item \code{smterms} a named list with one entry for each smooth term in the model. 
 #'  Each entry contains
 #'     \itemize{
@@ -538,19 +538,19 @@ residuals.FDboost <- function(object, ...){
 #'          \item \code{dim} the dimensionality of the effect
 #'          \item \code{main} the label of the smooth term (a short label)
 #' }} 
-#' If \code{raw=TRUE}, a list containing the estimated spline coefficients. 
+#' If \code{raw = TRUE}, a list containing the estimated spline coefficients. 
 #'  
 #' @method coef FDboost
 #' 
-#' @details If \code{raw=FALSE} the \code{coef.FDboost()} generates adequate dummy data 
-#' and uses the function \code{predict.FDboost()} to 
+#' @details If \code{raw = FALSE} the function \code{coef.FDboost} generates adequate dummy data 
+#' and uses the function \code{predict.FDboost} to 
 #' compute the estimated coefficient functions. 
 #' 
 #' @export
 ### similar to coef.pffr() by Fabian Scheipl in package refund 
-coef.FDboost <- function(object, raw=FALSE, which=NULL, 
-                         computeCoef=TRUE, returnData=FALSE, 
-                         n1=40, n2=40, n3=20, n4=10, ...){
+coef.FDboost <- function(object, raw = FALSE, which = NULL, 
+                         computeCoef = TRUE, returnData = FALSE, 
+                         n1 = 40, n2 = 40, n3 = 20, n4 = 10, ...){
   
   if(raw){
     return(object$coef(which = which))  
@@ -1058,7 +1058,7 @@ coef.FDboost <- function(object, raw=FALSE, which=NULL,
 }
 
 # help function to color perspective plots - col1 positive values, col2 negative values
-getColPersp <- function(z, col1="tomato", col2="lightblue"){
+getColPersp <- function(z, col1 = "tomato", col2 = "lightblue"){
   nrz <- nrow(z)
   ncz <- ncol(z)
   
@@ -1081,17 +1081,17 @@ getColPersp <- function(z, col1="tomato", col2="lightblue"){
 #' plots the fitted effects or the coefficient-functions/surfaces.
 #' 
 #' @param x a fitted \code{FDboost}-object
-#' @param raw  logical defaults to FALSE.
-#' If raw=FALSE for each effect the estimated function/surface is calculated
-#' If raw=TRUE the coefficients of the model are returned. 
-#' @param rug when TRUE (default) then the covariate to which the plot applies is 
+#' @param raw  logical defaults to \code{FALSE}.
+#' If \code{raw = FALSE} for each effect the estimated function/surface is calculated. 
+#' If \code{raw = TRUE} the coefficients of the model are returned. 
+#' @param rug when \code{TRUE} (default) then the covariate to which the plot applies is 
 #' displayed as a rug plot at the foot of each plot of a 1-d smooth, 
 #' and the locations of the covariates are plotted as points on the contour plot 
 #' representing a 2-d smooth.
 #' @param which a subset of base-learners to take into account for plotting. 
-#' @param includeOffset logical, defaults to TRUE. Should the offset be included in the plot of the intercept (default)
-#' or should it be plotted separately.
-#' @param ask logical, defaults to TRUE, if several effects are plotted the user
+#' @param includeOffset logical, defaults to \code{TRUE}. Should the offset be included in 
+#' the plot of the intercept (default) or should it be plotted separately.
+#' @param ask logical, defaults to \code{TRUE}, if several effects are plotted the user
 #' has to hit Return to see next plot.
 #' @param n1 see below
 #' @param n2 see below
@@ -1099,15 +1099,15 @@ getColPersp <- function(z, col1="tomato", col2="lightblue"){
 #' smooth terms used in the marginal equidistant grids over the range of the 
 #' covariates at which the estimated effects are evaluated.
 #' @param n4 gives the number of points for the third dimension in a 3-dimensional smooth term
-#' @param onlySelected, logical, defaults to TRUE. Only plot effects that were 
-#' selected in at least one boosting iteration
-#' @param pers logical, defaults to FALSE, 
-#' If TRUE, perspective plots (\code{\link[graphics]{persp}}) for 
+#' @param onlySelected, logical, defaults to \code{TRUE}. Only plot effects that where 
+#' selected in at least one boosting iteration.
+#' @param pers logical, defaults to \code{FALSE}, 
+#' If \code{TRUE}, perspective plots (\code{\link[graphics]{persp}}) for 
 #' 2- and 3-dimensional effects are drawn.
-#' If FALSE, image/contour-plots (\code{\link[graphics]{image}}, 
+#' If \code{FALSE}, image/contour-plots (\code{\link[graphics]{image}}, 
 #' \code{\link[graphics]{contour}}) are drawn for 2- and 3-dimensional effects. 
-#' @param commonRange logical, defaults to FALSE, 
-#' if TRUE the range over all effects is the same (so far not implemented)
+#' @param commonRange logical, defaults to \code{FALSE}, 
+#' if \code{TRUE} the range over all effects is the same (so far not implemented).
 #' 
 #' @param subset subset of the observed response curves and their predictions that is plotted. 
 #' Per default all observations are plotted.
@@ -1125,10 +1125,10 @@ getColPersp <- function(z, col1="tomato", col2="lightblue"){
 #' @method plot FDboost
 #' @export
 ### function to plot raw values or coefficient-functions/surfaces of a model 
-plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL, 
-                         includeOffset=TRUE, ask=TRUE,
-                         n1=40, n2=40, n3=20, n4=11,
-                         onlySelected=TRUE, pers=FALSE, commonRange=FALSE, ...){
+plot.FDboost <- function(x, raw = FALSE, rug = TRUE, which = NULL, 
+                         includeOffset = TRUE, ask = TRUE,
+                         n1 = 40, n2 = 40, n3 = 20, n4 = 11,
+                         onlySelected = TRUE, pers = FALSE, commonRange = FALSE, ...){
   
   ### Get further arguments passed to the different plot-functions
   dots <- list(...)
@@ -1455,22 +1455,22 @@ plot.FDboost <- function(x, raw=FALSE, rug=TRUE, which=NULL,
 #' Takes a base-learner and extracts information.
 #' 
 #' @param object a base-learner
-#' @param what  a character specifying the quantities to extract.
+#' @param what a character specifying the quantities to extract.
 #' This can be a subset of "design" (default; design matrix), 
 #' "penalty" (penalty matrix) and "index" (index of ties used to expand 
 #' the design matrix)
 #' @param asmatrix a logical indicating whether the the returned matrix should be 
 #' coerced to a matrix (default) or if the returned object stays as it is 
-#' (i.e., potentially a sparse matrix). This option is only applicable if extract 
-#' returns matrices, i.e., what = "design" or what = "penalty".
+#' (i.e., potentially a sparse matrix). This option is only applicable if \code{extract} 
+#' returns matrices, i.e., \code{what = "design"} or \code{what = "penalty"}.
 #' @param expand a logical indicating whether the design matrix should be expanded 
-#' (default: FALSE). This is useful if ties where taken into account either manually 
-#' (via argument index in a base-learner) or automatically for data sets with many 
-#' observations. expand = TRUE is equivalent to extract(B)[extract(B, what = "index"),] 
-#' for a base-learner B.
+#' (default: \code{FALSE}). This is useful if ties were taken into account either manually 
+#' (via argument \code{index} in a base-learner) or automatically for data sets with many 
+#' observations. \code{expand = TRUE} is equivalent to \code{extract(B)[extract(B, what = "index"),]} 
+#' for a base-learner \code{B}.
 #' @param ... currently not used
 #' @method extract blg
-#' @seealso \code{\link[mboost]{extract}} for the extract functions of the package mboost
+#' @seealso \code{\link[mboost]{extract}} for the \code{extract} function of the package mboost
 extract.blg <- function(object, what = c("design", "penalty", "index"),
                         asmatrix = FALSE, expand = FALSE, ...){
   what <- match.arg(what)
