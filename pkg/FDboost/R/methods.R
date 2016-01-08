@@ -148,7 +148,6 @@ predict.FDboost <- function(object, newdata = NULL, which = NULL, toFDboost = TR
       n <- NROW(newdata[[1]])  ## FIXME check that this is not the time-variable
       
       lengthYind <- length(newdata[[nameyind]])
-      if(object$ydim[2]>1 && lengthYind==0) stop("Index of response, ", nameyind, ", must be specified and have length >0.")
       #assign(nameyind, newdata[[nameyind]])
       
       # try to get more reliable information on n (number of trajectories)
@@ -177,6 +176,8 @@ predict.FDboost <- function(object, newdata = NULL, which = NULL, toFDboost = TR
         if( length(unique(alln))>1 ) stop("The hmatrix-objects in newdata imply differing numbers of trajectories.")
         if( length(unique(alllengthYind))>1 ) stop("The hmatrix-objects in newdata imply differing times or do not match the time variable.")
       }
+      
+      if(object$ydim[2]>1 && lengthYind==0) stop("Index of response, ", nameyind, ", must be specified and have length >0.")
       
       # dummy variable to fit the intercept
       newdata[["ONEx"]] <- rep(1.0, n)
@@ -613,14 +614,25 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
           ## get the used function for the integration weights 
           ## dummyX <- I(diag(ng)) / integrationWeightsLeft(diag(ng), svals)
           if( grepl("%X%", trm$get_call()) ){
-            dummyX <- I(diag(ng)) / environment(environment(trm$dpp)$Xfun)$args1$intFun(diag(ng), svals)
+            intFun <- environment(environment(trm$dpp)$Xfun)$args1$intFun
+            ### <FIXME> does not work with two %X%
+            # dummyX <- I(diag(ng)) / environment(environment(trm$dpp)$Xfun)$args1$intFun(diag(ng), svals)
+            
             #limits <- environment(environment(trm$dpp)$Xfun)$args1$limits
             #stand <- environment(environment(trm$dpp)$Xfun)$args1$stand
           }else{
-            dummyX <- I(diag(ng)) / (environment(trm$dpp)$args$intFun(diag(ng), svals))
+            intFun <- environment(trm$dpp)$args$intFun 
             #limits <- environment(trm$dpp)$args$limits
             #stand <- environment(trm$dpp)$args$stand
           }
+          
+          if(is.null(intFun)){ ## <FIXME> case of two %X%
+            intFun <- integrationWeightsLeft
+            warning("As integration function integrationWeightsLeft() is used, which is the default in bhistx().")
+          }
+          
+          ## generate a dummy functional variable I / integration weights
+          dummyX <- I(diag(ng)) / intFun(diag(ng), svals)
           
           temph <- hmatrix(time=tvals, id=rep(1:ng, ng), x=dummyX, argvals=svals)
           
@@ -851,6 +863,7 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
            
             ## for bhist(), multiply with standardisation weights if necessary
             ## you need the args$vecStand from the prediction of X, constructed here
+            # browser()
             if(grepl("bhist", trm$get_call())){
               myargsHist <- if(grepl("%X%", trm$get_call())){
                 environment(environment(trm$dpp)$Xfun)$args1
@@ -918,7 +931,12 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
       trm <- object$baselearner[[i]]
       trm$dim <- length(trm$get_names())
       if(any(grepl("ONEx", trm$get_names()), 
-             grepl("ONEtime", trm$get_names()))) trm$dim <- trm$dim - 1 
+             grepl("ONEtime", trm$get_names()))) trm$dim <- trm$dim - 1
+      
+      ## give error for bl1 %X% bl2 %X% bl3
+      if( grepl("bhistx", trm$get_call()) & trm$dim > 2){
+        stop("coef.FDboost() does not work for tensor products %X% with more than two base-learners.")
+      }
             
       if( grepl("bhist", trm$get_call()) ){
         trm$dim <- 2
