@@ -375,12 +375,15 @@ X_bsignal <- function(mf, vary, args) {
       warning( sQuote("df"), " equal to rank of null space ",
                "(unpenalized part of P-spline);\n  ",
                "Consider larger value for ", sQuote("df"),
-               " or set ", sQuote("center = TRUE"), ".", immediate.=TRUE)
+               ## " or set ", sQuote("center = TRUE"), 
+               ".", immediate.=TRUE)
     if (rns > args$df)
       stop("not possible to specify ", sQuote("df"),
            " smaller than the rank of the null space\n  ",
            "(unpenalized part of P-spline). Use larger value for ",
-           sQuote("df"), " or set ", sQuote("center = TRUE"), ".")
+           sQuote("df"), 
+           ## " or set ", sQuote("center = TRUE"), 
+           ".")
   }
   return(list(X = X, K = K, args=args))
 }
@@ -593,12 +596,13 @@ bsignal <- function(x, s, index = NULL, inS=c("smooth", "linear", "constant"), #
   
   ## call X_bsignal in oder to compute parameter settings, e.g. 
   ## the transformation matrix Z, shrinkage penalty, identifiability problems...
-  temp <- X_bsignal(mf, vary, 
-                    args = hyper_signal(mf, vary, inS=inS, knots = knots, boundary.knots =
-                                          boundary.knots, degree = degree, differences = differences,
-                                        df = df, lambda = lambda, center = FALSE, cyclic = cyclic,
-                                        Z = Z, penalty = penalty, check.ident = check.ident,
-                                        s = s))
+  temp <- suppressWarnings(X_bsignal(mf, vary, 
+                                     args = hyper_signal(mf, vary, inS=inS, knots = knots, 
+                                                         boundary.knots = boundary.knots, degree = degree, 
+                                                         differences = differences,
+                                                         df = df, lambda = lambda, center = FALSE, cyclic = cyclic,
+                                                         Z = Z, penalty = penalty, check.ident = check.ident,
+                                                         s = s)))
   temp$args$check.ident <- FALSE
   
   ret <- list(model.frame = function() 
@@ -726,12 +730,15 @@ X_conc <- function(mf, vary, args) {
       warning( sQuote("df"), " equal to rank of null space ",
                "(unpenalized part of P-spline);\n  ",
                "Consider larger value for ", sQuote("df"),
-               " or set ", sQuote("center = TRUE"), ".", immediate.=TRUE)
+               ## " or set ", sQuote("center = TRUE"), 
+               ".", immediate.=TRUE)
     if (rns > args$df)
       stop("not possible to specify ", sQuote("df"),
            " smaller than the rank of the null space\n  ",
            "(unpenalized part of P-spline). Use larger value for ",
-           sQuote("df"), " or set ", sQuote("center = TRUE"), ".")
+           sQuote("df"), 
+           ## " or set ", sQuote("center = TRUE"), 
+           ".")
   }
   
   # tidy up workspace 
@@ -811,24 +818,24 @@ bconcurrent <- function(x, s, time, index = NULL, #by = NULL,
   
   if(is.null(index)){
     ### X_conc for data in wide format with regular response
-    temp <- X_conc(mf, vary, 
+    temp <- suppressWarnings(X_conc(mf, vary, 
                    args = hyper_hist(mf, vary, knots = knots, boundary.knots = boundary.knots, 
                                      degree = degree, differences = differences,
                                      df = df, lambda = lambda, center = FALSE, cyclic = cyclic,
                                      s = s, time=time, limits = NULL, 
                                      inS = "smooth", inTime = "smooth", 
                                      penalty = "ps", check.ident = FALSE, 
-                                     format="wide"))
+                                     format="wide")))
   }else{
     ### X_conc for data in long format with irregular response
-    temp <- X_conc(mf, vary, 
+    temp <- suppressWarnings(X_conc(mf, vary, 
                    args = hyper_hist(mf, vary, knots = knots, boundary.knots = boundary.knots, 
                                      degree = degree, differences = differences,
                                      df = df, lambda = lambda, center = FALSE, cyclic = cyclic,
                                      s = s, time=time, limits = NULL, 
                                      inS = "smooth", inTime = "smooth", 
                                      penalty = "ps", check.ident = FALSE, 
-                                     format="long"))
+                                     format="long")))
   }
   
   ret <- list(model.frame = function() 
@@ -1230,15 +1237,18 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
       warning( sQuote("df"), " equal to rank of null space ",
                "(unpenalized part of P-spline);\n  ",
                "Consider larger value for ", sQuote("df"),
-               " or set ", sQuote("center = TRUE"), ".", immediate.=TRUE)
+               ## " or set ", sQuote("center = TRUE"), 
+               ".", immediate.=TRUE)
     if (rns > args$df)
       stop("not possible to specify ", sQuote("df"),
            " smaller than the rank of the null space\n  ",
            "(unpenalized part of P-spline). Use larger value for ",
-           sQuote("df"), " or set ", sQuote("center = TRUE"), ".")
+           sQuote("df"), 
+           ## " or set ", sQuote("center = TRUE"), 
+           ".")
   }
   
-  # save matrices to compute numbers for identifiability checks
+  # save matrices to compute identifiability checks
   args$Bs <- Bs
   args$X1des <- X1des
   args$K1 <- K1
@@ -1338,7 +1348,7 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
   ## the transformation matrix Z, shrinkage penalty, identifiability problems...
   if(is.null(index)){
     ### X_hist for data in wide format with regular response
-    temp <- X_hist(mf, vary, 
+    temp <- suppressWarnings(X_hist(mf, vary, 
                       args = hyper_hist(mf, vary, knots = knots, boundary.knots = boundary.knots, 
                                         degree = degree, differences = differences,
                                         df = df, lambda = lambda, center = FALSE, cyclic = FALSE,
@@ -1347,10 +1357,10 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
                                         inS = inS, inTime = inTime, 
                                         penalty = penalty, check.ident = check.ident, 
                                         format="wide"), 
-                   getDesign=FALSE)
+                   getDesign=FALSE))
   }else{
     ### X_hist for data in long format with irregular response
-    temp <- X_hist(mf, vary, 
+    temp <- suppressWarnings(X_hist(mf, vary, 
                    args = hyper_hist(mf, vary, knots = knots, boundary.knots = boundary.knots, 
                                      degree = degree, differences = differences,
                                      df = df, lambda = lambda, center = FALSE, cyclic = FALSE,
@@ -1359,7 +1369,7 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
                                      inS = inS, inTime = inTime, 
                                      penalty = penalty, check.ident = check.ident, 
                                      format="long"), 
-                   getDesign=FALSE)
+                   getDesign=FALSE))
   }
   temp$args$check.ident <- FALSE
   
@@ -1812,13 +1822,14 @@ X_bbsc <- function(mf, vary, args) {
       warning( sQuote("df"), " equal to rank of null space ",
                "(unpenalized part of P-spline);\n  ",
                "Consider larger value for ", sQuote("df"),
-               " or set ", sQuote("center = TRUE"), ".", immediate.=TRUE)
+               " or set ", sQuote("center != FALSE"), ".", immediate.=TRUE)
     if (rns > args$df)
       stop("not possible to specify ", sQuote("df"),
            " smaller than the rank of the null space\n  ",
            "(unpenalized part of P-spline). Use larger value for ",
-           sQuote("df"), " or set ", sQuote("center = TRUE"), ".")
+           sQuote("df"), " or set ", sQuote("center != FALSE"), ".")
   }
+  
   return(list(X = X, K = K, args = args))
 }
 
@@ -1962,12 +1973,12 @@ bbsc <- function(..., by = NULL, index = NULL, knots = 10, boundary.knots = NULL
   }
   
   ## call X_bbsc in oder to compute the transformation matrix Z
-  temp <- X_bbsc(mf, vary, 
+  temp <- suppressWarnings(X_bbsc(mf, vary, 
                     args = hyper_bbsc(mf, vary, knots = knots, boundary.knots =
                                         boundary.knots, degree = degree, differences = differences,
                                       df = df, lambda = lambda, center = center, cyclic = cyclic, 
                                       constraint = constraint, deriv = deriv, 
-                                      Z = NULL))
+                                      Z = NULL)))
   Z <- temp$args$Z
   
   ret <- list(model.frame = function()
@@ -2187,11 +2198,11 @@ bolsc <- function(..., by = NULL, index = NULL, intercept = TRUE, df = NULL,
   
   ## call X_bbsc in oder to compute the transformation matrix Z, 
   ## Z is saved in args$Z and is used after the model fit
-  temp <- X_olsc(mf, vary, 
+  temp <- suppressWarnings(X_olsc(mf, vary, 
                  args = hyper_olsc(
                    df = df, lambda = lambda, K = K, # use penalty matrix as argument
                    intercept = intercept, contrasts.arg = contrasts.arg,
-                   Z = NULL))
+                   Z = NULL)))
   
   ret <- list(model.frame = function()
     if (is.null(index)) return(mf) else return(mf[index,,drop = FALSE]),
