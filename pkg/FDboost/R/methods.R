@@ -1016,14 +1016,15 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
     ## Function to obtain nice short names for labeling of plots
     shortnames <- function(x){
       if(substr(x,1,1)=="\"") x <- substr(x, 2, nchar(x)-1)
-      
+
       sign <- "%O%"
       if( !grepl(sign, x) ) sign <- "%X%"
       
-      xpart <- unlist(strsplit(x, sign)) 
+      xpart <- unlist(strsplit(x, sign, fixed = TRUE)) 
       
       for(i in 1:length(xpart)){
-        xpart[i] <- gsub("\\\"", "'", xpart[i], fixed=TRUE)
+        xpart[i] <- gsub(pattern = "\\\"", replacement = "", x = xpart[i], fixed=TRUE)
+        xpart[i] <- gsub(pattern = "\\", replacement = "", x = xpart[i], fixed=TRUE)
         nvar <- length(all.vars(formula(paste("Y~", xpart[i])))[-1])
         commaSep <- unlist(strsplit(xpart[i], ","))  
         

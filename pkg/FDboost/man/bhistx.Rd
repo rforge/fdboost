@@ -11,7 +11,9 @@ bhistx(x, limits = "s<=t", standard = c("no", "time", "length"),
   lambda = NULL, penalty = c("ps", "pss"), check.ident = FALSE)
 }
 \arguments{
-\item{x}{object of type \code{hmatrix} containing time, index and functional covariate}
+\item{x}{object of type \code{hmatrix} containing time, index and functional covariate;
+note that \code{timeLab} in the \code{hmatrix}-object must be equal to
+the name of the time-variable in \code{timeformula} in the \code{FDboost}-call}
 
 \item{limits}{defaults to \code{"s<=t"} for an historical effect with s<=t,
 otherwise specifies the integration limits s_{hi, i}, s_{lo, i}:
@@ -118,7 +120,7 @@ cv <- cvrisk(mod, folds = cv(model.weights(mod), B=5))
 mstop(cv)
 mod[mstop(cv)]
 
-## plot only works with mboostPatch
+## needs at least mboostPatch 2.5-1 to work
 # plot(mod)
 }
 }

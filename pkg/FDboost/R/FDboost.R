@@ -21,16 +21,16 @@
 #' Per default no intercept is added, only a smooth offset, see argument \code{offset}. 
 #' To add a smooth intercept, use 1, e.g. \code{y ~ 1} for a pure intercept model. 
 #' @param timeformula formula for the specification of the effects over the index of the response. 
-#' For a functional response \eqn{Y_i(t)} typically use \code{~bbs(t)} to obtain smooth 
+#' For a functional response \eqn{Y_i(t)} typically use \code{~ bbs(t)} to obtain smooth 
 #' effects over \eqn{t}. 
 #' In the limiting case of \eqn{Y_i} being a scalar response, 
-#' use \code{~bols(1)}, which sets up a base-learner for the scalar 1. 
+#' use \code{~ bols(1)}, which sets up a base-learner for the scalar 1. 
 #' Or you can use \code{timeformula=NULL}, then the scalar response is treated as scalar. 
 #' @param id defaults to NULL which means that all response trajectories are observed
 #' on a common grid allowing to represent the response as a matrix. 
 #' If the response is given in long format for observation-specific grids, \code{id} 
 #' contains the information which observations belong to the same trajectory and must 
-#' be supplied as a formula, \code{~nameid}, where the variable \code{nameid} should 
+#' be supplied as a formula, \code{~ nameid}, where the variable \code{nameid} should 
 #' contain integers 1, 2, 3, ..., N. 
 #' @param numInt integration scheme for the integration of the loss function.
 #' One of \code{c("equal", "Riemann")} meaning equal weights of 1 or 
@@ -98,36 +98,36 @@
 #' \itemize{
 #' \item Linear functional effect of scalar (numeric or factor) covariate \eqn{z} that varies 
 #'   smoothly over \eqn{t}, i.e. \eqn{z_i \beta_1(t)}, specified as
-#'   \code{~bolsc(z)}), see \code{\link{bolsc}}, 
-#'   or for a group effect with mean zero use \code{~brandom(z)}).  
+#'   \code{~ bolsc(z)}), see \code{\link{bolsc}}, 
+#'   or for a group effect with mean zero use \code{~ brandom(z)}).  
 #' \item Nonlinear effects  of a scalar covariate that vary smoothly over the
 #'   index \eqn{t} of \eqn{Y(t)}, i.e. \eqn{f(z_i, t)}, specified as \code{bbsc(z)}, 
 #'   see \code{\link{bbsc}}. 
 #' \item (Nonlinear) effects of scalar covariates that are constant 
-#'   over \eqn{t}, e.g. \eqn{f(z_i)}, specified as \code{~c(bbs(z))}, 
-#'   or \eqn{\beta_3 z_i}, specified as \code{~c(bols(z))}. 
+#'   over \eqn{t}, e.g. \eqn{f(z_i)}, specified as \code{~ c(bbs(z))}, 
+#'   or \eqn{\beta_3 z_i}, specified as \code{~ c(bols(z))}. 
 #' \item Function-on-function regression terms of functional covariates \code{x}, 
-#'   e.g. \eqn{\int x_i(s)\beta(s,t)ds}, specified as \code{~bsignal(x, s = s)}, see
+#'   e.g. \eqn{\int x_i(s)\beta(s,t)ds}, specified as \code{~ bsignal(x, s = s)}, see
 #'   \code{\link{bsignal}}. 
 #'   Terms given by \code{\link{bfpc}} provide FPC-based effects of functional 
 #'   covariates, see \code{\link{bfpc}}. 
 #' \item Function-on-function regression terms of functional covariates \code{x} 
 #'   with integration limits \eqn{[l(t), u(t)]} depending on \eqn{t},  
 #'   e.g. \eqn{\int_[l(t), u(t)] x_i(s)\beta(s,t)ds}, specified as 
-#'   \code{~bhist(x, s = s, time = t, limits)}. The \code{limits} argument defaults to
+#'   \code{~ bhist(x, s = s, time = t, limits)}. The \code{limits} argument defaults to
 #'   \code{"s<=t"} which yields a hisotircal effect with limits \eqn{[min(t),t]}.
 #'    see \code{\link{bhist}}.
 #' \item Concurrent effects of functional covariates \code{x}
 #'   measured on the same grid as the response, i.e., \eqn{x_i(s)beta(t)}, 
-#'   are specified as \code{~bconcurrent(x, s = s, time = t)}, 
+#'   are specified as \code{~ bconcurrent(x, s = s, time = t)}, 
 #'   see \code{\link{bconcurrent}}. 
 #' \item interaction effects can be estimated as tensor product smooth, e.g., 
-#'   \eqn{ z \int x_i(s)\beta(s,t)ds} as \code{~bsignal(x, s = s) \%X\% bolsc(z)}
+#'   \eqn{ z \int x_i(s)\beta(s,t)ds} as \code{~ bsignal(x, s = s) \%X\% bolsc(z)}
 #' \item For interaction effects with historical functional effects, e.g., 
 #'   \eqn{ z \int_[l(t),u(t)] x_i(s)\beta(s,t)ds} the base-learner 
-#'   \code{~bhistx} should be used, e.g. \code{~bhistx(x, limits) \%X\% bolsc(z)}, 
-#'   should be used instead of \code{~bhist},  see \code{\link{bhistx}}.
-#' \item Generally the \code{c()}-notation can be used to get effects that are 
+#'   \code{bhistx} should be used instead of \code{bhist}, 
+#'   e.g. \code{~ bhistx(x, limits) \%X\% bolsc(z)}, see \code{\link{bhistx}}.
+#' \item Generally, the \code{c()}-notation can be used to get effects that are 
 #'   constant over the index of the functional response. 
 #' } 
 #'  
@@ -350,8 +350,8 @@
 #'                         labels = c("low", "high"))[rep(1:4, length(viscosity$time))], 
 #'              time = rep(viscosity$time, 4))
 #'              
-#' # needs mboostPatch of mboost 2.5-0 to work
-#' #pred <- predict(mod4, newdata = newd)
+#' # needs at least mboostPatch 2.5-1 to work
+#' # pred <- predict(mod4, newdata = newd)
 #' ## funplot(x = rep(viscosity$time, 4), y = pred, id = rep(1:4, length(viscosity$time)))
 #'                   
 #'                 
@@ -572,6 +572,17 @@ FDboost <- function(formula,          ### response ~ xvars
       xfm <- c("bols(ONEx, intercept = FALSE, df = 1)", xfm)
     }
     where.c <- where.c + 1
+  }
+  
+  ## check that the timevariable in timeformula and in the bhistx-base-learners have the same name
+  if(any(grepl("bhistx", trmstrings))){
+    for(j in 1:length(trmstrings)){
+      temp_name <- all.vars(formula(paste("~", trmstrings[[j]])[1]))[1]
+      if(getTimeLab(data[[temp_name]]) != nameyind){
+        stop("The timeLab of the hmatrix-object in bhistx(), '", getTimeLab(data[[temp_name]]),
+             "', must be euqal to the name of the time-variable in timeformula, '", nameyind, "'.")
+      } 
+    }
   }
     
   yfm <- strsplit(cfm[1], "\\+")[[1]]

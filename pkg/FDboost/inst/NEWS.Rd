@@ -1,7 +1,7 @@
 \name{NEWS}
 \title{News for Package 'FDboost'}
 
-\section{Changes in FDboost version 0.0-14 (2015-12-15)}{
+\section{Changes in FDboost version 0.0-14 (2015-01-14)}{
   \subsection{User-visible changes}{
     \itemize{
         \item add a new possibility for scalar-on-function regression: 
@@ -11,7 +11,10 @@
   }
   \subsection{Miscellaneous}{
     \itemize{
-      \item use the argument 'prediction' in the internal computation of the base-learners (work in progress) 
+      \item use the argument 'prediction' in the internal computation 
+         of the base-learners (work in progress) 
+      \item throw an error if 'timeLab' of the hmatrix-object in bhistx() is not
+         equal to the time-variable in 'timeformula'. 
     }
   }
 }

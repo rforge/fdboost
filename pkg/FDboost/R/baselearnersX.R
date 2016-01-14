@@ -352,7 +352,9 @@ X_histx <- function(mf, vary, args, getDesign=TRUE) {
 #' For expert use only! May show unexpected behaviour 
 #' compared to other base-learners for functional data!
 #' 
-#' @param x object of type \code{hmatrix} containing time, index and functional covariate
+#' @param x object of type \code{hmatrix} containing time, index and functional covariate; 
+#' note that \code{timeLab} in the \code{hmatrix}-object must be equal to 
+#' the name of the time-variable in \code{timeformula} in the \code{FDboost}-call
 #' @param knots either the number of knots or a vector of the positions 
 #' of the interior knots (for more details see \code{\link[mboost]{bbs})}.
 #' @param boundary.knots boundary points at which to anchor the B-spline basis 
@@ -452,7 +454,7 @@ X_histx <- function(mf, vary, args, getDesign=TRUE) {
 #' mstop(cv)
 #' mod[mstop(cv)]
 #'
-#'## plot only works with mboostPatch
+#'## needs at least mboostPatch 2.5-1 to work
 #'# plot(mod)
 #'}
 #' 
