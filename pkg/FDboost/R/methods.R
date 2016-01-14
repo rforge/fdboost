@@ -628,7 +628,8 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
           
           if(is.null(intFun)){ ## <FIXME> case of two %X%
             intFun <- integrationWeightsLeft
-            warning("As integration function integrationWeightsLeft() is used, which is the default in bhistx().")
+            warning("As integration function 'integrationWeightsLeft()' is used,", 
+                    " which is the default in bhistx().")
           }
           
           ## generate a dummy functional variable I / integration weights
@@ -658,7 +659,9 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
             attr(d, "varnms") <- c(getArgvalsLab(temp), getTimeLab(temp), trm$get_names()[2])
             attr(d, "zm") <- zg
             
-            if(numberLevels>1){
+            ## TODO: add second factor variable to the dataset if necessary, because of two %X%
+            
+            if(numberLevels > 1){
               dlist <- list()
               dlist[[1]] <- d
               zlevels <- sort(unique(z))
@@ -937,9 +940,10 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
       if( grepl("bhistx", trm$get_call()) & trm$dim > 2){
         stop("coef.FDboost() does not work for tensor products %X% with more than two base-learners.")
       }
-            
+          
+      ## add 1 to dimension of bhist and bhistx otherwise dim is only 1  
       if( grepl("bhist", trm$get_call()) ){
-        trm$dim <- 2
+        trm$dim <- trm$dim + 1
       }
       
       # If a by-variable was specified, reduce number of dimensions
@@ -948,10 +952,10 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
             grepl("by =", trm$get_call()) && grepl("bbs", trm$get_call()) ) trm$dim <- trm$dim - 1
       
       # <FIXME> what to do with bbs(..., by=factor)?
-      
-      if(trm$dim > 3){
-        warning("can't deal with smooths with more than 3 dimensions, returning NULL for ", 
-                shrtlbls[i])
+
+      if(trm$dim > 3 & !grepl("bhistx", trm$get_call()) ){
+        warning("Can't deal with smooths with more than 3 dimensions, returning NULL for ", 
+                shrtlbls[i], ".")
         return(NULL)
       }
       
@@ -997,7 +1001,8 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
         return(d)
       }
 
-      if( !is.null(attr(d, "numberLevels")) && attr(d, "numberLevels") >1){
+      if( !is.null(attr(d, "numberLevels")) && attr(d, "numberLevels") > 1){
+        if( grepl("bhistx", trm$get_call()) ) trm$dim <- 2
         ## get smooth coefficient estimates for several factor levels
         P <- lapply(d, getP, trm=trm) 
         P$numberLevels <- attr(d, "numberLevels") 
