@@ -213,7 +213,6 @@ predict.FDboost <- function(object, newdata = NULL, which = NULL, toFDboost = TR
       
     } ## for response observed on irregular grid
 
-    # browser()
     #     # Predict effect of offset: predOffset
     #     predOffset <- object$offsetVec # offset is just an integer 
     #     if(length(object$offsetVec)>1){ # offset is a smooth function
@@ -361,9 +360,7 @@ predict.FDboost <- function(object, newdata = NULL, which = NULL, toFDboost = TR
       n <- 1
       lengthYind <- length(object$yind)
     }
-    
-    #browser()
-    
+
     ## predict all effects together, include the offset into the prediction 
     if(is.null(which)){
       predMboost <- predict(object=object, newdata=NULL, which=NULL, ...)#[,1]
@@ -645,8 +642,8 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
           attr(d, "xm") <- seq(min(svals), max(svals),length=ng)
           attr(d, "ym") <- seq(min(tvals), max(tvals),length=ng)
           
+          ## for a tensor product term: add the scalar factors to d
           if( grepl("%X%", trm$get_call()) ){
-            #stop("coef.FDboost function not implemented for base-learners with %X%.")
             z <- trm$model.frame()[[trm$get_names()[2]]]
             if(is.factor(z)) {
               numberLevels <- length(unique(unique(z)))  
@@ -659,19 +656,54 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
             attr(d, "varnms") <- c(getArgvalsLab(temp), getTimeLab(temp), trm$get_names()[2])
             attr(d, "zm") <- zg
             
-            ## TODO: add second factor variable to the dataset if necessary, because of two %X%
+            ## add second factor variable to the dataset if necessary, because of two %X%
+            z1 <- NULL
+            if(length(trm$get_names()) > 2){
+              z1 <- trm$model.frame()[[trm$get_names()[3]]]
+              if(is.factor(z1)) {
+                ## multiply the number of levels of both factors 
+                numberLevels <- numberLevels * length(unique(unique(z1)))  
+                z1g <- sort(unique(z1))[1] 
+              }else{
+                z1g <- 1 # use z1=1 as neutral possibility
+              } 
+              
+              d[[ trm$get_names()[3] ]] <- z1g
+              attr(d, "varnms") <- c(getArgvalsLab(temp), getTimeLab(temp), 
+                                     trm$get_names()[2], trm$get_names()[3])
+              attr(d, "z1m") <- z1g
+            }
             
+            ## make a list of data-frames with all combinations
             if(numberLevels > 1){
-              dlist <- list()
-              dlist[[1]] <- d
-              zlevels <- sort(unique(z))
-              for(j in 2:numberLevels){
-                d[[ trm$get_names()[2] ]] <- zlevels[j] # use j-th factor level 
-                dlist[[j]] <- d
-              }
+              
+              dlist <- vector("list", numberLevels)
+              zlevels <- sort(unique(z))  ##  sort(unique(z1))
+              
+              ## loop over all factor combinations 
+              if(is.null(z1)){  # one %X%'
+                dlist[[1]] <- d
+                for(j in 2:numberLevels){
+                  d[[ trm$get_names()[2] ]] <- zlevels[j] # use j-th factor level 
+                  dlist[[j]] <- d
+                }
+              }else{ # two %X%
+                z1levels <- sort(unique(z1))
+                temp_d <- 1
+                for(j in 1:length(zlevels)){ # loop over z 
+                  d[[ trm$get_names()[2] ]] <- zlevels[j] # use j-th factor level of z
+                  for(k in 1:length(z1levels)){ # loop over z1
+                    d[[ trm$get_names()[3] ]] <- z1levels[k] # use k-th factor level of z1
+                    dlist[[temp_d]] <- d 
+                    temp_d <- temp_d + 1
+                  }
+                  
+                }
+              } # end else !is.null(z1)
               d <- dlist  ## give back the list of data.frames
               attr(d, "numberLevels") <- numberLevels
-            }
+            } ## end if(numberLevels > 1)
+            
             #attr(d, "limits") <- limits
             #attr(d, "stand") <- stand
             
@@ -681,7 +713,7 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
           return(d)
         }
         
-        ### <TODO>  delete attr(d, "xm") <- xg and change code accordingly
+        ### <TODO> delete attr(d, "xm") <- xg and change code accordingly
         varnms <- trm$get_names()
         yListPlace <- NULL
         zListPlace <- NULL
@@ -784,7 +816,6 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
         
         ## add dummy signal to data for bfpc()
         if(grepl("bfpc", trm$get_call()) ){
-          ##browser()
           ## <FIXME> only works for regular s \in [0,1]
           ## use the number of observations of the original s, 
           ## as fPCA is multivariate for the observations of X
@@ -801,7 +832,6 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
         }
         
         ## add dummy signal to data for bhist()
-        ### <FIXME> is dummy-signal for bhist() correct?
         ## standardisation weights depending on t must be multiplied to the final \beta(s,t)
         ## as they cannot be included into the variable x(s)
         ## use intFun() to compute the integration weights
@@ -839,12 +869,11 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
           d[[attr(object$yind, "nameyind")]] <- 1 
         }
         return(d)
-      }
+      } ## enf of function makeDataGrid()
       
       getP <- function(trm, d){
         #return an object similar to what plot.mgcv.smooth etc. returns 
         if(trm$dim==1){
-          #browser()
           predHelp <- predict(object, which=i, newdata=d)
           if(!is.matrix(predHelp)){ 
             X <- predHelp
@@ -866,12 +895,17 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
            
             ## for bhist(), multiply with standardisation weights if necessary
             ## you need the args$vecStand from the prediction of X, constructed here
-            # browser()
             if(grepl("bhist", trm$get_call())){
               myargsHist <- if(grepl("%X%", trm$get_call())){
                 environment(environment(trm$dpp)$Xfun)$args1
               }else{
                 environment(trm$dpp)$args
+              }
+              ## <TODO>: find for 2 %X%, the args of bhistx
+              if(is.null(myargsHist$stand)){
+                warning("No standardization is used, i.e. stand = 'no',", 
+                        " which is the default in bhistx().")
+                myargsHist$stand <- "no"
               }
               if(myargsHist$stand %in% c("length","time")){
                 Lnew <- myargsHist$intFun(diag(length(attr(d, "ym"))), attr(d, "ym") )
@@ -929,19 +963,19 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
         P$dim <- trm$dim
         P$main <- shrtlbls[i]
         return(P)
-      }
+      } ## end of function getP()
       
       trm <- object$baselearner[[i]]
       trm$dim <- length(trm$get_names())
       if(any(grepl("ONEx", trm$get_names()), 
              grepl("ONEtime", trm$get_names()))) trm$dim <- trm$dim - 1
       
-      ## give error for bl1 %X% bl2 %X% bl3
-      if( grepl("bhistx", trm$get_call()) & trm$dim > 2){
-        stop("coef.FDboost() does not work for tensor products %X% with more than two base-learners.")
-      }
+      ### give error for bl1 %X% bl2 %X% bl3
+      #if( grepl("bhistx", trm$get_call()) & trm$dim > 2){
+      #  stop("coef.FDboost() does not work for tensor products %X% with more than two base-learners.")
+      #}
           
-      ## add 1 to dimension of bhist and bhistx otherwise dim is only 1  
+      ## add 1 to dimension of bhist and bhistx, otherwise dim is only 1  
       if( grepl("bhist", trm$get_call()) ){
         trm$dim <- trm$dim + 1
       }
@@ -959,7 +993,6 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
         return(NULL)
       }
       
-      # browser()
       d <- makeDataGrid(trm)
       
       ### <FIXME> better solution for %X% in base-learner!!!
@@ -969,7 +1002,6 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
       ## it is necessary to expand the dataframe!
       if(!grepl("bhistx(", trm$get_call(), fixed=TRUE) && 
          is.null(object$ydim) && !grepl("bconcurrent", trm$get_call())){
-        #browser()
         #print(attr(d, "varnms"))
         vari <- names(d)[1]
         if(is.factor(d[[vari]])){
@@ -1261,10 +1293,13 @@ plot.FDboost <- function(x, raw = FALSE, rug = TRUE, which = NULL,
           # get the limits- function
           #limits <- get("args", (environment(x$baselearner[[which[i]]]$dpp)))$limits
           limits <- trm$limits
-          ## do not use it if stand  == "transform"
-          ## if(get("args", (environment(x$baselearner[[which[i]]]$dpp)))$stand != "transform"){
+          if(is.null(limits)){
+            warning("limits is NULL, the default limits 's<=t' are used for plotting.")
+            limits <- function(s, t) {
+              (s < t) | (s == t)
+            }
+          }
           trm$value[!outer(trm$x, trm$y, limits)] <- NA
-          # }        
         }
         
         # plot for 1-dim effects
@@ -1388,7 +1423,6 @@ plot.FDboost <- function(x, raw = FALSE, rug = TRUE, which = NULL,
         
       }  ## end function myplot()
       
-      #browser()
       ### call to function myplot()
       if(is.null(trm$numberLevels)){
         myplot(trm=trm)
@@ -1419,7 +1453,6 @@ plot.FDboost <- function(x, raw = FALSE, rug = TRUE, which = NULL,
       rm(temp)
     }
     
-    #browser()
     if(class(terms)!="list") terms <- list(terms)
     if(length(which)==1 && which==0) terms[[1]] <- offset
     if(length(which)==1 && length(terms[[1]]) == 1 && terms[[1]]==0){ terms[[1]] <- rep(0, l=length(x$yind)) }
