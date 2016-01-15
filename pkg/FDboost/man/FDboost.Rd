@@ -245,7 +245,7 @@ data("fuelSubset", package = "FDboost")
 fuelSubset$UVVIS <- scale(fuelSubset$UVVIS, scale = FALSE)
 fuelSubset$NIR <- scale(fuelSubset$NIR, scale = FALSE)
 
-## to make df2lambda() happy (all design matrix < 10)
+## to make mboost::df2lambda() happy (all design matrix entries < 10)
 ## reduce range of argvals to [0,1] to get smaller integration weights
 fuelSubset$uvvis.lambda <- with(fuelSubset, (uvvis.lambda - min(uvvis.lambda)) /
                                           (max(uvvis.lambda) - min(uvvis.lambda) ))

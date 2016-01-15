@@ -607,23 +607,23 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
           tvals <- getTime(temp)
           tvals <- seq(min(tvals), max(tvals),length=ng)
           tvals <- rep(tvals, each=ng)
-          
-          ## get the used function for the integration weights 
-          ## dummyX <- I(diag(ng)) / integrationWeightsLeft(diag(ng), svals)
+
           if( grepl("%X%", trm$get_call()) ){
-            intFun <- environment(environment(trm$dpp)$Xfun)$args1$intFun
-            ### <FIXME> does not work with two %X%
-            # dummyX <- I(diag(ng)) / environment(environment(trm$dpp)$Xfun)$args1$intFun(diag(ng), svals)
-            
-            #limits <- environment(environment(trm$dpp)$Xfun)$args1$limits
-            #stand <- environment(environment(trm$dpp)$Xfun)$args1$stand
+            if(length(trm$get_names()) == 2){ # one %X%
+              myargsHist <- environment(environment(trm$dpp)$Xfun)$args1
+            }else{  # two ore more %X% (currently only works for two)
+              myargsHist <- environment(environment(environment(
+                environment(trm$dpp)$Xfun)$bl1$dpp)$Xfun)$args1
+            }
           }else{
-            intFun <- environment(trm$dpp)$args$intFun 
-            #limits <- environment(trm$dpp)$args$limits
-            #stand <- environment(trm$dpp)$args$stand
+            myargsHist <- environment(trm$dpp)$args
           }
           
-          if(is.null(intFun)){ ## <FIXME> case of two %X%
+          ## use the same function for the numerical integration weights as in the model call 
+          intFun <- myargsHist$intFun
+          
+          ## should only occur for more than two %X%
+          if(is.null(intFun)){ 
             intFun <- integrationWeightsLeft
             warning("As integration function 'integrationWeightsLeft()' is used,", 
                     " which is the default in bhistx().")
@@ -718,7 +718,7 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
         yListPlace <- NULL
         zListPlace <- NULL
         
-        #generate grid of values in range of original data
+        # generate grid of values in range of original data
         if(trm$dim==1){
           ng <- n1
           varnms <- varnms[!varnms %in% c("ONEx", "ONEtime")] 
@@ -896,17 +896,30 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
             ## for bhist(), multiply with standardisation weights if necessary
             ## you need the args$vecStand from the prediction of X, constructed here
             if(grepl("bhist", trm$get_call())){
-              myargsHist <- if(grepl("%X%", trm$get_call())){
-                environment(environment(trm$dpp)$Xfun)$args1
-              }else{
-                environment(trm$dpp)$args
+
+              ## get the args of bhist/bhistx, environment depends on use of %X%
+              if( grepl("%X%", trm$get_call()) ){
+                if(length(trm$get_names()) == 2){ # one %X%
+                  myargsHist <- environment(environment(trm$dpp)$Xfun)$args1
+                }else{  # two ore more %X% (currently only works for two)
+                  myargsHist <- environment(environment(environment(
+                    environment(trm$dpp)$Xfun)$bl1$dpp)$Xfun)$args1
+                }
+              }else{ # just bhist() or bhistx() without %X%
+                myargsHist <- environment(trm$dpp)$args
               }
-              ## <TODO>: find for 2 %X%, the args of bhistx
+              
+              ## this should only occur for more than two %X%
               if(is.null(myargsHist$stand)){
                 warning("No standardization is used, i.e. stand = 'no',", 
-                        " which is the default in bhistx().")
+                        " which is the default in bhistx().", 
+                        "As intFun() integrationWeightsLeft() is used. ", 
+                        "No limits are used.")
                 myargsHist$stand <- "no"
+                myargsHist$intFun <- integrationWeightsLeft
+                myargsHist$limits <- function(s, t) TRUE
               }
+              
               if(myargsHist$stand %in% c("length","time")){
                 Lnew <- myargsHist$intFun(diag(length(attr(d, "ym"))), attr(d, "ym") )
                 ## Standardize with exact length of integration interval
@@ -919,9 +932,9 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
                 }           
                 ## use time of current observation for standardization
                 ##  (1/t) \int_{t0}^t f(s) ds
-                if(myargsHist$stand=="time"){
+                if(myargsHist$stand == "time"){
                   yindHelp <- attr(d, "ym")
-                  yindHelp[yindHelp==0] <- Lnew[1,1] 
+                  yindHelp[yindHelp == 0] <- Lnew[1,1] 
                   vecStand <- yindHelp
                 }
                 X <- t(t(X)*vecStand)
@@ -931,6 +944,12 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
             P <- list(x=attr(d, "xm"), y=attr(d, "ym"), xlab=varnms[1], ylab=varnms[2],
                       ylim=safeRange(attr(d, "ym")), xlim=safeRange(attr(d, "xm")),
                       z=attr(d, "zm"), zlab=varnms[3], vecStand=vecStand)
+            
+            ## include the second scalar covariate called z1 into the output
+            if( grepl("bhistx", trm$get_call()) & length(trm$get_names()) > 2){
+              extra_output <- list(z1=attr(d, "z1m"), z1lab=varnms[4])
+              P <- c(P, extra_output)
+            }
             
             ## save the arguments of stand and limits as part of returned object
             if(grepl("bhist", trm$get_call())){

@@ -4,6 +4,8 @@
 \section{Changes in FDboost version 0.0-14 (2015-01-14)}{
   \subsection{User-visible changes}{
     \itemize{
+        \item expand coef.FDboost() such that it works for 3-dimensional tensor products
+          of with bhistx() the form bhistx() \%X\% bolsc() \%X\% bolsc() (with David Ruegamer)
         \item add a new possibility for scalar-on-function regression: 
           for timeformula=NULL, no Kronecker-product with 1 is used, which 
           changes the penalty as otherwise in the direction of 1 is penalized as well. 
