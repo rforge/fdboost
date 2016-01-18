@@ -584,11 +584,13 @@ FDboost <- function(formula,          ### response ~ xvars
   ## check that the timevariable in timeformula and in the bhistx-base-learners have the same name
   if(any(grepl("bhistx", trmstrings))){
     for(j in 1:length(trmstrings)){
-      temp_name <- all.vars(formula(paste("~", trmstrings[[j]])[1]))[1]
-      if(getTimeLab(data[[temp_name]]) != nameyind){
-        stop("The timeLab of the hmatrix-object in bhistx(), '", getTimeLab(data[[temp_name]]),
-             "', must be euqal to the name of the time-variable in timeformula, '", nameyind, "'.")
-      } 
+      if(any(grepl("bhistx", trmstrings[j]))){
+        temp_name <- all.vars(formula(paste("~", trmstrings[[j]])[1]))[1]
+        if(getTimeLab(data[[temp_name]]) != nameyind){
+          stop("The timeLab of the hmatrix-object in bhistx(), '", getTimeLab(data[[temp_name]]),
+               "', must be euqal to the name of the time-variable in timeformula, '", nameyind, "'.")
+        }
+      }
     }
   }
     
