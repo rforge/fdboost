@@ -368,6 +368,27 @@ X_bsignal <- function(mf, vary, args) {
     K <- penalty_pss(K=K, difference=args$difference, shrink=0.1)
   }
   
+  #####################################################
+  ####### K <- crossprod(K) has been computed before!
+  if (!identical(args$center, FALSE)) {
+
+    ### L = \Gamma \Omega^1/2 in Section 2.3. of
+    ### Fahrmeir et al. (2004, Stat Sinica); "spectralDecomp"
+    SVD <- eigen(K, symmetric = TRUE)
+    ev <- SVD$vector[, 1:(ncol(X) - args$differences), drop = FALSE]
+    ew <- SVD$values[1:(ncol(X) - args$differences), drop = FALSE]
+    # penalized part of X: X L (L^t L)^-1
+    X <- X %*% ev %*% diag(1/sqrt(ew))
+    
+    ## unpenalized part of X: 
+    ## for differences = 2 gives equivalent results to specifying inS='linear' 
+    # X <- X %*% Null(K)
+    
+    # attributes(X)[c("degree", "knots", "Boundary.knots")] <- tmp
+    K <- diag(ncol(X))
+  } 
+  #####################################################
+  
   ## compare specified degrees of freedom to dimension of null space
   if (!is.null(args$df)){
     rns <- ncol(K) - qr(as.matrix(K))$rank # compute rank of null space
@@ -404,7 +425,7 @@ X_bsignal <- function(mf, vary, args) {
 #' For example, \code{bsignal(X, s, index = index)} is equal to \code{bsignal(X[index,], s)}, 
 #' where index is an integer of length greater or equal to \code{length(x)}.
 #' @param knots either the number of knots or a vector of the positions 
-#' of the interior knots (for more details see \code{\link[mboost]{bbs})}.
+#' of the interior knots (for more details see \code{\link[mboost]{bbs}}).
 #' @param boundary.knots boundary points at which to anchor the B-spline basis 
 #' (default the range of the data). A vector (of length 2) 
 #' for the lower and the upper boundary knot can be specified.
@@ -415,7 +436,14 @@ X_bsignal <- function(mf, vary, args) {
 #' @param df trace of the hat matrix for the base-learner defining the 
 #' base-learner complexity. Low values of \code{df} correspond to a 
 #' large amount of smoothing and thus to "weaker" base-learners.
-#' @param lambda smoothing penalty
+#' @param lambda smoothing penalty 
+#' @param center experimental implementation! 
+#' The effect is re-parameterized such that the unpenalized part of the fit is subtracted and only 
+#' the penalized effect is fitted, using a spectral decomposition of the penalty matrix.  
+#' The unpenalized, parametric part has then to be included in separate 
+#' base-learners using \code{bsignal(..., inS = 'constant')} or \code{bsignal(..., inS = 'linear')} 
+#' for first (\code{difference = 1}) and second (\code{difference = 2}) order difference penalty respectively. 
+#' See the help on the argument \code{center} of \code{\link[mboost]{bbs}}.   
 #' @param cyclic if \code{cyclic = TRUE} the fitted coefficient function coincides at the boundaries 
 #' (useful for cyclic covariates such as day time etc.).
 #' @param Z a transformation matrix for the design-matrix over the index of the covariate.
@@ -529,6 +557,13 @@ X_bsignal <- function(mf, vary, args) {
 #' fuelSubset$UVVIS <- scale(fuelSubset$UVVIS)
 #' fuelSubset$NIR <- scale(fuelSubset$NIR)
 #' 
+#' ## to make mboost::df2lambda() happy (all design matrix entries < 10)
+#' ## reduce range of argvals to [0,1] to get smaller integration weights
+#' fuelSubset$uvvis.lambda <- with(fuelSubset, (uvvis.lambda - min(uvvis.lambda)) /
+#'                                   (max(uvvis.lambda) - min(uvvis.lambda) ))
+#' fuelSubset$nir.lambda <- with(fuelSubset, (nir.lambda - min(nir.lambda)) /
+#'                                 (max(nir.lambda) - min(nir.lambda) ))
+#'                                 
 #' mod2 <- FDboost(heatan ~ bsignal(UVVIS, uvvis.lambda, knots=40, df=4, check.ident=FALSE) 
 #'                + bsignal(NIR, nir.lambda, knots=40, df=4, check.ident=FALSE), 
 #'                timeformula=NULL, data=fuelSubset) 
@@ -538,7 +573,7 @@ X_bsignal <- function(mf, vary, args) {
 ### P-spline base-learner for signal matrix with index vector
 bsignal <- function(x, s, index = NULL, inS=c("smooth", "linear", "constant"), #by = NULL,
                     knots = 10, boundary.knots = NULL, degree = 3, differences = 1, df = 4, 
-                    lambda = NULL, #center = FALSE, 
+                    lambda = NULL, center = FALSE, 
                     cyclic = FALSE, Z = NULL, 
                     penalty=c("ps","pss"), check.ident = FALSE
 ){
@@ -596,13 +631,13 @@ bsignal <- function(x, s, index = NULL, inS=c("smooth", "linear", "constant"), #
   
   ## call X_bsignal in oder to compute parameter settings, e.g. 
   ## the transformation matrix Z, shrinkage penalty, identifiability problems...
-  temp <- suppressWarnings(X_bsignal(mf, vary, 
-                                     args = hyper_signal(mf, vary, inS=inS, knots = knots, 
-                                                         boundary.knots = boundary.knots, degree = degree, 
-                                                         differences = differences,
-                                                         df = df, lambda = lambda, center = FALSE, cyclic = cyclic,
-                                                         Z = Z, penalty = penalty, check.ident = check.ident,
-                                                         s = s)))
+  temp <- X_bsignal(mf, vary, 
+                    args = hyper_signal(mf, vary, inS=inS, knots = knots, 
+                                        boundary.knots = boundary.knots, degree = degree, 
+                                        differences = differences,
+                                        df = df, lambda = lambda, center = center, cyclic = cyclic,
+                                        Z = Z, penalty = penalty, check.ident = check.ident,
+                                        s = s))
   temp$args$check.ident <- FALSE
   
   ret <- list(model.frame = function() 
@@ -641,7 +676,6 @@ bsignal <- function(x, s, index = NULL, inS=c("smooth", "linear", "constant"), #
     })
   class(ret) <- "blg"
   
-  #browser()
   #print("bsignal")
   #print(Z)
   
@@ -818,24 +852,24 @@ bconcurrent <- function(x, s, time, index = NULL, #by = NULL,
   
   if(is.null(index)){
     ### X_conc for data in wide format with regular response
-    temp <- suppressWarnings(X_conc(mf, vary, 
+    temp <- X_conc(mf, vary, 
                    args = hyper_hist(mf, vary, knots = knots, boundary.knots = boundary.knots, 
                                      degree = degree, differences = differences,
                                      df = df, lambda = lambda, center = FALSE, cyclic = cyclic,
                                      s = s, time=time, limits = NULL, 
                                      inS = "smooth", inTime = "smooth", 
                                      penalty = "ps", check.ident = FALSE, 
-                                     format="wide")))
+                                     format="wide"))
   }else{
     ### X_conc for data in long format with irregular response
-    temp <- suppressWarnings(X_conc(mf, vary, 
+    temp <- X_conc(mf, vary, 
                    args = hyper_hist(mf, vary, knots = knots, boundary.knots = boundary.knots, 
                                      degree = degree, differences = differences,
                                      df = df, lambda = lambda, center = FALSE, cyclic = cyclic,
                                      s = s, time=time, limits = NULL, 
                                      inS = "smooth", inTime = "smooth", 
                                      penalty = "ps", check.ident = FALSE, 
-                                     format="long")))
+                                     format="long"))
   }
   
   ret <- list(model.frame = function() 
@@ -1342,13 +1376,12 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
             " numbers of observations.")
   
   #index <- NULL 
-  #browser()
   
   ## call X_hist in oder to compute parameter settings, e.g. 
   ## the transformation matrix Z, shrinkage penalty, identifiability problems...
   if(is.null(index)){
     ### X_hist for data in wide format with regular response
-    temp <- suppressWarnings(X_hist(mf, vary, 
+    temp <- X_hist(mf, vary, 
                       args = hyper_hist(mf, vary, knots = knots, boundary.knots = boundary.knots, 
                                         degree = degree, differences = differences,
                                         df = df, lambda = lambda, center = FALSE, cyclic = FALSE,
@@ -1357,10 +1390,10 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
                                         inS = inS, inTime = inTime, 
                                         penalty = penalty, check.ident = check.ident, 
                                         format="wide"), 
-                   getDesign=FALSE))
+                   getDesign=FALSE)
   }else{
     ### X_hist for data in long format with irregular response
-    temp <- suppressWarnings(X_hist(mf, vary, 
+    temp <- X_hist(mf, vary, 
                    args = hyper_hist(mf, vary, knots = knots, boundary.knots = boundary.knots, 
                                      degree = degree, differences = differences,
                                      df = df, lambda = lambda, center = FALSE, cyclic = FALSE,
@@ -1369,7 +1402,7 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
                                      inS = inS, inTime = inTime, 
                                      penalty = penalty, check.ident = check.ident, 
                                      format="long"), 
-                   getDesign=FALSE))
+                   getDesign=FALSE)
   }
   temp$args$check.ident <- FALSE
   
@@ -1441,7 +1474,6 @@ hyper_fpc <- function(mf, vary, df = 4, lambda = NULL,
 ### model.matrix for fPCA based functional base-learner
 X_fpc <- function(mf, vary, args) {  
   #print("X_fpc") 
-  #browser()
   stopifnot(is.data.frame(mf))
   xname <- names(mf)
   X1 <- as.matrix(mf)
@@ -1451,6 +1483,7 @@ X_fpc <- function(mf, vary, args) {
   
   if(ncol(X1)!=length(xind)) stop(xname, ": Dimension of signal matrix and its index do not match.")
   
+  ## <FIXME> is the following statemen on fpca.sc() correct??
   ## What to do with irregular grids / integration weights? 
   ## integration weights only for the recomputation in \beta(s,t), not for the original computation 
   ## irregularity of grid is NOT taken into account for computation of fPCA, 
@@ -1973,12 +2006,12 @@ bbsc <- function(..., by = NULL, index = NULL, knots = 10, boundary.knots = NULL
   }
   
   ## call X_bbsc in oder to compute the transformation matrix Z
-  temp <- suppressWarnings(X_bbsc(mf, vary, 
+  temp <- X_bbsc(mf, vary, 
                     args = hyper_bbsc(mf, vary, knots = knots, boundary.knots =
                                         boundary.knots, degree = degree, differences = differences,
                                       df = df, lambda = lambda, center = center, cyclic = cyclic, 
                                       constraint = constraint, deriv = deriv, 
-                                      Z = NULL)))
+                                      Z = NULL))
   Z <- temp$args$Z
   
   ret <- list(model.frame = function()
@@ -2198,11 +2231,11 @@ bolsc <- function(..., by = NULL, index = NULL, intercept = TRUE, df = NULL,
   
   ## call X_bbsc in oder to compute the transformation matrix Z, 
   ## Z is saved in args$Z and is used after the model fit
-  temp <- suppressWarnings(X_olsc(mf, vary, 
-                 args = hyper_olsc(
-                   df = df, lambda = lambda, K = K, # use penalty matrix as argument
-                   intercept = intercept, contrasts.arg = contrasts.arg,
-                   Z = NULL)))
+  temp <- X_olsc(mf, vary, 
+                 args = hyper_olsc(df = df, lambda = lambda, 
+                                   K = K, # use penalty matrix as argument
+                                   intercept = intercept, contrasts.arg = contrasts.arg,
+                                   Z = NULL))
   
   ret <- list(model.frame = function()
     if (is.null(index)) return(mf) else return(mf[index,,drop = FALSE]),

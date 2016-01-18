@@ -9,8 +9,8 @@
 \usage{
 bsignal(x, s, index = NULL, inS = c("smooth", "linear", "constant"),
   knots = 10, boundary.knots = NULL, degree = 3, differences = 1,
-  df = 4, lambda = NULL, cyclic = FALSE, Z = NULL, penalty = c("ps",
-  "pss"), check.ident = FALSE)
+  df = 4, lambda = NULL, center = FALSE, cyclic = FALSE, Z = NULL,
+  penalty = c("ps", "pss"), check.ident = FALSE)
 
 bconcurrent(x, s, time, index = NULL, knots = 10, boundary.knots = NULL,
   degree = 3, differences = 1, df = 4, lambda = NULL, cyclic = FALSE)
@@ -39,7 +39,7 @@ where index is an integer of length greater or equal to \code{length(x)}.}
 which is the index of the functional covariates x(s).}
 
 \item{knots}{either the number of knots or a vector of the positions
-of the interior knots (for more details see \code{\link[mboost]{bbs})}.}
+of the interior knots (for more details see \code{\link[mboost]{bbs}}).}
 
 \item{boundary.knots}{boundary points at which to anchor the B-spline basis
 (default the range of the data). A vector (of length 2)
@@ -56,6 +56,14 @@ base-learner complexity. Low values of \code{df} correspond to a
 large amount of smoothing and thus to "weaker" base-learners.}
 
 \item{lambda}{smoothing penalty}
+
+\item{center}{experimental implementation!
+The effect is re-parameterized such that the unpenalized part of the fit is subtracted and only
+the penalized effect is fitted, using a spectral decomposition of the penalty matrix.
+The unpenalized, parametric part has then to be included in separate
+base-learners using \code{bsignal(..., inS = 'constant')} or \code{bsignal(..., inS = 'linear')}
+for first (\code{difference = 1}) and second (\code{difference = 2}) order difference penalty respectively.
+See the help on the argument \code{center} of \code{\link[mboost]{bbs}}.}
 
 \item{cyclic}{if \code{cyclic = TRUE} the fitted coefficient function coincides at the boundaries
 (useful for cyclic covariates such as day time etc.).}
@@ -168,6 +176,13 @@ data("fuelSubset", package = "FDboost")
 ## center the functional covariates per observed wavelength
 fuelSubset$UVVIS <- scale(fuelSubset$UVVIS)
 fuelSubset$NIR <- scale(fuelSubset$NIR)
+
+## to make mboost::df2lambda() happy (all design matrix entries < 10)
+## reduce range of argvals to [0,1] to get smaller integration weights
+fuelSubset$uvvis.lambda <- with(fuelSubset, (uvvis.lambda - min(uvvis.lambda)) /
+                                  (max(uvvis.lambda) - min(uvvis.lambda) ))
+fuelSubset$nir.lambda <- with(fuelSubset, (nir.lambda - min(nir.lambda)) /
+                                (max(nir.lambda) - min(nir.lambda) ))
 
 mod2 <- FDboost(heatan ~ bsignal(UVVIS, uvvis.lambda, knots=40, df=4, check.ident=FALSE)
                + bsignal(NIR, nir.lambda, knots=40, df=4, check.ident=FALSE),
