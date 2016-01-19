@@ -262,10 +262,13 @@ predict.FDboost <- function(object, newdata = NULL, which = NULL, toFDboost = TR
         }else{
           indnameY <- NULL
         }
-        
+
         attr(newdata[[xname]], "indname") <- indname
         attr(newdata[[xname]], "xname") <- xname
         attr(newdata[[xname]], "signalIndex") <-  if(indname!="xindDefault") newdata[[indname]] else seq(0,1,l=ncol(newdata[[xname]]))
+        ## convert matrix to model matrix, so that as.data.frame(newdata[[xname]]) 
+        ## retains matrix-structure if newdata is a list
+        if( class(newdata[[xname]])[1] == "matrix" ) class(newdata[[xname]])[1] <- "model.matrix"
         
         if(i %in% c(posBhist, posBconc)){
           attr(newdata[[indnameY]], "indnameY") <-  indnameY
@@ -424,7 +427,7 @@ predict.FDboost <- function(object, newdata = NULL, which = NULL, toFDboost = TR
     predMat <- matrix(pred, nrow=n, ncol=lengthYind)
     return(predMat)
   }
-  
+
   if(is.list(predMboost)){
     ret <- lapply(predMboost, reshapeToMatrix)
   }else{

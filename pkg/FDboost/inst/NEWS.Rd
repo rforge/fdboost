@@ -4,6 +4,7 @@
 \section{Changes in FDboost version 0.0-14 (2015-01-14)}{
   \subsection{User-visible changes}{
     \itemize{
+	    \item allow newdata to be a list in predict.FDboost() in combination with signal base-learners 
         \item expand coef.FDboost() such that it works for 3-dimensional tensor products
           of with bhistx() the form bhistx() \%X\% bolsc() \%X\% bolsc() (with David Ruegamer)
         \item add a new possibility for scalar-on-function regression: 
