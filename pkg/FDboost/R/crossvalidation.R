@@ -513,18 +513,34 @@ validateFDboost <- function(object, response=NULL,
       #         coefCV[[l]]$offset <- matrix(ncol=40, nrow=length(modRisk))
       #         coefCV[[l]]$offset[1,] <- modRisk[[1]]$mod$predictOffset(time=timeHelp)
       #       }
-      attr(coefCV[[l]]$value, "offset") <- NULL # as offset is the same within one model
-
-      # add estimates for the models of the other folds
-      coefCV[[l]]$value <- lapply(1:length(modRisk), function(g){
-        ret <- coef(modRisk[[g]]$mod[optimalMstop], 
-                    which=l, n1 = 40, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]$value
-        #         if(l==1){
-        #           coefCV[[l]]$offset[g,] <- modRisk[[g]]$mod$predictOffset(time=timeHelp)
-        #         }
-        attr(ret, "offset") <- NULL # as offset is the same within one model
-        return(ret)
-      })
+      
+      ## no %X% with several levels in the coefficients
+      if(is.null(coefCV[[l]]$numberLevels)){
+        attr(coefCV[[l]]$value, "offset") <- NULL # as offset is the same within one model
+        
+        # add estimates for the models of the other folds
+        coefCV[[l]]$value <- lapply(1:length(modRisk), function(g){
+          ret <- coef(modRisk[[g]]$mod[optimalMstop], 
+                      which=l, n1 = 40, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]$value
+          #         if(l==1){
+          #           coefCV[[l]]$offset[g,] <- modRisk[[g]]$mod$predictOffset(time=timeHelp)
+          #         }
+          attr(ret, "offset") <- NULL # as offset is the same within one model
+          return(ret)
+        })
+      }else{
+        ## %X% with numberLevels coefficient values in a list
+        ## lapply(1:coefCV[[l]]$numberLevels, function(x) coefCV[[l]][[x]]$value)
+        for(j in 1:coefCV[[l]]$numberLevels){
+          coefCV[[l]][[j]]$value <- lapply(1:length(modRisk), function(g){
+            ret <- coef(modRisk[[g]]$mod[optimalMstop], 
+                        which=l, n1 = 40, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]][[j]]$value
+            attr(ret, "offset") <- NULL # as offset is the same within one model
+            return(ret)
+          })
+        }
+      } # end else for numberLevels
+      
     }
     
     ## predict offset
