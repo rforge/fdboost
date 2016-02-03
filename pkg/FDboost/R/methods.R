@@ -687,7 +687,8 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
               if(is.null(z1)){  # one %X%'
                 dlist[[1]] <- d
                 for(j in 2:numberLevels){
-                  d[[ trm$get_names()[2] ]] <- zlevels[j] # use j-th factor level 
+                  d[[ trm$get_names()[2] ]] <- zlevels[j] # use j-th factor level
+                  attr(d, "add_main") <- paste(trm$get_names()[2], "=", zlevels[j])
                   dlist[[j]] <- d
                 }
               }else{ # two %X%
@@ -697,6 +698,8 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
                   d[[ trm$get_names()[2] ]] <- zlevels[j] # use j-th factor level of z
                   for(k in 1:length(z1levels)){ # loop over z1
                     d[[ trm$get_names()[3] ]] <- z1levels[k] # use k-th factor level of z1
+                    attr(d, "add_main") <- paste(trm$get_names()[2], "=", zlevels[j], 
+                                                 trm$get_names()[3], "=", z1levels[k])
                     dlist[[temp_d]] <- d 
                     temp_d <- temp_d + 1
                   }
@@ -750,7 +753,7 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
           ng <- ifelse(trm$dim==2, n2, n3)          
           
           ### get variables for x, y and eventually z direction
-          
+
           # Extra setup of dataframe in the case of a functional covariate
           if(grepl("bsignal", trm$get_call()) | grepl("bfpc", trm$get_call()) | 
              grepl("bhist", trm$get_call())){
@@ -763,7 +766,10 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
               sort(unique(x))
             } else seq(min(x), max(x),length=ng)            
           }
-          yListPlace <- ifelse(grepl("by", trm$get_call()), 3, 2)
+          yListPlace <- 2
+          if(grepl("by", trm$get_call()) | grepl("%X%", trm$get_call())){
+            yListPlace <- 3
+          }
           if(!grepl("bhist", trm$get_call())){
             y <- trm$model.frame()[[yListPlace]] # index of response or second scalar covariate
           }else{
@@ -782,7 +788,7 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
             attr(d, "xm") <- xg
             attr(d, "ym") <- yg    
           } else {
-            zListPlace <- ifelse(grepl("by", trm$get_call()), 2, 3)
+            zListPlace <- ifelse(yListPlace == 2, 3, 2)
             z <- trm$model.frame()[[zListPlace]]
             zg <- if(is.factor(z)) {
               sort(unique(z))
@@ -798,11 +804,7 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
             if(grepl("by", trm$get_call()) && grepl("bols", trm$get_call()) && is.factor(z)){
               d <- list(rep(xg, length(zg)), yg, rep(zg, each=length(zg)))
             }
-            #<FIXME> what to do if %X% was used???
-            if(grepl("%X%", trm$get_call())){
-              #d <- list( rep(xg), rep(yg, each=length(xg)), zg)
-              d <- list(xg, yg=1, zg)
-            } 
+            
             attr(d, "xm") <- d[[1]]
             attr(d, "ym") <- d[[2]]
             attr(d, "zm") <- d[[3]]
@@ -871,6 +873,74 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
           }
           d[[attr(object$yind, "nameyind")]] <- 1 
         }
+        
+        
+        # if %X% was used in combination with factor variables make a list of data-frames
+        if(grepl("%X%", trm$get_call())){
+          dlist <- NULL
+
+          ## if %X% was used in combination with factor variables make a list of data-frames
+          if(is.factor(x) & is.factor(z)){ ## both variables are factors 
+            numberLevels <-  nlevels(x) * nlevels(z)
+            xlevels <- sort(unique(x))
+            zlevels <- sort(unique(z))
+            
+            dlist <- vector("list", numberLevels)
+            temp_d <- 1
+            for(j in 1:length(xlevels)){ # loop over x 
+              d[[1]] <- xlevels[j] # use j-th factor level of x
+              for(k in 1:length(zlevels)){ # loop over z
+                d[[3]] <- zlevels[k] # use k-th factor level of z
+                attr(d, "xm") <- d[[1]]
+                attr(d, "zm") <- d[[3]]
+                attr(d, "add_main") <- paste0(names(d)[1], "=", xlevels[j], 
+                                              names(d)[3], "=", zlevels[j])
+                dlist[[temp_d]] <- d 
+                temp_d <- temp_d + 1
+              }
+            }
+          }else{
+            if(is.factor(z)){ ## only first variable is a factor
+              numberLevels <- nlevels(z)
+              zlevels <- sort(unique(z))
+              dlist <- vector("list", numberLevels)
+              for(j in 1:length(zlevels)){ # loop over z 
+                d[[3]] <- rep(zlevels[j], length(d[[1]])) # use j-th factor level of z
+                attr(d, "xm") <- d[[3]]
+                attr(d, "add_main") <- paste0(names(d)[3], "=", zlevels[j])
+                dlist[[j]] <- d 
+              }
+            }else{
+              if(is.factor(x)){ ## only first variable is a factor
+                numberLevels <- nlevels(x)
+                xlevels <- sort(unique(x))
+                dlist <- vector("list", numberLevels)
+                for(j in 1:length(xlevels)){ # loop over x 
+                  d[[1]] <- rep(xlevels[j], length(d[[3]])) # use j-th factor level of x
+                  attr(d, "xm") <- d[[1]]
+                  attr(d, "add_main") <- paste0(names(d)[1], "=", xlevels[j])
+                  dlist[[j]] <- d 
+                }
+              }else{ ## both variables are metric
+                # <FIXME> allow something more flexible, depending on bolsc / bbsc?
+                ## trm$get_call()
+                numberLevels <- n4
+                zlevels <- seq(min(z), max(z), l = n4)
+                dlist <- vector("list", numberLevels)
+                for(j in 1:length(zlevels)){ # loop over x 
+                  d[[3]] <- rep(zlevels[j], length(d[[1]])) # use j-th quantile of x
+                  attr(d, "zm") <- d[[1]]
+                  attr(d, "add_main") <- paste0(names(d)[3], "=", round(zlevels[j], 2))
+                  dlist[[j]] <- d 
+                }
+              } 
+            }
+            
+          }
+          if(!is.null(dlist)) d <- dlist
+          attr(d, "numberLevels") <- numberLevels
+        }  ## end if(grepl("%X%", trm$get_call()))
+        
         return(d)
       } ## enf of function makeDataGrid()
       
@@ -1076,10 +1146,11 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
     shortnames <- function(x){
       if(substr(x,1,1)=="\"") x <- substr(x, 2, nchar(x)-1)
 
-      sign <- "%O%"
-      if( !grepl(sign, x) ) sign <- "%X%"
+      sign <- "%X%"
+      if( !grepl(sign, x) ) sign <- "%O%" 
       
       xpart <- unlist(strsplit(x, sign, fixed = TRUE)) 
+      xpart <- unlist(strsplit(xpart, "%O%", fixed = TRUE)) 
       
       for(i in 1:length(xpart)){
         xpart[i] <- gsub(pattern = "\\\"", replacement = "", x = xpart[i], fixed=TRUE)
@@ -1109,7 +1180,7 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
     }
     
     if(is.null(which)) which <- 1:length(object$baselearner)
-    
+
     ## short names for the terms, if shortnames() does not work, use the original names
     shrtlbls <- try(unlist(lapply(names(object$baselearner), shortnames)))
     if(class(shrtlbls)=="try-error") shrtlbls <- names(object$baselearner) 
@@ -1401,7 +1472,7 @@ plot.FDboost <- function(x, raw = FALSE, rug = TRUE, which = NULL,
               if(grepl("bhist", trm$main)){
                 rug(x$yind, ticksize = 0.02)
               }else{
-                ifelse(grepl("by", trm$main),
+                ifelse(grepl("by", trm$main) | grepl("%X%", trm$main),
                        rug(bl_data[[i]][[3]], ticksize = 0.02),
                        rug(bl_data[[i]][[2]], ticksize = 0.02))
               }
