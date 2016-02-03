@@ -689,7 +689,7 @@ FDboost <- function(formula,          ### response ~ xvars
       predictOffset <- function(time) tempOffset
     }
 
-  ### specify time-specifc offset 
+  ### specify time-specific offset 
   }else{
     
     ## offset for regular and irregular data: handling of missings is different!
