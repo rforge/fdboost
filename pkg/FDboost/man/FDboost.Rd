@@ -13,8 +13,8 @@ FDboost(formula, timeformula, id = NULL, numInt = "equal", data,
 Per default no intercept is added, only a smooth offset, see argument \code{offset}.
 To add a smooth intercept, use 1, e.g. \code{y ~ 1} for a pure intercept model.}
 
-\item{timeformula}{formula for the specification of the effects over the index of the response.
-For a functional response \eqn{Y_i(t)} typically use \code{~ bbs(t)} to obtain smooth
+\item{timeformula}{one-sided formula for the specification of the effect over the index of the response.
+For functional response \eqn{Y_i(t)} typically use \code{~ bbs(t)} to obtain smooth
 effects over \eqn{t}.
 In the limiting case of \eqn{Y_i} being a scalar response,
 use \code{~ bols(1)}, which sets up a base-learner for the scalar 1.
@@ -142,14 +142,19 @@ With \code{FDboost} the following covariate effects can be estimated
 \itemize{
 \item Linear functional effect of scalar (numeric or factor) covariate \eqn{z} that varies
   smoothly over \eqn{t}, i.e. \eqn{z_i \beta_1(t)}, specified as
-  \code{~ bolsc(z)}), see \code{\link{bolsc}},
-  or for a group effect with mean zero use \code{~ brandom(z)}).
+  \code{~ bolsc(z)}, see \code{\link{bolsc}},
+  or for a group effect with mean zero use \code{~ brandom(z)}.
 \item Nonlinear effects  of a scalar covariate that vary smoothly over the
   index \eqn{t} of \eqn{Y(t)}, i.e. \eqn{f(z_i, t)}, specified as \code{bbsc(z)},
   see \code{\link{bbsc}}.
 \item (Nonlinear) effects of scalar covariates that are constant
   over \eqn{t}, e.g. \eqn{f(z_i)}, specified as \code{~ c(bbs(z))},
   or \eqn{\beta_3 z_i}, specified as \code{~ c(bols(z))}.
+\item Interaction terms between two scalar covariates, e.g. \eqn{z_i1 zi2 \beta_1(t)},
+  are specified as \code{bols(z1) \%Xc\% bols(z2)} and
+  an interaction \eqn{z_i1 f(zi2, t)} as \code{bols(z1) \%Xc\% bbs(z2)}, as
+  \code{\%Xc\%} applies the sum-to-zero constraint to the desgin matrix of the tensor product
+  built by \code{\%Xc\%}, see ?"\%Xc\%".
 \item Function-on-function regression terms of functional covariates \code{x},
   e.g. \eqn{\int x_i(s)\beta(s,t)ds}, specified as \code{~ bsignal(x, s = s)}, see
   \code{\link{bsignal}}.
@@ -206,11 +211,10 @@ viscosity$time <- viscosity$timeAll[1:end]
 
 ## fit median regression model with 100 boosting iterations,
 ## step-length 0.4 and smooth time-specific offset
-## the factors are in effect coding -1, 1 for the levels
+## the factors are coded such that the effects are zero for each timepoint t
 ## no integration weights are used!
-mod1 <- FDboost(vis ~ 1 + bols(T_C, contrasts.arg = "contr.sum", intercept = FALSE)
-               + bols(T_A, contrasts.arg = "contr.sum", intercept = FALSE),
-               timeformula = ~bbs(time, lambda = 100),
+mod1 <- FDboost(vis ~ 1 + bolsc(T_C, df = 2) + bolsc(T_A, df = 2),
+               timeformula = ~bbs(time, df = 4),
                numInt = "equal", family = QuantReg(),
                offset = NULL, offset_control = o_control(k_min = 9),
                data = viscosity, control=boost_control(mstop = 100, nu = 0.4))
@@ -219,7 +223,8 @@ mod1 <- FDboost(vis ~ 1 + bols(T_C, contrasts.arg = "contr.sum", intercept = FAL
 ## find optimal mstop over 5-fold bootstrap, small number of folds for example
 ## do the resampling on the level of curves
 set.seed(123)
-val1 <- validateFDboost(mod1, folds = cv(rep(1, length(unique(mod1$id))), B = 5))
+val1 <- validateFDboost(mod1, folds = cv(rep(1, length(unique(mod1$id))), B = 5),
+                        grid = 1:500)
 ## plot(val1)
 mstop(val1)
 mod1[mstop(val1)]
@@ -227,7 +232,7 @@ mod1[mstop(val1)]
 ## find the optimal mstop over 5-fold bootstrap
 ## using the function cvrisk; be careful to do the resampling on the level of curves
 folds1 <- cvLong(id = mod1$id, weights = model.weights(mod1), B = 5)
-cvm1 <- cvrisk(mod1, folds = folds1, grid = 1:100)
+cvm1 <- cvrisk(mod1, folds = folds1, grid = 1:500)
 ## plot(cvm1)
 mstop(cvm1)
 }

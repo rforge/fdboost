@@ -1,9 +1,11 @@
 \name{NEWS}
 \title{News for Package 'FDboost'}
 
-\section{Changes in FDboost version 0.0-14 (2015-01-14)}{
+\section{Changes in FDboost version 0.0-14 (2015-02-05)}{
   \subsection{User-visible changes}{
     \itemize{
+	    \item new operator %Xc% for row tensor product where the sum-to-zero constraint is applied to
+		  the design matrix resulting from the row-tensor product (experimental!)
 	    \item allow newdata to be a list in predict.FDboost() in combination with signal base-learners 
         \item expand coef.FDboost() such that it works for 3-dimensional tensor products
           of with bhistx() the form bhistx() \%X\% bolsc() \%X\% bolsc() (with David Ruegamer)

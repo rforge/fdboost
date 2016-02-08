@@ -247,11 +247,11 @@ predict.FDboost <- function(object, newdata = NULL, which = NULL, toFDboost = TR
       for(i in c(posBsignal, posBconc, posBhist)){ 
         xname <- object$baselearner[[i]]$get_names()[1] 
         ## if two ore more base-learners are connected by %X%, find the functional variable 
-        if(grepl("%X%", names(object$baselearner)[i])){
-          form <- strsplit(object$baselearner[[i]]$get_call(), "%X%")[[1]]
+        if(grepl("%X", names(object$baselearner)[i])){
+          form <- strsplit(object$baselearner[[i]]$get_call(), "%X")[[1]]
           findFun <- grepl("bhist", form) | grepl("bconcurrent", form) | grepl("bsignal", form) | grepl("bfpc", form)
           form <- form[findFun]
-          if(sum(findFun)!=1){stop("Can only predict effect of one functional effect in %X%.")}
+          if(sum(findFun)!=1){stop("Can only predict effect of one functional effect in %X% or %Xc%.")}
           xname <- object$baselearner[[i]]$get_names()[findFun][1]
         }
         # print(xname)
@@ -611,12 +611,13 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
           tvals <- seq(min(tvals), max(tvals),length=ng)
           tvals <- rep(tvals, each=ng)
 
-          if( grepl("%X%", trm$get_call()) ){
+          if( grepl("%X", trm$get_call()) ){
             if(length(trm$get_names()) == 2){ # one %X%
               myargsHist <- environment(environment(trm$dpp)$Xfun)$args1
             }else{  # two ore more %X% (currently only works for two)
               myargsHist <- environment(environment(environment(
                 environment(trm$dpp)$Xfun)$bl1$dpp)$Xfun)$args1
+              if(is.null(myargsHist)) myargsHist <- environment(environment(trm$dpp)$Xfun)$args1
             }
           }else{
             myargsHist <- environment(trm$dpp)$args
@@ -646,7 +647,7 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
           attr(d, "ym") <- seq(min(tvals), max(tvals),length=ng)
           
           ## for a tensor product term: add the scalar factors to d
-          if( grepl("%X%", trm$get_call()) ){
+          if( grepl("%X", trm$get_call()) ){
             z <- trm$model.frame()[[trm$get_names()[2]]]
             if(is.factor(z)) {
               numberLevels <- length(unique(unique(z)))  
@@ -686,9 +687,9 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
               ## loop over all factor combinations 
               if(is.null(z1)){  # one %X%'
                 dlist[[1]] <- d
-                for(j in 2:numberLevels){
+                for(j in 1:numberLevels){
                   d[[ trm$get_names()[2] ]] <- zlevels[j] # use j-th factor level
-                  attr(d, "add_main") <- paste(trm$get_names()[2], "=", zlevels[j])
+                  attr(d, "add_main") <- paste0(trm$get_names()[2], "=", zlevels[j])
                   dlist[[j]] <- d
                 }
               }else{ # two %X%
@@ -698,7 +699,7 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
                   d[[ trm$get_names()[2] ]] <- zlevels[j] # use j-th factor level of z
                   for(k in 1:length(z1levels)){ # loop over z1
                     d[[ trm$get_names()[3] ]] <- z1levels[k] # use k-th factor level of z1
-                    attr(d, "add_main") <- paste(trm$get_names()[2], "=", zlevels[j], 
+                    attr(d, "add_main") <- paste0(trm$get_names()[2], "=", zlevels[j], ", ", 
                                                  trm$get_names()[3], "=", z1levels[k])
                     dlist[[temp_d]] <- d 
                     temp_d <- temp_d + 1
@@ -767,7 +768,8 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
             } else seq(min(x), max(x),length=ng)            
           }
           yListPlace <- 2
-          if(grepl("by", trm$get_call()) | grepl("%X%", trm$get_call())){
+          if(grepl("by", trm$get_call()) | 
+             ( !any(class(object)=="FDboostLong") &&  grepl("%X", trm$get_call())) ){
             yListPlace <- 3
           }
           if(!grepl("bhist", trm$get_call())){
@@ -876,7 +878,7 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
         
         
         # if %X% was used in combination with factor variables make a list of data-frames
-        if(grepl("%X%", trm$get_call())){
+        if(!any(class(object) == "FDboostLong") && grepl("%X", trm$get_call())){
           dlist <- NULL
 
           ## if %X% was used in combination with factor variables make a list of data-frames
@@ -893,7 +895,7 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
                 d[[3]] <- zlevels[k] # use k-th factor level of z
                 attr(d, "xm") <- d[[1]]
                 attr(d, "zm") <- d[[3]]
-                attr(d, "add_main") <- paste0(names(d)[1], "=", xlevels[j], 
+                attr(d, "add_main") <- paste0(names(d)[1], "=", xlevels[j], ", ",  
                                               names(d)[3], "=", zlevels[j])
                 dlist[[temp_d]] <- d 
                 temp_d <- temp_d + 1
@@ -939,10 +941,10 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
           }
           if(!is.null(dlist)) d <- dlist
           attr(d, "numberLevels") <- numberLevels
-        }  ## end if(grepl("%X%", trm$get_call()))
+        }  ## end if(grepl("%X", trm$get_call()))
         
         return(d)
-      } ## enf of function makeDataGrid()
+      } ## end of function makeDataGrid()
       
       getP <- function(trm, d){
         #return an object similar to what plot.mgcv.smooth etc. returns 
@@ -964,6 +966,7 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
           varnms <- attr(d, "varnms")
           if(trm$dim==2){
             X <- predict(object, newdata=d, which=i)
+            attr(X, "offset") <- NULL
             vecStand <- NULL
            
             ## for bhist(), multiply with standardisation weights if necessary
@@ -971,12 +974,13 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
             if(grepl("bhist", trm$get_call())){
 
               ## get the args of bhist/bhistx, environment depends on use of %X%
-              if( grepl("%X%", trm$get_call()) ){
+              if( grepl("%X", trm$get_call()) ){
                 if(length(trm$get_names()) == 2){ # one %X%
                   myargsHist <- environment(environment(trm$dpp)$Xfun)$args1
                 }else{  # two ore more %X% (currently only works for two)
                   myargsHist <- environment(environment(environment(
                     environment(trm$dpp)$Xfun)$bl1$dpp)$Xfun)$args1
+                  if(is.null(myargsHist)) myargsHist <- environment(environment(trm$dpp)$Xfun)$args1
                 }
               }else{ # just bhist() or bhistx() without %X%
                 myargsHist <- environment(trm$dpp)$args
@@ -1054,6 +1058,7 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
         #P$coef <- cbind(d, "value"=P$value)    
         P$dim <- trm$dim
         P$main <- shrtlbls[i]
+        P$add_main <- attr(d, "add_main")
         return(P)
       } ## end of function getP()
       
@@ -1088,7 +1093,7 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
       d <- makeDataGrid(trm)
       
       ### <FIXME> better solution for %X% in base-learner!!!
-      if(!is.null(object$ydim) && any(grepl("%X%", trm$get_call())) 
+      if(!is.null(object$ydim) && any(grepl("%X", trm$get_call())) 
          && !any(grepl("bhistx", trm$get_call())) ) trm$dim <- trm$dim - 1
       
       ## it is necessary to expand the dataframe!
@@ -1146,11 +1151,12 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
     shortnames <- function(x){
       if(substr(x,1,1)=="\"") x <- substr(x, 2, nchar(x)-1)
 
-      sign <- "%X%"
-      if( !grepl(sign, x) ) sign <- "%O%" 
-      
-      xpart <- unlist(strsplit(x, sign, fixed = TRUE)) 
-      xpart <- unlist(strsplit(xpart, "%O%", fixed = TRUE)) 
+      ## split at expressions %.% with 1 or 2 characters between % and %
+      xpart <- unlist(strsplit(x, split = "%.{1,2}%"))
+      ## find the expressions at which the split is done 
+      operator <- gregexpr(pattern = "%.{1,2}%", text = x)[[1]]
+      operator <- sapply(1:length(operator), 
+                      function(i) substr(x, operator[i], operator[i] + attr(operator, "match.length")[i] -1 ) )
       
       for(i in 1:length(xpart)){
         xpart[i] <- gsub(pattern = "\\\"", replacement = "", x = xpart[i], fixed=TRUE)
@@ -1158,14 +1164,18 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
         nvar <- length(all.vars(formula(paste("Y~", xpart[i])))[-1])
         commaSep <- unlist(strsplit(xpart[i], ","))  
         
-        # shorten the name to first variable and delte x= if present
+        # shorten the name to first variable and delete x= if present
         if(grepl("=", commaSep[1])){
           temp <- unlist(strsplit(commaSep[1], "="))
           temp[1] <- unlist(strsplit(temp[1], "(", fixed=TRUE))[1]
           if(substr(temp[2], 1, 1)==" ") temp[2] <- substr(temp[2], 2, nchar(temp[2]))
-          xpart[i] <- paste(temp[1], "(", temp[2], ")", sep="")
+          if(length(commaSep) == 1){ 
+            xpart[i] <- paste(temp[1], "(", temp[2], sep="")
+          }else{
+            xpart[i] <- paste(temp[1], "(", temp[2], ")", sep="")
+          }
         }else{
-          xpart[i] <- paste(commaSep[1], ")", sep="")
+          if(length(commaSep) > 1){ xpart[i] <- paste(commaSep[1], ")", sep="")}
         }
         #xpart[i] <- if(length(commaSep)==1){
         #  paste(paste(commaSep[1:nvar], collapse=","), sep="")
@@ -1175,7 +1185,14 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
         #}
       }
       ret <- xpart
-      if(length(xpart)>1) ret <- paste(xpart, collapse=paste("", sign))
+      if(length(xpart)>1) ret <- paste(xpart, collapse=paste("", operator))
+      if(length(xpart)>1){
+        ## name is connatecated with the scheme bl1 %.% bl2 %.% bl3
+        temp <- rep(NA, length(xpart) + length(operator))
+        temp[seq(1, by=2, length.out = length(xpart))] <- xpart
+        temp[seq(2, by=2, length.out = length(operator))] <- paste("", operator)
+        ret <- paste(temp, collapse="")
+      } 
       ret
     }
     
@@ -1472,7 +1489,7 @@ plot.FDboost <- function(x, raw = FALSE, rug = TRUE, which = NULL,
               if(grepl("bhist", trm$main)){
                 rug(x$yind, ticksize = 0.02)
               }else{
-                ifelse(grepl("by", trm$main) | grepl("%X%", trm$main),
+                ifelse(grepl("by", trm$main) | ( !any(class(x)=="FDboostLong") && grepl("%X", trm$main) ) ,
                        rug(bl_data[[i]][[3]], ticksize = 0.02),
                        rug(bl_data[[i]][[2]], ticksize = 0.02))
               }
