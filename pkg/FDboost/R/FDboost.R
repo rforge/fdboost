@@ -372,7 +372,6 @@
 #' @importFrom splines bs splineDesign
 #' @importFrom mgcv gam s
 #' @importFrom zoo na.locf
-#' @importFrom MASS Null
 #' @importFrom parallel mclapply
 #' @importFrom refund fpca.sc
 FDboost <- function(formula,          ### response ~ xvars

@@ -16,6 +16,7 @@
   }
   \subsection{Miscellaneous}{
     \itemize{
+	  \item remove dependency on R-package MASS 
       \item use the argument 'prediction' in the internal computation 
          of the base-learners (work in progress) 
       \item throw an error if 'timeLab' of the hmatrix-object in bhistx() is not

@@ -15,8 +15,7 @@ Imports:
     Matrix,
     mgcv,
 	refund, 
-    zoo,
-    MASS
+    zoo
 Suggests:
     fda,
     fields,

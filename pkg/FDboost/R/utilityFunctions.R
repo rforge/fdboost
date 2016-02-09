@@ -848,6 +848,15 @@ check_ident <- function(X1, L, Bs, K, xname, penalty,
               maxK=maxK, penalty=penalty))
 }
 
+### function Null() is taken from R-package MASS 
+### Given a matrix, M, find a matrix N giving a basis for the (left) null space
+Null <- function (M){
+  tmp <- qr(M)
+  set <- if (tmp$rank == 0L) 
+    seq_len(ncol(M))
+  else -seq_len(tmp$rank)
+  qr.Q(tmp, complete = TRUE)[, set, drop = FALSE]
+}
 
 ## measure degree of overlap between the spans of X and Y using A=svd(X)$u, B=svd(Y)$u
 ## code written by Fabian Scheipl
