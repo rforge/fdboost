@@ -4,6 +4,8 @@
 \section{Changes in FDboost version 0.0-14 (2015-02-05)}{
   \subsection{User-visible changes}{
     \itemize{
+	    \item add the function FDboostLSS() to fit GAMLSS models with functional data 
+		      using R-package gamboostLSS
 	    \item new operator %Xc% for row tensor product where the sum-to-zero constraint is applied to
 		  the design matrix resulting from the row-tensor product (experimental!)
 	    \item allow newdata to be a list in predict.FDboost() in combination with signal base-learners 
@@ -16,7 +18,8 @@
   }
   \subsection{Miscellaneous}{
     \itemize{
-	  \item remove dependency on R-package MASS 
+      \item new dependency on R-package gamboostLSS 
+	    \item remove dependency on R-package MASS 
       \item use the argument 'prediction' in the internal computation 
          of the base-learners (work in progress) 
       \item throw an error if 'timeLab' of the hmatrix-object in bhistx() is not
