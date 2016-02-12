@@ -175,3 +175,153 @@
   return(ret)
 }
 
+
+
+#' Anisotropic Kronecker Product of two base-learners
+#' 
+#' EXPERIMENTAL! Does not work correctly if weights are specified in the model-call!
+#' @param bl1 base-learner 1, e.g. \code{bols(x1)}
+#' @param bl2 base-learner 2, e.g. \code{bols(x2)}
+#' 
+#' @details EXPERIMENTAL! 
+#' Like \%O\% but allows for anisotropic penalty matrices, for 
+#' df specified in both base-learners. 
+#' Consider 
+#' \code{blg1(..., df=df1) \%O\% blg2(..., df=df2)} which results in \code{df=df1*df2}, 
+#' and thus in a gobal lambda, \eqn{P = lambda ((P1 o I ) + (I o P2))}, with Kronecker product \eqn{o}. 
+#' But 
+#' \code{blg1(..., df=df1) \%A\% blg2(..., df=df2)} results in computing, two
+#' different values for lambda for the two marginal design matrices and a global value of 
+#' lambda to adjsut for the global df, i.e. 
+#' \eqn{P = lambda ( ( lambda1 P1 o I ) +  (I o lambda2 P2) )}. 
+#' 
+#' @export
+"%A%" <- function(bl1, bl2) {
+  
+  #   if (is.list(bl1) && !inherits(bl1, "blg"))
+  #     return(lapply(bl1, "%X%", bl2 = bl2))
+  #   
+  #   if (is.list(bl2) && !inherits(bl2, "blg"))
+  #     return(lapply(bl2, "%X%", bl1 = bl1))
+  
+  cll <- paste(bl1$get_call(), "%A%",
+               bl2$get_call(), collapse = "")
+  stopifnot(inherits(bl1, "blg"))
+  stopifnot(inherits(bl2, "blg"))
+  
+  mf1 <- model.frame(bl1)
+  mf2 <- model.frame(bl2)
+  stopifnot(!any(colnames(mf1) %in%
+                   colnames(mf2)))
+  mf <- c(mf1, mf2)
+  stopifnot(all(complete.cases(mf[[1]])))
+  stopifnot(all(complete.cases(mf[[2]])))
+  
+  index <- NULL
+  
+  vary <- ""
+  
+  ret <- list(model.frame = function()
+    return(mf),
+    get_call = function(){
+      cll <- deparse(cll, width.cutoff=500L)
+      if (length(cll) > 1)
+        cll <- paste(cll, collapse="")
+      cll
+    },
+    get_data = function() mf,
+    get_index = function() index,
+    get_vary = function() vary,
+    get_names = function() names(mf),
+    ## <FIXME> Is this all we want to change if we set names here?
+    set_names = function(value) attr(mf, "names") <<- value)
+  ## </FIXME>
+  class(ret) <- "blg"
+  
+  args1 <- environment(bl1$dpp)$args
+  args2 <- environment(bl2$dpp)$args
+  l1 <- args1$lambda
+  l2 <- args2$lambda
+  if (xor(is.null(l1), is.null(l2)))
+    stop("you cannot mix lambda and df in ",
+         sQuote("%A%"))
+  if (!is.null(l1) && !is.null(l2)) {
+    ### there is no common lambda!
+    args <- list(lambda = NA, df = NA)
+  } else {
+    
+    args <- list(lambda = NULL,
+                 df = ifelse(is.null(args1$df), 1, args1$df) *
+                   ifelse(is.null(args2$df), 1, args2$df))
+    
+    ### <SB> anisotropic penalty matrix 
+    df1 <- args1$df
+    df2 <- args2$df
+
+    ## case that df equals nr columns of design matrix -> no penalty -> lambda = 0
+    if( abs(ncol(environment(bl1$dpp)$X) - df1) < .Machine$double.eps*10^10){ 
+      args$lambda1 <- 0 
+    }else{
+      ## <FIXME> specify weights!! important if model fit is only on part of data
+      al1 <- df2lambda(X = environment(bl1$dpp)$X,
+                       df = df1, lambda = NULL,
+                       dmat = environment(bl1$dpp)$K, weights = 1,  XtX = NULL)
+      args$lambda1 <- al1["lambda"]
+    }
+
+    
+    ## case that df equals nr columns of design matrix
+    if( abs(ncol(environment(bl2$dpp)$X) - df2) < .Machine$double.eps*10^10){ 
+      args$lambda2 <- 0 
+    }else{
+      ## <FIXME> specify weights!! important if model fit is only on part of data
+      al2 <- df2lambda(X = environment(bl2$dpp)$X,
+                       df = df2, lambda = NULL,
+                       dmat = environment(bl2$dpp)$K, weights = 1,  XtX = NULL)
+      args$lambda2 <- al2["lambda"]
+    }
+    
+    l1 <- args$lambda1
+    l2 <- args$lambda2 
+
+  }
+  
+  Xfun <- function(mf, vary, args) {
+
+    newX1 <- environment(bl1$dpp)$newX
+    newX2 <- environment(bl2$dpp)$newX
+    
+    X1 <- newX1(as.data.frame(mf[bl1$get_names()]),
+                prediction = args$prediction)
+    K1 <- X1$K
+    X1 <- X1$X
+    if (!is.null(l1)) K1 <- l1 * K1
+    MATRIX <- options("mboost_useMatrix")$mboost_useMatrix
+    if (MATRIX & !is(X1, "Matrix"))
+      X1 <- Matrix(X1)
+    if (MATRIX & !is(K1, "Matrix"))
+      K1 <- Matrix(K1)
+    
+    X2 <- newX2(as.data.frame(mf[bl2$get_names()]),
+                prediction = args$prediction)
+    K2 <- X2$K
+    X2 <- X2$X
+    if (!is.null(l2)) K2 <- l2 * K2
+    if (MATRIX & !is(X2, "Matrix"))
+      X2 <- Matrix(X2)
+    if (MATRIX & !is(K2, "Matrix"))
+      K2 <- Matrix(K2)
+    suppressMessages(
+      K <- kronecker(K2, diag(ncol(X1))) +
+        kronecker(diag(ncol(X2)), K1)
+    )
+    list(X = list(X1 = X1, X2 = X2), K = K)
+  }
+  
+  ret$dpp <- mboost:::bl_lin_matrix(ret, Xfun = Xfun, args = args)
+  
+  return(ret)
+}
+
+
+

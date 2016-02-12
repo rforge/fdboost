@@ -1642,7 +1642,7 @@ extract.blg <- function(object, what = c("design", "penalty", "index"),
                         asmatrix = FALSE, expand = FALSE, ...){
   what <- match.arg(what)
   
-  if(grepl("%O%", object$get_call())){
+  if(grepl("%O%", object$get_call()) | grepl("%Oz%", object$get_call())){
     object <- object$dpp( rep(1, NROW(object$model.frame()[[1]])) )    
   }else{
     object <- object$dpp(rep(1, nrow(object$model.frame())))

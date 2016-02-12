@@ -1,7 +1,20 @@
 \name{NEWS}
 \title{News for Package 'FDboost'}
 
-\section{Changes in FDboost version 0.0-14 (2015-02-05)}{
+
+\section{Changes in FDboost version 0.0-14 (2015-02-12)}{
+  \subsection{User-visible changes}{
+    \itemize{
+	    \item new operator %A% that implies anisotropic penalties for differently specified df in the two base-learners
+    }
+	\subsection{Bug-fixes}{
+    \itemize{
+      \item do not penalize in direction of ONEx in smooth intercept specified implicitly by ~1, as bols(ONEx, intercept=FALSE, df=1) %A% bbs(time)	  
+    }
+  }
+}
+
+\section{Changes in FDboost version 0.0-14 (2015-02-11)}{
   \subsection{User-visible changes}{
     \itemize{
 	    \item add the function FDboostLSS() to fit GAMLSS models with functional data 

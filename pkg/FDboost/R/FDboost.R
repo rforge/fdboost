@@ -568,7 +568,14 @@ FDboost <- function(formula,          ### response ~ xvars
   #   # for constrained effects in the formula the model should include an intercept
   #   grep("bbsc", trmstrings) + grep("brandomc", trmstrings)
   
+  
   ### compose mboost formula
+
+  ## get formula over time
+  tfm <- paste(deparse(timeformula), collapse = "")
+  tfm <- strsplit(tfm, "~")[[1]]
+  tfm <- strsplit(tfm[2], "\\+")[[1]]
+  
   cfm <- paste(deparse(formula), collapse = "") 
   cfm <- strsplit(cfm, "~")[[1]]
   #xfm <- strsplit(cfm[2], "\\+")[[1]]
@@ -578,10 +585,16 @@ FDboost <- function(formula,          ### response ~ xvars
     ## if(length(time) == 1) warning("Smooth intercept may not be sensitive for scalar response.")
     if( grepl("lambda", deparse(timeformula)) || 
          ( grepl("bols", deparse(timeformula)) &  !grepl("df", deparse(timeformula))) ){
-      xfm <- c("bols(ONEx, intercept = FALSE)", xfm)
+      xfm <- c("bols(ONEx, intercept = FALSE, lambda = 0)", xfm)
     } else{
       xfm <- c("bols(ONEx, intercept = FALSE, df = 1)", xfm)
     }
+    
+    ## for FLAM model with %O% use anisotropic Kronecker product for not penalizing in direction of ONEx
+    if(is.null(id)){
+      xfm[[1]] <- paste(xfm[[1]], "%A%", tfm)
+    }
+    
     where.c <- where.c + 1
   }
   
@@ -599,9 +612,6 @@ FDboost <- function(formula,          ### response ~ xvars
   }
     
   yfm <- strsplit(cfm[1], "\\+")[[1]]
-  tfm <- paste(deparse(timeformula), collapse = "")
-  tfm <- strsplit(tfm, "~")[[1]]
-  tfm <- strsplit(tfm[2], "\\+")[[1]]
   
   ## set up formula for effects constant in time
   if(length(where.c) > 0){
@@ -621,15 +631,22 @@ FDboost <- function(formula,          ### response ~ xvars
   if(is.null(id)){
     tmp <- outer(xfm, tfm, function(x, y) paste(x, y, sep = "%O%"))
   }else{
-    # expand the bl accoridng to id
-    if(grepl("ONEx", xfm[[1]])) xfm[[1]] <- paste(substr(xfm[[1]], 1 , nchar(xfm[[1]])-1), ", index=",nameid,")", sep = "")
+    # expand the bl according to id
+    if(grepl("ONEx", xfm[[1]])) xfm[[1]] <- paste(substr(xfm[[1]], 1 , nchar(xfm[[1]])-1), ", index=", nameid, ")", sep = "")
     xfm <- paste(substr(xfm, 1 , nchar(xfm)-1), ")", sep = "") # , index=id is done in the beginning
     tmp <- outer(xfm, tfm, function(x, y) paste(x, y, sep = "%X%"))
+    ## <FIXME> use the following specification for irregular response -> adapt coef() and plot()-function 
+    ## if(grepl("ONEx", tmp[[1]])) tmp[[1]] <- tfm ## smooth intercept is just time-formula
   }
 
   # do not expand an effect bconcurrent() or bhist() by a Kronecker product
   if( length(c(grep("bconcurrent", tmp), grep("bhis", tmp)) ) > 0 ) 
-    tmp[c(grep("bconcurrent", tmp), grep("bhis", tmp))] <- xfm[c(grep("bconcurrent", tmp), grep("bhis", tmp))]   
+    tmp[c(grep("bconcurrent", tmp), grep("bhis", tmp))] <- xfm[c(grep("bconcurrent", tmp), grep("bhis", tmp))]  
+  
+  ## do not expand effects including %A%
+  if( length(grep("%A%", tmp)) > 0 ) 
+    tmp[grep("%A%", tmp)] <- xfm[grep("%A%", tmp)]
+  
   if(length(where.c) > 0){
     tmp[where.c] <- outer(xfm[where.c], cfm, function(x, y) paste(x, y, sep = "%O%"))
   } 
@@ -638,6 +655,7 @@ FDboost <- function(formula,          ### response ~ xvars
   if(scalarNoFLAM){
     tmp <- xfm
   } 
+  
   
   ## put together the model formula 
   xpart <- paste(as.vector(tmp), collapse = " + ")
