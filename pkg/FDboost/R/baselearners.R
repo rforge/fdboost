@@ -437,7 +437,7 @@ X_bsignal <- function(mf, vary, args) {
 #' base-learner complexity. Low values of \code{df} correspond to a 
 #' large amount of smoothing and thus to "weaker" base-learners.
 #' @param lambda smoothing penalty 
-#' @param center experimental implementation! 
+#' @param center experimental implementation! See \code{\link[mboost]{bbs}}. 
 #' The effect is re-parameterized such that the unpenalized part of the fit is subtracted and only 
 #' the penalized effect is fitted, using a spectral decomposition of the penalty matrix.  
 #' The unpenalized, parametric part has then to be included in separate 
@@ -1899,7 +1899,7 @@ hyper_bbsc <- function(Z, ...){
 #' @param lambda smoothing penalty, computed from \code{df} when 
 #' \code{df} is specified.
 #' @param K in \code{bolsc} it is possible to specify the penalty matrix K
-#' @param center not implemented yet 
+#' @param center experimental implementation! See \code{\link[mboost]{bbs}}. 
 #' @param cyclic  if \code{cyclic = TRUE} the fitted values coincide at 
 #' the boundaries (useful for cyclic covariates such as day time etc.).
 #' @param contrasts.arg Note that a special \code{contrasts.arg} exists in 

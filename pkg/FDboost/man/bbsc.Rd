@@ -44,7 +44,7 @@ large amount of smoothing and thus to "weaker" base-learners.}
 \item{lambda}{smoothing penalty, computed from \code{df} when
 \code{df} is specified.}
 
-\item{center}{not implemented yet}
+\item{center}{experimental implementation! See \code{\link[mboost]{bbs}}.}
 
 \item{cyclic}{if \code{cyclic = TRUE} the fitted values coincide at
 the boundaries (useful for cyclic covariates such as day time etc.).}
