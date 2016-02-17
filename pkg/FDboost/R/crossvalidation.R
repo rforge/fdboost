@@ -185,6 +185,11 @@ validateFDboost <- function(object, response=NULL,
   call <- match.call()
   riskopt <- match.arg(riskopt)
   
+  ## check that folds are given on the level of curves
+  if(length(unique(object$id)) != nrow(folds)){
+    stop("The folds-matrix must have one row per observed trajectory.")
+  }
+  
   if(any(class(object)=="FDboostLong")){ # irregular response
     nObs <- length(unique(object$id)) # number of curves
     Gy <- NULL # number of time-points per curve
