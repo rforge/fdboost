@@ -177,23 +177,44 @@
 
 
 
-#' Anisotropic Kronecker Product of two base-learners
+#' Kronecker product of two base-learners with anisotropic penalty 
 #' 
-#' EXPERIMENTAL! Does not work correctly if weights are specified in the model-call!
-#' @param bl1 base-learner 1, e.g. \code{bols(x1)}
-#' @param bl2 base-learner 2, e.g. \code{bols(x2)}
+#' EXPERIMENTAL! Ignores weights that are specified in the model-call!
+#' @param bl1 base-learner 1, e.g. \code{bbs(x1)}
+#' @param bl2 base-learner 2, e.g. \code{bbs(x2)}
 #' 
 #' @details EXPERIMENTAL! 
-#' Like \%O\% but allows for anisotropic penalty matrices, for 
-#' df specified in both base-learners. 
-#' Consider 
-#' \code{blg1(..., df=df1) \%O\% blg2(..., df=df2)} which results in \code{df=df1*df2}, 
-#' and thus in a gobal lambda, \eqn{P = lambda ((P1 o I ) + (I o P2))}, with Kronecker product \eqn{o}. 
-#' But 
-#' \code{blg1(..., df=df1) \%A\% blg2(..., df=df2)} results in computing, two
+#' 
+#' When \code{\%O\%} is called with a specification of \code{df} in both base-learners, 
+#' e.g. \code{bbs(x1, df = df1) \%O\% bbs(t, df = df2)}, the global \code{df} for the 
+#' Kroneckered base-learner is computed as \code{df = df1 * df2}. 
+#' And thus the penalty has only one smoothness parameter lambda resulting in an isotropic penalty, 
+#' \eqn{P = lambda*[( P1 o I ) +  (I o P2)]}, with Kronecker product \eqn{o}, marginal penalty 
+#' matrices \eqn{P1, P2} and identity matrices \eqn{I}.  
+#' (Currie et al. (2006) introduced the generalized linear array model, which has a design matrix that 
+#' is composed of the Kronecker product of two marginal design matrices and 
+#' see Brockhaus et al. (2015) for the application of array models to functional data.)  
+#' 
+#' A Kronecker product with anisotropic penalty is obtained by \code{\%A\%}, which allows for 
+#' a different amount of smoothness in the two directions. 
+#' For example \code{bbs(x1, df = df1) \%A\% bbs(t, df = df2)} results in computing, two
 #' different values for lambda for the two marginal design matrices and a global value of 
-#' lambda to adjsut for the global df, i.e. 
-#' \eqn{P = lambda ( ( lambda1 P1 o I ) +  (I o lambda2 P2) )}. 
+#' lambda to adjsut for the global \code{df}, i.e. 
+#' \eqn{P = lambda*[( lambda1*P1 o I ) +  (I o lambda2*P2) ]}, with Kronecker product \eqn{o}, 
+#' where \eqn{lambda1} is computed for \eqn{df1}, \eqn{lambda2} is computed for \eqn{df2}, 
+#' and \eqn{lambda} is computed such that the global \eqn{df} hold \eqn{df = df1 * df2}.   
+#' 
+#' If the formula in \code{FDboost} contains base-learners connected by \code{\%O\%} or \code{\%A\%}, 
+#' those effects are not expanded with \code{timeformula}, allowing for model specifications 
+#' with different effects in time-direction.  
+#' 
+#' @references 
+#' Brockhaus, S., Scheipl, F., Hothorn, T. and Greven, S. (2015): 
+#' The functional linear array model. Statistical Modelling, 15(3), 279-300. 
+#' 
+#' Currie, I.D., Durban, M. and Eilers P.H.C. (2006):  
+#' Generalized linear array models with applications to multidimensional smoothing. 
+#' Journal of the Royal Statistical Society, Series B-Statistical Methodology, 68(2), 259-280.
 #' 
 #' @export
 "%A%" <- function(bl1, bl2) {

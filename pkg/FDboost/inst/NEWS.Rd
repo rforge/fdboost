@@ -7,9 +7,16 @@
     \itemize{
 	    \item new operator %A% that implies anisotropic penalties for differently specified df in the two base-learners
     }
+  }
 	\subsection{Bug-fixes}{
     \itemize{
       \item do not penalize in direction of ONEx in smooth intercept specified implicitly by ~1, as bols(ONEx, intercept=FALSE, df=1) %A% bbs(time)	  
+    }
+  }
+   \subsection{Miscellaneous}{
+    \itemize{
+      \item do not expand an effect that contains %A% or %O% with the timeformula, allowing for different effects over time for the 
+        effects in the model 	  
     }
   }
 }

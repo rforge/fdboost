@@ -18,7 +18,7 @@ For functional response \eqn{Y_i(t)} typically use \code{~ bbs(t)} to obtain smo
 effects over \eqn{t}.
 In the limiting case of \eqn{Y_i} being a scalar response,
 use \code{~ bols(1)}, which sets up a base-learner for the scalar 1.
-Or you can use \code{timeformula=NULL}, then the scalar response is treated as scalar.}
+Or use \code{timeformula = NULL}, then the scalar response is treated as scalar.}
 
 \item{id}{defaults to NULL which means that all response trajectories are observed
 on a common grid allowing to represent the response as a matrix.
@@ -42,13 +42,13 @@ i.e. \code{length(weights)} has to be \code{nrow(response)},
 per default weights is constantly 1.}
 
 \item{offset}{a numeric vector to be used as offset over the index of the response (optional).
-If no offset is specified, per default \code{offset=NULL} which means that a
+If no offset is specified, per default \code{offset = NULL} which means that a
 smooth time-specific offset is computed and used before the model fit to center the data.
-If you do not want to use a time-specific offset, set \code{offset="scalar"} to get an overall scalar offset,
+If you do not want to use a time-specific offset, set \code{offset = "scalar"} to get an overall scalar offset,
 like in \code{mboost}.}
 
 \item{offset_control}{parameters for the estimation of the offset,
-defaults to \code{o_control(k_min=20, silent=TRUE)}, see \code{\link{o_control}}.}
+defaults to \code{o_control(k_min = 20, silent = TRUE)}, see \code{\link{o_control}}.}
 
 \item{check0}{logical, for response observed on a common grid,
 check the fitted effects for the sum-to-zero constraint
@@ -89,7 +89,7 @@ Scalar responses are treated as the special case where each functional response 
 only one observation.
 This function is a wrapper for \code{mboost}'s \code{\link[mboost]{mboost}} and its
 siblings to fit models of the general form
-\deqn{\xi(Y_i(t)|X_i=x_i) = \sum_{j} h_j(x_i, t), i=1, ..., N,}
+\deqn{\xi(Y_i(t) | X_i = x_i) = \sum_{j} h_j(x_i, t), i = 1, ..., N,}
 with a functional (but not necessarily continuous) response \eqn{Y(t)},
 transformation function \eqn{\xi}, e.g., the expectation, the median or some quantile,
 and partial effects \eqn{h_j(x_i, t)} depending on covariates
@@ -103,7 +103,7 @@ smooth and linear effects of scalar covariates \eqn{f(z_i)}, \eqn{z_i \beta(t)}.
 The functional response and functional covariates have to be
 supplied as N by <number of evaluations> matrices, i.e., each row is one
 functional observation. For the model fit, the matrix of the functional
-response evaluations \eqn{Y_i(t)} are stacked into one long vector.
+response evaluations \eqn{Y_i(t)} are stacked internally into one long vector.
 
 If it is possible to represent the model as a generalized linear array model
 (Currie et al., 2006), the array structure is used for an efficient implementation,
@@ -113,6 +113,16 @@ matrices yielding a functional linear array model (FLAM),
 see Brockhaus et al. (2015) for details.
 The Kronecker product of two marginal bases is implemented in R-package mboost
 in the function \code{\%O\%}, see ?"\%O\%".
+
+When \code{\%O\%} is called with a specification of \code{df} in both base-learners,
+e.g. \code{bbs(x1, df = df1) \%O\% bbs(t, df = df2)}, the global \code{df} for the
+Kroneckered base-learner is computed as \code{df = df1 * df2}.
+And thus the penalty has only one smoothness parameter lambda resulting in an isotropic penalty.
+A Kronecker product with anisotropic penalty is \code{\%A\%}, allowing for different
+amount of smoothness in the two directions, see ?"\%A\%".
+If the formula contains base-learners connected by \code{\%O\%} or \code{\%A\%},
+those effects are not expanded with \code{timeformula}, allowing for model specifications
+with different effects in time-direction.
 
 If the response is observed on curve-specific grids it must be supplied
 as a vector in long format and the argument \code{id} has
@@ -186,6 +196,8 @@ a rather small number of df for all base-learners.
 It is not possible to specify df larger than the rank of the design matrix.
 For base-learners with rank-deficient penalty it is not possible to specify df smaller than the
 rank of the null space of the penalty (e.g., in \code{bbs} unpenalized part of P-splines).
+The df of the base-learners in an FDboost-object can be checked using \code{extract(object, "df")},
+see \code{\link[mboost]{extract}}.
 
 The most important tuning parameter of component-wise gradient boosting
 is the number of boosting iterations. It is recommended to use the number of

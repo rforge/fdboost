@@ -1954,6 +1954,8 @@ bbsc <- function(..., by = NULL, index = NULL, knots = 10, boundary.knots = NULL
                  degree = 3, differences = 2, df = 4, lambda = NULL, center = FALSE,
                  cyclic = FALSE) {
   
+  if(center) warning("Do not set center = TRUE within bbsc().")
+  
   ## new arguments constraint and dervi are set to their defaults
   # constraint <- match.arg(constraint)
   constraint <- "none"
