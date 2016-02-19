@@ -1,6 +1,6 @@
 #' Constrained row tensor product 
 #' 
-#' Combining single base-learners to form new, more complex base-learners, with
+#' EXPERIMENTAL! Combining single base-learners to form new, more complex base-learners, with
 #' an identifiability constraint suitable for functional response. 
 #' @param bl1 base-learner 1, e.g. \code{bols(x1)}
 #' @param bl2 base-learner 2, e.g. \code{bols(x2)}

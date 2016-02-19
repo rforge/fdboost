@@ -12,7 +12,7 @@ bl1 \%Xc\% bl2
 \item{bl2}{base-learner 2, e.g. \code{bols(x2)}}
 }
 \description{
-Combining single base-learners to form new, more complex base-learners, with
+EXPERIMENTAL! Combining single base-learners to form new, more complex base-learners, with
 an identifiability constraint suitable for functional response.
 }
 \details{
