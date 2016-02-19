@@ -68,14 +68,14 @@
 #' matrices yielding a functional linear array model (FLAM), 
 #' see Brockhaus et al. (2015) for details. 
 #' The Kronecker product of two marginal bases is implemented in R-package mboost 
-#' in the function \code{\%O\%}, see ?"\%O\%". 
+#' in the function \code{\%O\%}, see \code{\link[mboost]{\%O\%}}. 
 #' 
 #' When \code{\%O\%} is called with a specification of \code{df} in both base-learners, 
 #' e.g. \code{bbs(x1, df = df1) \%O\% bbs(t, df = df2)}, the global \code{df} for the 
 #' Kroneckered base-learner is computed as \code{df = df1 * df2}. 
 #' And thus the penalty has only one smoothness parameter lambda resulting in an isotropic penalty. 
 #' A Kronecker product with anisotropic penalty is \code{\%A\%}, allowing for different 
-#' amount of smoothness in the two directions, see ?"\%A\%". 
+#' amount of smoothness in the two directions, see \code{\link{\%A\%}}. 
 #' If the formula contains base-learners connected by \code{\%O\%} or \code{\%A\%}, 
 #' those effects are not expanded with \code{timeformula}, allowing for model specifications 
 #' with different effects in time-direction.   
@@ -115,12 +115,12 @@
 #'   see \code{\link{bbsc}}. 
 #' \item (Nonlinear) effects of scalar covariates that are constant 
 #'   over \eqn{t}, e.g. \eqn{f(z_i)}, specified as \code{~ c(bbs(z))}, 
-#'   or \eqn{\beta_3 z_i}, specified as \code{~ c(bols(z))}.
+#'   or \eqn{\beta_1 z_i}, specified as \code{~ c(bols(z))}.
 #' \item Interaction terms between two scalar covariates, e.g. \eqn{z_i1 zi2 \beta_1(t)}, 
 #'   are specified as \code{bols(z1) \%Xc\% bols(z2)} and  
 #'   an interaction \eqn{z_i1 f(zi2, t)} as \code{bols(z1) \%Xc\% bbs(z2)}, as 
 #'   \code{\%Xc\%} applies the sum-to-zero constraint to the desgin matrix of the tensor product 
-#'   built by \code{\%Xc\%}, see ?"\%Xc\%", EXPERIMENTAL!
+#'   built by \code{\%Xc\%}, see \code{\link{\%Xc\%}}, EXPERIMENTAL!
 #' \item Function-on-function regression terms of functional covariates \code{x}, 
 #'   e.g. \eqn{\int x_i(s)\beta(s,t)ds}, specified as \code{~ bsignal(x, s = s)}, see
 #'   \code{\link{bsignal}}. 
@@ -130,13 +130,13 @@
 #'   with integration limits \eqn{[l(t), u(t)]} depending on \eqn{t},  
 #'   e.g. \eqn{\int_[l(t), u(t)] x_i(s)\beta(s,t)ds}, specified as 
 #'   \code{~ bhist(x, s = s, time = t, limits)}. The \code{limits} argument defaults to
-#'   \code{"s<=t"} which yields a hisotircal effect with limits \eqn{[min(t),t]}.
+#'   \code{"s<=t"} which yields a hisotircal effect with limits \eqn{[min(t),t]}, 
 #'    see \code{\link{bhist}}.
 #' \item Concurrent effects of functional covariates \code{x}
-#'   measured on the same grid as the response, i.e., \eqn{x_i(s)beta(t)}, 
+#'   measured on the same grid as the response, i.e., \eqn{x_i(s)\beta(t)}, 
 #'   are specified as \code{~ bconcurrent(x, s = s, time = t)}, 
 #'   see \code{\link{bconcurrent}}. 
-#' \item interaction effects can be estimated as tensor product smooth, e.g., 
+#' \item Interaction effects can be estimated as tensor product smooth, e.g., 
 #'   \eqn{ z \int x_i(s)\beta(s,t)ds} as \code{~ bsignal(x, s = s) \%X\% bolsc(z)}
 #' \item For interaction effects with historical functional effects, e.g., 
 #'   \eqn{ z \int_[l(t),u(t)] x_i(s)\beta(s,t)ds} the base-learner 
@@ -162,7 +162,7 @@
 #' Note that the default number of boosting iterations is 100 which is arbitrary and in most 
 #' cases not adequate (the optimal number of boosting iterations can considerably exceed 100). 
 #' The optimal stopping iteration can be determined by resampling methods like
-#' cross-validation or bootstrapping, see the function \code{\link{cvrisk}} which searches 
+#' cross-validation or bootstrapping, see the function \code{\link{cvrisk.FDboost}} which searches 
 #' the optimal stopping iteration on a grid, which in many cases has to be extended.   
 
 #' 
