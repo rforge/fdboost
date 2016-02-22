@@ -41,7 +41,7 @@ a penalty (\emph{0}-th order differences specify a ridge penalty).}
 base-learner complexity. Low values of \code{df} correspond to a
 large amount of smoothing and thus to "weaker" base-learners.}
 
-\item{lambda}{smoothing penalty, computed from \code{df} when
+\item{lambda}{smoothing parameter of the penalty, computed from \code{df} when
 \code{df} is specified.}
 
 \item{center}{experimental implementation! See \code{\link[mboost]{bbs}}.}

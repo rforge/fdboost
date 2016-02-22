@@ -349,7 +349,7 @@ X_histx <- function(mf, vary, args, getDesign=TRUE) {
 #' 
 #' Base-learners that fit historical functional effects that can be used with the 
 #' tensor product, as e.g., hbistx(...) \%X\% bolsc(...).  
-#' For expert use only! May show unexpected behaviour 
+#' For expert use only! May show unexpected behavior  
 #' compared to other base-learners for functional data!
 #' 
 #' @param x object of type \code{hmatrix} containing time, index and functional covariate; 
@@ -367,7 +367,7 @@ X_histx <- function(mf, vary, args, getDesign=TRUE) {
 #' @param df trace of the hat matrix for the base-learner defining the 
 #' base-learner complexity. Low values of \code{df} correspond to a 
 #' large amount of smoothing and thus to "weaker" base-learners.
-#' @param lambda smoothing penalty
+#' @param lambda smoothing parameter of the penalty, computed from \code{df} when \code{df} is specified.
 #' @param penalty by default, \code{penalty="ps"}, the difference penalty for P-splines is used, 
 #' for \code{penalty="pss"} the penalty matrix is transformed to have full rank, 
 #' so called shrinkage approach by Marra and Wood (2011)

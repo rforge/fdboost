@@ -817,27 +817,12 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
         
         
         ## add dummy signal to data for bsignal()
-        if(grepl("bsignal", trm$get_call()) ){
+        if(grepl("bsignal", trm$get_call()) | grepl("bfpc", trm$get_call()) ){
           d[[ trm$get_names()[1] ]] <- I(diag(ng)/integrationWeights(diag(ng), d[[varnms[1]]] ))
         }
         
-        ## add dummy signal to data for bfpc()
-        if(grepl("bfpc", trm$get_call()) ){
-          ## <FIXME> only works for regular s \in [0,1]
-          ## use the number of observations of the original s, 
-          ## as fPCA is multivariate for the observations of X
-          origXind <- attr(trm$get_data()[[trm$get_names()[1]]], "signalIndex")
-          #d[[ trm$get_names()[1] ]] <- I( diag(ng)*length(origXind) )
-          
-          if(!all( diff(origXind)[1] - diff(origXind) < .Machine$double.eps*10^10)){
-            warning("<", trm$get_names()[1], ">", " is observed on an irregular grid, ", 
-                    "but computation of smooth effect beta only works for regular grid.")
-          }
-          
-          ## <FIXME> only works for regular observed s 
-          d[[ trm$get_names()[1] ]] <- I(diag(ng)/integrationWeights(diag(origXind), origXind )[1,1] )
-        }
-        
+        ## <FIXME> is this above dummy-matrix correct for bfpc?
+
         ## add dummy signal to data for bhist()
         ## standardisation weights depending on t must be multiplied to the final \beta(s,t)
         ## as they cannot be included into the variable x(s)

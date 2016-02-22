@@ -2,7 +2,20 @@
 \title{News for Package 'FDboost'}
 
 
-\section{Changes in FDboost version 0.0-14 (2015-02-12)}{
+\section{Changes in FDboost version 0.0-16 (2016-02-22)}{
+  \subsection{User-visible changes}{
+    \itemize{
+	    \item changed the operator %Xc% for row tensor product where the sum-to-zero constraint is applied to
+		  the design matrix resulting from the row-tensor product (experimental!), 
+		  such that first a, intercept-column is added to the design-matrix and then the sum-to-zero constraint 
+		  is applied, use e.g. as bolsc(x1) %Xc% bolsc(x2)
+		  \item use the functional index s as argsvals in the FPCA conducted within bfpc()
+    }
+  }
+}
+
+
+\section{Changes in FDboost version 0.0-15 (2016-02-12)}{
   \subsection{User-visible changes}{
     \itemize{
 	    \item new operator %A% that implies anisotropic penalties for differently specified df in the two base-learners
@@ -21,7 +34,7 @@
   }
 }
 
-\section{Changes in FDboost version 0.0-14 (2015-02-11)}{
+\section{Changes in FDboost version 0.0-14 (2016-02-11)}{
   \subsection{User-visible changes}{
     \itemize{
 	    \item add the function FDboostLSS() to fit GAMLSS models with functional data 

@@ -130,7 +130,7 @@ to be specified (as formula!) to define which observations belong to which curve
 In this case the base-learners are built as row tensor-products of marginal base-learners,
 see Scheipl et al. (2015), for details on how to set up the effects.
 The row tensor product of two marginal bases is implemented in R-package mboost
-in the function \code{\%X\%}, see ?"\%X\%".
+in the function \code{\%X\%}, see \code{\link[mboost]{\%X\%}}.
 
 A scalar response can be seen as special case of a functional response with only
 one time-point, and thus it can be represented as FLAM with basis 1 in
@@ -153,7 +153,7 @@ With \code{FDboost} the following covariate effects can be estimated
 \item Linear functional effect of scalar (numeric or factor) covariate \eqn{z} that varies
   smoothly over \eqn{t}, i.e. \eqn{z_i \beta_1(t)}, specified as
   \code{~ bolsc(z)}, see \code{\link{bolsc}},
-  or for a group effect with mean zero use \code{~ brandom(z)}.
+  or for a group effect with mean zero use \code{~ brandomc(z)}.
 \item Nonlinear effects  of a scalar covariate that vary smoothly over the
   index \eqn{t} of \eqn{Y(t)}, i.e. \eqn{f(z_i, t)}, specified as \code{bbsc(z)},
   see \code{\link{bbsc}}.
@@ -161,10 +161,10 @@ With \code{FDboost} the following covariate effects can be estimated
   over \eqn{t}, e.g. \eqn{f(z_i)}, specified as \code{~ c(bbs(z))},
   or \eqn{\beta_1 z_i}, specified as \code{~ c(bols(z))}.
 \item Interaction terms between two scalar covariates, e.g. \eqn{z_i1 zi2 \beta_1(t)},
-  are specified as \code{bols(z1) \%Xc\% bols(z2)} and
-  an interaction \eqn{z_i1 f(zi2, t)} as \code{bols(z1) \%Xc\% bbs(z2)}, as
+  are specified as \code{bolsc(z1) \%Xc\% bolsc(z2)} and
+  an interaction \eqn{z_i1 f(zi2, t)} as \code{bolsc(z1) \%Xc\% bbsc(z2)}, as
   \code{\%Xc\%} applies the sum-to-zero constraint to the desgin matrix of the tensor product
-  built by \code{\%Xc\%}, see \code{\link{\%Xc\%}}, EXPERIMENTAL!
+  built by \code{\%Xc\%}, see  \code{\link{\%Xc\%}}, EXPERIMENTAL!
 \item Function-on-function regression terms of functional covariates \code{x},
   e.g. \eqn{\int x_i(s)\beta(s,t)ds}, specified as \code{~ bsignal(x, s = s)}, see
   \code{\link{bsignal}}.

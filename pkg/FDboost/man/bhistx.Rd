@@ -52,7 +52,7 @@ a penalty (\emph{0}-th order differences specify a ridge penalty).}
 base-learner complexity. Low values of \code{df} correspond to a
 large amount of smoothing and thus to "weaker" base-learners.}
 
-\item{lambda}{smoothing penalty}
+\item{lambda}{smoothing parameter of the penalty, computed from \code{df} when \code{df} is specified.}
 
 \item{penalty}{by default, \code{penalty="ps"}, the difference penalty for P-splines is used,
 for \code{penalty="pss"} the penalty matrix is transformed to have full rank,
@@ -73,7 +73,7 @@ The call of \code{dpp} returns an object of class
 \description{
 Base-learners that fit historical functional effects that can be used with the
 tensor product, as e.g., hbistx(...) \%X\% bolsc(...).
-For expert use only! May show unexpected behaviour
+For expert use only! May show unexpected behavior
 compared to other base-learners for functional data!
 }
 \details{

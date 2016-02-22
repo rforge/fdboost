@@ -29,7 +29,7 @@ bfpc(x, s, index = NULL, df = 4, lambda = NULL, pve = 0.99,
 supplied as n by <no. of evaluations> matrix, i.e. each row is one functional observation.}
 
 \item{s}{vector for the index of the functional variable x(s) giving
-measurment points.}
+measurement points.}
 
 \item{index}{a vector of integers for expanding the signal variable in \code{x}
 For example, \code{bsignal(X, s, index = index)} is equal to \code{bsignal(X[index,], s)},
@@ -55,7 +55,7 @@ a penalty (\emph{0}-th order differences specify a ridge penalty).}
 base-learner complexity. Low values of \code{df} correspond to a
 large amount of smoothing and thus to "weaker" base-learners.}
 
-\item{lambda}{smoothing penalty}
+\item{lambda}{smoothing parameter of the penalty, computed from \code{df} when \code{df} is specified.}
 
 \item{center}{experimental implementation! See \code{\link[mboost]{bbs}}.
 The effect is re-parameterized such that the unpenalized part of the fit is subtracted and only
@@ -91,7 +91,7 @@ the given \eqn{t}.}
 
 \item{standard}{the historical effect can be standardized with a factor.
 "no" means no standardization, "time" standardizes with the current value of time and
-"lenght" standardizes with the lenght of the integral}
+"length" standardizes with the length of the integral}
 
 \item{intFun}{specify the function that is used to compute integration weights in \code{s}
 over the functional covariate \eqn{x(s)}}
@@ -101,7 +101,7 @@ which is the index of the functional response y(time).}
 
 \item{pve}{proportion of variance explained: used to choose the number of principal components.}
 
-\item{npc}{prespecified value for the number of principal components (if given, this overrides pve).}
+\item{npc}{prespecified value for the number of principal components (if given, this overrides \code{pve}).}
 
 \item{npc.max}{maximal number K of FPCs to use, regardless of decomppars; defaults to 15.}
 
@@ -133,7 +133,7 @@ The functional variable must be observed on one common grid \code{s}.
 \code{bconcurrent} implements a concurrent effect for a functional covariate
 on a functional response, i.e., an effect of the form \eqn{x_i(t)\beta(t)} for
 a functional response \eqn{Y_i(t)} and concurrently observed covariate \eqn{x_i(t)}.
-\code{bconcurrent} can only be used if \eqn{Y(t)} and \eqn{x(s)} are observd over
+\code{bconcurrent} can only be used if \eqn{Y(t)} and \eqn{x(s)} are observed over
 the same domain \eqn{s,t \in [t_0, T]}.
 Note that in the case of \code{bhist} the argument \code{index} is treated
 like a variable and thus has to be given as variable in \code{newdata},
@@ -146,12 +146,12 @@ The effect is \eqn{stand * \int_{l(t)}^{r_{t}} x(s)\beta(t,s)ds}.
 The base-learner defaults to a historical effect of the form
 \eqn{\int_{t0}^{t} x_i(s)\beta(t,s)ds},
 where \eqn{t0} is the minimal index of \eqn{t} of the response \eqn{Y(t)}.
-\code{bhist} can only be used if \eqn{Y(t)} and \eqn{x(s)} are observd over
+\code{bhist} can only be used if \eqn{Y(t)} and \eqn{x(s)} are observed over
 the same domain \eqn{s,t \in [t_0, T]}.
 The functional variable must be observed on one common grid \code{s}.
 
 \code{bfpc} is a base-learner for functional covariates based on
-functional principal component analysis (fPCA). The functional covariate
+functional principal component analysis (FPCA). The functional covariate
 \eqn{x(s)} is decomposed into \eqn{x(s) \approx \sum_{k=1}^K \xi_{ik} \Phi_k(s)} using
 \code{\link[refund]{fpca.sc}} and represents \eqn{\beta(s)} in the function
 space spanned by \eqn{\Phi_k(s)}, see Scheipl et al. (2015a) for details.
@@ -167,7 +167,8 @@ so that the effects are centered per time-point of the response.
 If all effects are centered, the functional intercept
 can be interpreted as the global mean function.
 
-Cannot deal with any missing values in the covariates.
+The base-learners for functional covariates cannot deal with any missing
+values in the covariates.
 }
 \examples{
 ######## Example for scalar-on-function-regression

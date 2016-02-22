@@ -16,10 +16,12 @@ EXPERIMENTAL! Combining single base-learners to form new, more complex base-lear
 an identifiability constraint suitable for functional response.
 }
 \details{
-Similar to \code{\%X\%} in package mboost, see ?"\%X\%", a tensor product of two
+Similar to \code{\%X\%} in package mboost, see \code{\link[mboost]{\%X\%}}, a tensor product of two
 or more linear base-learners is returned by \code{\%Xc\%}.
 But \code{\%Xc\%} applies a sum-to-zero constraint to the design matrix suitable for
-functional response if an interaction of two scalar covariates is specified.
+functional response if an interaction of two scalar covariates is specified. Before the constraint
+is applied an intercept-column is added to the design matrix, thus the two base-learners that are
+connected by \code{\%Xc\%} should both not contain an intercept.
 }
 \examples{
 ######## Example for function-on-scalar-regression with interaction effect of two scalar covariates
@@ -38,7 +40,7 @@ viscosity$time <- viscosity$timeAll[1:end]
 ## the factors are coded such that the intercept is the global median
 ## no integration weights are used!
 mod1 <- FDboost(vis ~ 1 + bolsc(T_C, df=2) + bolsc(T_A, df=2) +
-                bols(T_C, df=2) \%Xc\% bols(T_A, df=1),
+                bolsc(T_C, df=2) \%Xc\% bolsc(T_A, df=1),
                 timeformula = ~bbs(time, df=3),
                 numInt = "equal", family = QuantReg(),
                 offset = NULL, offset_control = o_control(k_min = 9),

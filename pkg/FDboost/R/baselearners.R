@@ -418,7 +418,7 @@ X_bsignal <- function(mf, vary, args) {
 #' @param x matrix of functional variable x(s). The functional covariate has to be 
 #' supplied as n by <no. of evaluations> matrix, i.e. each row is one functional observation. 
 #' @param s vector for the index of the functional variable x(s) giving 
-#' measurment points. 
+#' measurement points. 
 #' @param time vector for the index of the functional response y(time) 
 #' giving the measurement points. 
 #' @param index a vector of integers for expanding the signal variable in \code{x} 
@@ -436,7 +436,7 @@ X_bsignal <- function(mf, vary, args) {
 #' @param df trace of the hat matrix for the base-learner defining the 
 #' base-learner complexity. Low values of \code{df} correspond to a 
 #' large amount of smoothing and thus to "weaker" base-learners.
-#' @param lambda smoothing penalty 
+#' @param lambda smoothing parameter of the penalty, computed from \code{df} when \code{df} is specified. 
 #' @param center experimental implementation! See \code{\link[mboost]{bbs}}. 
 #' The effect is re-parameterized such that the unpenalized part of the fit is subtracted and only 
 #' the penalized effect is fitted, using a spectral decomposition of the penalty matrix.  
@@ -456,7 +456,7 @@ X_bsignal <- function(mf, vary, args) {
 #' @param check.ident use checks for identifiability of the effect, based on Scheipl and Greven (2015b)
 #' @param standard the historical effect can be standardized with a factor. 
 #' "no" means no standardization, "time" standardizes with the current value of time and 
-#' "lenght" standardizes with the lenght of the integral 
+#' "length" standardizes with the length of the integral 
 #' @param intFun specify the function that is used to compute integration weights in \code{s} 
 #' over the functional covariate \eqn{x(s)}
 #' @param inS historical effect can be smooth, linear or constant in s, 
@@ -470,7 +470,7 @@ X_bsignal <- function(mf, vary, args) {
 #' \code{TRUE} for combinations of values (s,t) if \eqn{s} falls into the integration range for 
 #' the given \eqn{t}.  
 #' @param pve proportion of variance explained: used to choose the number of principal components.
-#' @param npc prespecified value for the number of principal components (if given, this overrides pve).
+#' @param npc prespecified value for the number of principal components (if given, this overrides \code{pve}).
 #' @param npc.max maximal number K of FPCs to use, regardless of decomppars; defaults to 15. 
 #' @param getEigen save the eigenvalues and eigenvectors, defaults to \code{TRUE}. 
 #' 
@@ -488,7 +488,7 @@ X_bsignal <- function(mf, vary, args) {
 #' \code{bconcurrent} implements a concurrent effect for a functional covariate
 #' on a functional response, i.e., an effect of the form \eqn{x_i(t)\beta(t)} for
 #' a functional response \eqn{Y_i(t)} and concurrently observed covariate \eqn{x_i(t)}. 
-#' \code{bconcurrent} can only be used if \eqn{Y(t)} and \eqn{x(s)} are observd over
+#' \code{bconcurrent} can only be used if \eqn{Y(t)} and \eqn{x(s)} are observed over
 #' the same domain \eqn{s,t \in [t_0, T]}.  
 #' Note that in the case of \code{bhist} the argument \code{index} is treated
 #' like a variable and thus has to be given as variable in \code{newdata}, 
@@ -501,12 +501,12 @@ X_bsignal <- function(mf, vary, args) {
 #' The base-learner defaults to a historical effect of the form 
 #' \eqn{\int_{t0}^{t} x_i(s)\beta(t,s)ds}, 
 #' where \eqn{t0} is the minimal index of \eqn{t} of the response \eqn{Y(t)}. 
-#' \code{bhist} can only be used if \eqn{Y(t)} and \eqn{x(s)} are observd over
+#' \code{bhist} can only be used if \eqn{Y(t)} and \eqn{x(s)} are observed over
 #' the same domain \eqn{s,t \in [t_0, T]}. 
 #' The functional variable must be observed on one common grid \code{s}.  
 #' 
 #' \code{bfpc} is a base-learner for functional covariates based on 
-#' functional principal component analysis (fPCA). The functional covariate
+#' functional principal component analysis (FPCA). The functional covariate
 #' \eqn{x(s)} is decomposed into \eqn{x(s) \approx \sum_{k=1}^K \xi_{ik} \Phi_k(s)} using 
 #' \code{\link[refund]{fpca.sc}} and represents \eqn{\beta(s)} in the function
 #' space spanned by \eqn{\Phi_k(s)}, see Scheipl et al. (2015a) for details. 
@@ -522,7 +522,8 @@ X_bsignal <- function(mf, vary, args) {
 #' If all effects are centered, the functional intercept 
 #' can be interpreted as the global mean function. 
 #' 
-#' Cannot deal with any missing values in the covariates.
+#' The base-learners for functional covariates cannot deal with any missing 
+#' values in the covariates.
 #' 
 #' @return Equally to the base-learners of package mboost: 
 #' 
@@ -1462,7 +1463,7 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
 # extract(test)[1:10, 1:20]
 
 
-### hyper parameters for signal baselearner with eigenfunctions as bases, fPCA-based
+### hyper parameters for signal baselearner with eigenfunctions as bases, FPCA-based
 hyper_fpc <- function(mf, vary, df = 4, lambda = NULL, 
                       pve = 0.99, npc = NULL, npc.max = 15, getEigen=TRUE, 
                       s=NULL) {
@@ -1471,7 +1472,7 @@ hyper_fpc <- function(mf, vary, df = 4, lambda = NULL,
        getEigen = getEigen, s = s, prediction = FALSE)
 }
 
-### model.matrix for fPCA based functional base-learner
+### model.matrix for FPCA based functional base-learner
 X_fpc <- function(mf, vary, args) {  
   #print("X_fpc") 
   stopifnot(is.data.frame(mf))
@@ -1484,15 +1485,11 @@ X_fpc <- function(mf, vary, args) {
   if(ncol(X1)!=length(xind)) stop(xname, ": Dimension of signal matrix and its index do not match.")
   
   ## <FIXME> is the following statemen on fpca.sc() correct??
-  ## What to do with irregular grids / integration weights? 
-  ## integration weights only for the recomputation in \beta(s,t), not for the original computation 
-  ## irregularity of grid is NOT taken into account for computation of fPCA, 
-  ## thus it is rather a multivariate fPCA that is smoothed
+  ## does it work correctly with argvals = xind
   
-  ## do fPCA on X1 (code of refund::ffpc adapted)
-  ## fPCA does not use xind!!
+  ## do FPCA on X1 (code of refund::ffpc adapted) using xind as argvals 
   if(is.null(args$klX)){
-    decomppars <- list(pve = args$pve, npc = args$npc, useSymm = TRUE)
+    decomppars <- list(argvals = xind, pve = args$pve, npc = args$npc, useSymm = TRUE)
     decomppars$Y <- X1
     ## functional covariate is per default centered per time-point
     klX <- do.call(fpca.sc, decomppars)
@@ -1516,7 +1513,7 @@ X_fpc <- function(mf, vary, args) {
     klX <- args$klX 
     ## compute scores on new X1 observations
     if(ncol(X1) == length(klX$mu) && all(args$s == xind)){
-      ## is the same as "X <- klX$scores[ , args$subset, drop = FALSE]" if klX is fPCA on X1 
+      ## is the same as "X <- klX$scores[ , args$subset, drop = FALSE]" if klX is FPCA on X1 
       X <- (scale(X1, center=klX$mu, scale=FALSE) %*% klX$efunctions)[ , args$subset, drop = FALSE]
       ## <FIXME> use integration weights?
       #X <- 1/args$a*(scale(X1, center=klX$mu, scale=FALSE) %*% klX$efunctions)[ , args$subset, drop = FALSE]
@@ -1555,7 +1552,7 @@ X_fpc <- function(mf, vary, args) {
 
 
 ###############################################################################
-### fPCA based base-learner for signal matrix with index vector
+### FPCA based base-learner for signal matrix with index vector
 ### inspired by refund::fpca.sc
 #' @rdname bsignal
 #' @export
@@ -1584,16 +1581,9 @@ bfpc <- function(x, s, index = NULL, df = 4,
   mf <- data.frame("z"=I(x))
   names(mf) <- xname
   
-  ### fPCA does not use xind!
-  if(!all( abs(diff(s)[1] - diff(s)) < .Machine$double.eps*10^10) ){
-    message("<", xname, ">", " is observed on an irregular grid ", "<", indname, ">", 
-            ", but the computation of the fPCA assumes a regular grids.")
-  }
-  
-  
   vary <- ""
   
-  ## <FIXME> for a fPCA based base-learner the X can contain missings!
+  ## <FIXME> for a FPCA based base-learner the X can contain missings!
   CC <- all(Complete.cases(mf))
   if (!CC)
     warning("base-learner contains missing values;\n",
@@ -1604,12 +1594,12 @@ bfpc <- function(x, s, index = NULL, df = 4,
   #index <- NULL
   
   ## call X_fpc in oder to compute parameter settings, e.g. 
-  ## the basis functions, based on fPCA 
+  ## the basis functions, based on FPCA 
   temp <- X_fpc(mf, vary, 
                 args = hyper_fpc(mf, vary, df = df, lambda = lambda, 
                                  pve = pve, npc = npc, npc.max = npc.max, 
                                  s = s))
-  ## save the fPCA in args
+  ## save the FPCA in args
   ##str(temp$args)
   
   ret <- list(model.frame = function() 
@@ -1896,8 +1886,8 @@ hyper_bbsc <- function(Z, ...){
 #' @param df trace of the hat matrix for the base-learner defining the 
 #' base-learner complexity. Low values of \code{df} correspond to a 
 #' large amount of smoothing and thus to "weaker" base-learners.
-#' @param lambda smoothing penalty, computed from \code{df} when 
-#' \code{df} is specified.
+#' @param lambda smoothing parameter of the penalty, computed from \code{df} when 
+#' \code{df} is specified. 
 #' @param K in \code{bolsc} it is possible to specify the penalty matrix K
 #' @param center experimental implementation! See \code{\link[mboost]{bbs}}. 
 #' @param cyclic  if \code{cyclic = TRUE} the fitted values coincide at 

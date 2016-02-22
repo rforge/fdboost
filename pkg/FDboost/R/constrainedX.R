@@ -5,10 +5,12 @@
 #' @param bl1 base-learner 1, e.g. \code{bols(x1)}
 #' @param bl2 base-learner 2, e.g. \code{bols(x2)}
 #' 
-#' @details Similar to \code{\%X\%} in package mboost, see ?"\%X\%", a tensor product of two 
+#' @details Similar to \code{\%X\%} in package mboost, see \code{\link[mboost]{\%X\%}}, a tensor product of two 
 #' or more linear base-learners is returned by \code{\%Xc\%}. 
 #' But \code{\%Xc\%} applies a sum-to-zero constraint to the design matrix suitable for
-#' functional response if an interaction of two scalar covariates is specified.
+#' functional response if an interaction of two scalar covariates is specified. Before the constraint 
+#' is applied an intercept-column is added to the design matrix, thus the two base-learners that are 
+#' connected by \code{\%Xc\%} should both not contain an intercept. 
 #' 
 #' @examples  
 #' ######## Example for function-on-scalar-regression with interaction effect of two scalar covariates 
@@ -27,7 +29,7 @@
 #' ## the factors are coded such that the intercept is the global median 
 #' ## no integration weights are used!
 #' mod1 <- FDboost(vis ~ 1 + bolsc(T_C, df=2) + bolsc(T_A, df=2) + 
-#'                 bols(T_C, df=2) %Xc% bols(T_A, df=1),
+#'                 bolsc(T_C, df=2) %Xc% bolsc(T_A, df=1),
 #'                 timeformula = ~bbs(time, df=3),
 #'                 numInt = "equal", family = QuantReg(),
 #'                 offset = NULL, offset_control = o_control(k_min = 9),
@@ -68,7 +70,7 @@
   DOINDEX <- (nrow(mf) > options("mboost_indexmin")[[1]])
   if (is.null(index)) {
     if (!CC || DOINDEX) {
-      index <- get_index(mfindex)
+      index <- mboost:::get_index(mfindex)
       mf <- mf[index[[1]],,drop = FALSE]
       index <- index[[2]]
     }
@@ -104,7 +106,7 @@
                  df = ifelse(is.null(args1$df), 1, args1$df) *
                    ifelse(is.null(args2$df), 1, args2$df))
   }
-
+  
   Xfun <- function(mf, vary, args) {
     
     newX1 <- environment(bl1$dpp)$newX
@@ -143,10 +145,16 @@
         kronecker(diag(ncol(X1)), K2)
     )
     
+    
+    ## add an intercept column to the design matrix
+    X <- cbind(1, X)
+    ## fixme what to to with the penalty??
+    K <- bdiag(K[1,1], K)
+    
     #----------------------------------
     ### <SB> Calculate constraints
     if(is.null(args$prediction)) args$prediction <- FALSE
-
+    
     ## If model is fitted -> compute Z; but if model is predicted use the Z from the model fit
     ## if(!args$prediction){
     ## compute QR-decompotition only once
