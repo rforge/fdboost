@@ -50,9 +50,9 @@ like in \code{mboost}.}
 \item{offset_control}{parameters for the estimation of the offset,
 defaults to \code{o_control(k_min = 20, silent = TRUE)}, see \code{\link{o_control}}.}
 
-\item{check0}{logical, for response observed on a common grid,
+\item{check0}{logical, for response in matrix form, i.e. response that is observed on a common grid,
 check the fitted effects for the sum-to-zero constraint
-\eqn{h_j(x_i)(t) = 0} for all \eqn{t} and give warning if it is not fulfilled. Defaults to \code{TRUE}.}
+\eqn{h_j(x_i)(t) = 0} for all \eqn{t} and give a warning if it is not fulfilled. Defaults to \code{FALSE}.}
 
 \item{...}{additional arguments passed to \code{\link[mboost]{mboost}},
 including, \code{family} and \code{control}.}

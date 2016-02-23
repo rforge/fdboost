@@ -175,8 +175,8 @@ values in the covariates.
 data("fuelSubset", package = "FDboost")
 
 ## center the functional covariates per observed wavelength
-fuelSubset$UVVIS <- scale(fuelSubset$UVVIS)
-fuelSubset$NIR <- scale(fuelSubset$NIR)
+fuelSubset$UVVIS <- scale(fuelSubset$UVVIS, scale = FALSE)
+fuelSubset$NIR <- scale(fuelSubset$NIR, scale = FALSE)
 
 ## to make mboost::df2lambda() happy (all design matrix entries < 10)
 ## reduce range of argvals to [0,1] to get smaller integration weights

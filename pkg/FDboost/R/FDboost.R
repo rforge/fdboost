@@ -51,9 +51,9 @@
 #' smooth time-specific offset is computed and used before the model fit to center the data. 
 #' If you do not want to use a time-specific offset, set \code{offset = "scalar"} to get an overall scalar offset, 
 #' like in \code{mboost}.
-#' @param check0 logical, for response observed on a common grid, 
+#' @param check0 logical, for response in matrix form, i.e. response that is observed on a common grid, 
 #' check the fitted effects for the sum-to-zero constraint 
-#' \eqn{h_j(x_i)(t) = 0} for all \eqn{t} and give warning if it is not fulfilled. Defaults to \code{TRUE}. 
+#' \eqn{h_j(x_i)(t) = 0} for all \eqn{t} and give a warning if it is not fulfilled. Defaults to \code{FALSE}. 
 #' @param ... additional arguments passed to \code{\link[mboost]{mboost}}, 
 #' including, \code{family} and \code{control}.
 #' 
