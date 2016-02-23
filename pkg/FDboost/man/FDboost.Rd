@@ -67,12 +67,13 @@ e.g., \code{\link[mboost]{extract}}.
 The \code{FDboost}-object is a named list containing:
 \item{...}{all elements of an \code{\link[mboost]{mboost}-object}}
 \item{yname}{the name of the response}
-\item{ydim}{for a regualar response the dimension of the response matrix}
-\item{yind}{the observation points of the response, with its name as attribute}
+\item{ydim}{dimension of the response matrix, if the response is represented as such}
+\item{yind}{the observation (time-)points of the response, i.e. the evaluation points,
+      with its name as attribute}
 \item{data}{the data that was used for the model fit}
 \item{id}{the id variable of the response}
 \item{predictOffset}{the function to predict the smooth offset}
-\item{offsetVec}{the offset for one trajectory for regular response and
+\item{offsetVec}{the offset for one trajectory if the response is represented as matrix and
 otherwise the offset for all trajectories}
 \item{offsetFDboost}{offset as specified in call to FDboost}
 \item{offsetMboost}{offset as given to mboost}
@@ -92,18 +93,20 @@ siblings to fit models of the general form
 \deqn{\xi(Y_i(t) | X_i = x_i) = \sum_{j} h_j(x_i, t), i = 1, ..., N,}
 with a functional (but not necessarily continuous) response \eqn{Y(t)},
 transformation function \eqn{\xi}, e.g., the expectation, the median or some quantile,
-and partial effects \eqn{h_j(x_i, t)} depending on covariates
-and the current index of the response.
+and partial effects \eqn{h_j(x_i, t)} depending on covariates \eqn{x_i}
+and the current index of the response \eqn{t}. The index of the response can
+be for example time.
 Possible effects are, e.g., a smooth intercept \eqn{\beta_0(t)},
 a linear functional effect \eqn{\int x_i(s)\beta(s,t)ds},
-potentially with integration limints depending on \eqn{t},
-smooth and linear effects of scalar covariates \eqn{f(z_i)}, \eqn{z_i \beta(t)}.
+potentially with integration limits depending on \eqn{t},
+smooth and linear effects of scalar covariates \eqn{f(z_i)} or \eqn{z_i \beta(t)}.
 }
 \details{
-The functional response and functional covariates have to be
-supplied as N by <number of evaluations> matrices, i.e., each row is one
-functional observation. For the model fit, the matrix of the functional
-response evaluations \eqn{Y_i(t)} are stacked internally into one long vector.
+In matrix representation of functional response and covariates each row
+represents one functional observation, e.g. \code{Y[i,t_g]} corresponds to \eqn{Y_i(t_g)},
+giving a <number of curves> by <number of evaluations> matrix.
+For the model fit, the matrix of the functional
+response evaluations \eqn{Y_i(t_g)} are stacked internally into one long vector.
 
 If it is possible to represent the model as a generalized linear array model
 (Currie et al., 2006), the array structure is used for an efficient implementation,
@@ -147,27 +150,29 @@ see the help-page of \code{\link[mboost]{mboost}}. For example a mean regression
 by \code{family = QuantReg()};
 see \code{\link[mboost]{Family}} for a list of implemented families.
 
-With \code{FDboost} the following covariate effects can be estimated
-(similar to function \code{\link[refund]{pffr}} in R-package \code{\link[refund]{refund}}):
+With \code{FDboost} the following covariate effects can be estimated by specifying
+the following effects in the \code{formula}
+(similar to function \code{\link[refund]{pffr}} in R-package \code{\link[refund]{refund}}).
+The \code{timeformula} is used to expand the effects in \code{t}-direction.
 \itemize{
 \item Linear functional effect of scalar (numeric or factor) covariate \eqn{z} that varies
-  smoothly over \eqn{t}, i.e. \eqn{z_i \beta_1(t)}, specified as
+  smoothly over \eqn{t}, i.e. \eqn{z_i \beta(t)}, specified as
   \code{~ bolsc(z)}, see \code{\link{bolsc}},
   or for a group effect with mean zero use \code{~ brandomc(z)}.
-\item Nonlinear effects  of a scalar covariate that vary smoothly over the
-  index \eqn{t} of \eqn{Y(t)}, i.e. \eqn{f(z_i, t)}, specified as \code{bbsc(z)},
+\item Nonlinear effects  of a scalar covariate that vary smoothly over \eqn{t},
+  i.e. \eqn{f(z_i, t)}, specified as \code{bbsc(z)},
   see \code{\link{bbsc}}.
 \item (Nonlinear) effects of scalar covariates that are constant
   over \eqn{t}, e.g. \eqn{f(z_i)}, specified as \code{~ c(bbs(z))},
-  or \eqn{\beta_1 z_i}, specified as \code{~ c(bols(z))}.
-\item Interaction terms between two scalar covariates, e.g. \eqn{z_i1 zi2 \beta_1(t)},
+  or \eqn{\beta z_i}, specified as \code{~ c(bols(z))}.
+\item Interaction terms between two scalar covariates, e.g. \eqn{z_i1 zi2 \beta(t)},
   are specified as \code{bolsc(z1) \%Xc\% bolsc(z2)} and
   an interaction \eqn{z_i1 f(zi2, t)} as \code{bolsc(z1) \%Xc\% bbsc(z2)}, as
   \code{\%Xc\%} applies the sum-to-zero constraint to the desgin matrix of the tensor product
   built by \code{\%Xc\%}, see  \code{\link{\%Xc\%}}, EXPERIMENTAL!
 \item Function-on-function regression terms of functional covariates \code{x},
-  e.g. \eqn{\int x_i(s)\beta(s,t)ds}, specified as \code{~ bsignal(x, s = s)}, see
-  \code{\link{bsignal}}.
+  e.g. \eqn{\int x_i(s)\beta(s,t)ds}, specified as \code{~ bsignal(x, s = s)},
+  using P-splines, see \code{\link{bsignal}}.
   Terms given by \code{\link{bfpc}} provide FPC-based effects of functional
   covariates, see \code{\link{bfpc}}.
 \item Function-on-function regression terms of functional covariates \code{x}
@@ -183,11 +188,14 @@ With \code{FDboost} the following covariate effects can be estimated
 \item Interaction effects can be estimated as tensor product smooth, e.g.,
   \eqn{ z \int x_i(s)\beta(s,t)ds} as \code{~ bsignal(x, s = s) \%X\% bolsc(z)}
 \item For interaction effects with historical functional effects, e.g.,
-  \eqn{ z \int_[l(t),u(t)] x_i(s)\beta(s,t)ds} the base-learner
+  \eqn{ z_i \int_[l(t),u(t)] x_i(s)\beta(s,t)ds} the base-learner
   \code{bhistx} should be used instead of \code{bhist},
   e.g. \code{~ bhistx(x, limits) \%X\% bolsc(z)}, see \code{\link{bhistx}}.
 \item Generally, the \code{c()}-notation can be used to get effects that are
   constant over the index of the functional response.
+\item If the \code{formula} in \code{FDboost} contains base-learners connected by
+\code{\%O\%} or \code{\%A\%}, those effects are not expanded with \code{timeformula},
+allowing for model specifications with different effects in time-direction.
 }
 
 In order to obtain a fair selection of base-learners, the same  degrees of freedom (df)

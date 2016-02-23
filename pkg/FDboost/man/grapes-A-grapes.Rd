@@ -12,7 +12,8 @@ bl1 \%A\% bl2
 \item{bl2}{base-learner 2, e.g. \code{bbs(x2)}}
 }
 \description{
-EXPERIMENTAL! Ignores weights that are specified in the model-call!
+EXPERIMENTAL! Ignores weights that are specified in the model-call for the computation of
+the anisotropic penalty!
 }
 \details{
 EXPERIMENTAL!
@@ -21,22 +22,31 @@ When \code{\%O\%} is called with a specification of \code{df} in both base-learn
 e.g. \code{bbs(x1, df = df1) \%O\% bbs(t, df = df2)}, the global \code{df} for the
 Kroneckered base-learner is computed as \code{df = df1 * df2}.
 And thus the penalty has only one smoothness parameter lambda resulting in an isotropic penalty,
-\eqn{P = lambda*[( P1 o I ) +  (I o P2)]}, with overall penalty \eqn{P}, Kronecker product \eqn{o},
+\deqn{P = lambda * [(P1 o I) + (I o P2)],}
+with overall penalty \eqn{P}, Kronecker product \eqn{o},
 marginal penalty matrices \eqn{P1, P2} and identity matrices \eqn{I}.
 (Currie et al. (2006) introduced the generalized linear array model, which has a design matrix that
-is composed of the Kronecker product of two marginal design matrices and
-see Brockhaus et al. (2015) for the application of array models to functional data.)
+is composed of the Kronecker product of two marginal design matrices, which was implemented in mboost
+as \code{\%O\%}.
+See Brockhaus et al. (2015) for the application of array models to functional data.)
 
-A Kronecker product with anisotropic penalty is obtained by \code{\%A\%}, which allows for
-a different amount of smoothness in the two directions.
-For example \code{bbs(x1, df = df1) \%A\% bbs(t, df = df2)} results in computing, two
+In contrast, a Kronecker product with anisotropic penalty is obtained by \code{\%A\%},
+which allows for a different amount of smoothness in the two directions.
+For example \code{bbs(x1, df = df1) \%A\% bbs(t, df = df2)} results in computing two
 different values for lambda for the two marginal design matrices and a global value of
 lambda to adjust for the global \code{df}, i.e.
-\eqn{P = lambda*[( lambda1*P1 o I ) +  (I o lambda2*P2) ]}, with Kronecker product \eqn{o},
-where \eqn{lambda1} is computed for \eqn{df1}, \eqn{lambda2} is computed for \eqn{df2},
+\deqn{P = lambda * [(lambda1 * P1 o I) +  (I o lambda2 * P2)],}
+with Kronecker product \eqn{o},
+where \eqn{lambda1} is computed individually for \eqn{df1} and \eqn{P1},
+\eqn{lambda2} is computed individually for \eqn{df2}  and \eqn{P2},
 and \eqn{lambda} is computed such that the global \eqn{df} hold \eqn{df = df1 * df2}.
+For the computation of \eqn{lambda1} and \eqn{lambda2} weights specified in the model
+call are not used, this implies that \eqn{lambda1} and \eqn{lambda2} are equal over
+folds of \code{cvrisk}. The computation of the global \eqn{lambda} considers the
+specified \code{weights}, such the global \eqn{df} are correct.
 
-If the formula in \code{FDboost} contains base-learners connected by \code{\%O\%} or \code{\%A\%},
+If the \code{formula} in \code{FDboost} contains base-learners connected by
+\code{\%O\%} or \code{\%A\%},
 those effects are not expanded with \code{timeformula}, allowing for model specifications
 with different effects in time-direction.
 }
