@@ -17,7 +17,7 @@
 #' as the interaction in centerd around the intercept and centered around the main effects. 
 #' Use e.g. in a model call to \code{FDboost}, following the scheme, 
 #' \code{y ~ 1 + bolsc(x1) + bolsc(x2) + bols(x1) \%Xc\% bols(x2)}, 
-#' where \code{1} induces a global intercet and \code{x1}, \code{x2} are factor variables.  
+#' where \code{1} induces a global intercept and \code{x1}, \code{x2} are factor variables.  
 #' 
 #' @author Sarah Brockhaus, David Ruegamer
 #' 
@@ -145,6 +145,9 @@
   
   Xfun <- function(mf, vary, args) {
     
+    ## <SB> set prediciton to FALSE, if it is NULL
+    if(is.null(args$prediction)) args$prediction <- FALSE
+    
     newX1 <- environment(bl1$dpp)$newX
     newX2 <- environment(bl2$dpp)$newX
     
@@ -183,7 +186,6 @@
     
     #----------------------------------
     ### <SB> Calculate constraints
-    if(is.null(args$prediction)) args$prediction <- FALSE
     
     ## If model is fitted -> compute Z; but if model is predicted use the Z from the model fit
     ## if(!args$prediction){

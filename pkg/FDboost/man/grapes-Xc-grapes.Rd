@@ -28,7 +28,7 @@ in the case that the model contains a global intercept and both main effects,
 as the interaction in centerd around the intercept and centered around the main effects.
 Use e.g. in a model call to \code{FDboost}, following the scheme,
 \code{y ~ 1 + bolsc(x1) + bolsc(x2) + bols(x1) \%Xc\% bols(x2)},
-where \code{1} induces a global intercet and \code{x1}, \code{x2} are factor variables.
+where \code{1} induces a global intercept and \code{x1}, \code{x2} are factor variables.
 }
 \examples{
 ######## Example for function-on-scalar-regression with interaction effect of two scalar covariates
