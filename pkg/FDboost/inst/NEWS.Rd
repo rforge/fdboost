@@ -2,6 +2,17 @@
 \title{News for Package 'FDboost'}
 
 
+\section{Changes in FDboost version 0.0-17 (2016-02-25)}{
+  \subsection{User-visible changes}{
+    \itemize{
+	    \item changed the operator %Xc% for row tensor product of two scalar covariates. 
+		  The design matrix of the interaction effects is constrained such that the interaction is 
+		  centred around the intercept and around the two main effects of the scalar covariates (experimental!);  
+		  use e.g. as bols(x1) %Xc% bols(x2)
+    }
+  }
+}
+
 \section{Changes in FDboost version 0.0-16 (2016-02-22)}{
   \subsection{User-visible changes}{
     \itemize{
@@ -13,7 +24,6 @@
     }
   }
 }
-
 
 \section{Changes in FDboost version 0.0-15 (2016-02-12)}{
   \subsection{User-visible changes}{

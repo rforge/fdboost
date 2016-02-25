@@ -1,16 +1,25 @@
 #' Constrained row tensor product 
 #' 
-#' EXPERIMENTAL! Combining single base-learners to form new, more complex base-learners, with
-#' an identifiability constraint suitable for functional response. 
+#' EXPERIMENTAL! 
+#' 
+#' Combining single base-learners to form new, more complex base-learners, with
+#' an identifiability constraint to center the interaction around the intercept and
+#' around the two main effects. Suitable for functional response. 
 #' @param bl1 base-learner 1, e.g. \code{bols(x1)}
 #' @param bl2 base-learner 2, e.g. \code{bols(x2)}
 #' 
-#' @details Similar to \code{\%X\%} in package mboost, see \code{\link[mboost]{\%X\%}}, a tensor product of two 
+#' @details Similar to \code{\%X\%} in package mboost, see \code{\link[mboost]{\%X\%}}, 
+#' a row tensor product of two 
 #' or more linear base-learners is returned by \code{\%Xc\%}. 
 #' But \code{\%Xc\%} applies a sum-to-zero constraint to the design matrix suitable for
-#' functional response if an interaction of two scalar covariates is specified. Before the constraint 
-#' is applied an intercept-column is added to the design matrix, thus the two base-learners that are 
-#' connected by \code{\%Xc\%} should both not contain an intercept. 
+#' functional response if an interaction of two scalar covariates is specified 
+#' in the case that the model contains a global intercept and both main effects, 
+#' as the interaction in centerd around the intercept and centered around the main effects. 
+#' Use e.g. in a model call to \code{FDboost}, following the scheme, 
+#' \code{y ~ 1 + bolsc(x1) + bolsc(x2) + bols(x1) \%Xc\% bols(x2)}, 
+#' where \code{1} induces a global intercet and \code{x1}, \code{x2} are factor variables.  
+#' 
+#' @author Sarah Brockhaus, David Ruegamer
 #' 
 #' @examples  
 #' ######## Example for function-on-scalar-regression with interaction effect of two scalar covariates 
@@ -24,16 +33,29 @@
 #' viscosity$time <- viscosity$timeAll[1:end]
 #' # with(viscosity, funplot(time, vis, pch = 16, cex = 0.2))
 #' 
-#' ## fit median regression model with 100 boosting iterations,
-#' ## step-length 0.4 and smooth time-specific offset
-#' ## the factors are coded such that the intercept is the global median 
-#' ## no integration weights are used!
-#' mod1 <- FDboost(vis ~ 1 + bolsc(T_C, df=2) + bolsc(T_A, df=2) + 
-#'                 bolsc(T_C, df=2) %Xc% bolsc(T_A, df=1),
+#' ## fit model with interaction that is centered around the intercept 
+#' ## and the two main effects 
+#' mod1 <- FDboost(vis ~ 1 + bolsc(T_C, df=1) + bolsc(T_A, df=1) + 
+#'                 bols(T_C, df=2) %Xc% bols(T_A, df=1),
 #'                 timeformula = ~bbs(time, df=3),
 #'                 numInt = "equal", family = QuantReg(),
 #'                 offset = NULL, offset_control = o_control(k_min = 9),
 #'                 data = viscosity, control=boost_control(mstop = 100, nu = 0.4))
+#'                 
+#' ## check centering around intercept
+#' colMeans(predict(mod1, which = 4))
+#' 
+#' ## check centering around main effects
+#' colMeans(predict(mod1, which = 4)[viscosity$T_A == "low", ])
+#' colMeans(predict(mod1, which = 4)[viscosity$T_A == "high", ])
+#' colMeans(predict(mod1, which = 4)[viscosity$T_C == "low", ])
+#' colMeans(predict(mod1, which = 4)[viscosity$T_C == "low", ])
+#'
+#' ## find optimal mstop using cvrsik() or validateFDboost()
+#' ## ... 
+#' 
+#' ## look at interaction effect in one plot
+#' # funplot(mod1$yind, predict(mod1, which=4))
 #' 
 #' @export
 "%Xc%" <- function(bl1, bl2) {
@@ -48,6 +70,20 @@
                bl2$get_call(), collapse = "")
   stopifnot(inherits(bl1, "blg"))
   stopifnot(inherits(bl2, "blg"))
+  
+  ## Check that the used base-learners contain an intercept
+  used_bl <- c( deparse(match.call()$bl1[[1]]), 
+                deparse(match.call()$bl2[[1]]) )
+  if(any(used_bl == "bolsc")) stop("Use bols instead of bolsc with %Xc%.")
+  if(any(used_bl == "brandomc")) stop("Use brandom instead of brandomc with %Xc%.")
+  if( (!is.null(match.call()$bl1$intercept) &&  match.call()$bl1$intercept != TRUE) |
+      (!is.null(match.call()$bl2$intercept) &&  match.call()$bl2$intercept != TRUE) ){
+    stop("Set intercept = TRUE in base-learners used with %Xc%.")
+  }
+  
+  if(any(!used_bl %in% c("bols", "brandom")) ){
+    warning("%Xc% is only tested for base-learners bols and brandom with factor variables!")
+  }
   
   stopifnot(!any(colnames(model.frame(bl1)) %in%
                    colnames(model.frame(bl2))))
@@ -145,12 +181,6 @@
         kronecker(diag(ncol(X1)), K2)
     )
     
-    
-    ## add an intercept column to the design matrix
-    X <- cbind(1, X)
-    ## fixme what to to with the penalty??
-    K <- bdiag(K[1,1], K)
-    
     #----------------------------------
     ### <SB> Calculate constraints
     if(is.null(args$prediction)) args$prediction <- FALSE
@@ -159,15 +189,22 @@
     ## if(!args$prediction){
     ## compute QR-decompotition only once
     if(is.null(args$Z)){
-      C <- t(X) %*% rep(1, nrow(X))
-      Q <- qr.Q(qr(C), complete=TRUE) # orthonormal matrix of QR decomposition
-      args$Z <- Q[  , 2:ncol(Q)] # only keep last columns    
+      ## put all effects of the two main effects + intercept into the constraints 
+      C <- t(X) %*% cbind(rep(1, nrow(X)), X1[ , -1], X2[ , -1])
+      qr_C <- qr(C)
+      if( any(class(qr_C) == "sparseQR") ){
+        rank_C <- qr_C@Dim[2]
+      }else{
+        rank_C <- qr_C$rank 
+      } 
+      Q <- qr.Q(qr_C, complete=TRUE) # orthonormal matrix of QR decomposition
+      args$Z <- Q[  , (rank_C + 1) : ncol(Q) ] # only keep last columns    
     } 
     
     ### Transform design and penalty matrix
     X <- X %*% args$Z
     K <- t(args$Z) %*% K %*% args$Z
-    #print(args$Z)
+    ## print(args$Z)
     #----------------------------------
     
     list(X = X, K = K, args = args)  
@@ -185,9 +222,12 @@
 
 
 
+
 #' Kronecker product of two base-learners with anisotropic penalty 
 #' 
-#' EXPERIMENTAL! Ignores weights that are specified in the model-call for the computation of
+#' EXPERIMENTAL! 
+#' 
+#' Ignores weights that are specified in the model-call for the computation of
 #' the anisotropic penalty!
 #' @param bl1 base-learner 1, e.g. \code{bbs(x1)}
 #' @param bl2 base-learner 2, e.g. \code{bbs(x2)}
@@ -233,6 +273,56 @@
 #' Currie, I.D., Durban, M. and Eilers P.H.C. (2006):  
 #' Generalized linear array models with applications to multidimensional smoothing. 
 #' Journal of the Royal Statistical Society, Series B-Statistical Methodology, 68(2), 259-280.
+#' 
+#' @examples  
+#' ######## Example for anisotropic penalty  
+#' data("viscosity", package = "FDboost") 
+#' ## set time-interval that should be modeled
+#' interval <- "101"
+#' 
+#' ## model time until "interval" and take log() of viscosity
+#' end <- which(viscosity$timeAll == as.numeric(interval))
+#' viscosity$vis <- log(viscosity$visAll[,1:end])
+#' viscosity$time <- viscosity$timeAll[1:end]
+#' # with(viscosity, funplot(time, vis, pch = 16, cex = 0.2))
+#' 
+#' ## isotropic penalty, as timeformula is kroneckered to each effect using %O%...
+#' mod1 <- FDboost(vis ~ 1 + 
+#'                 bolsc(T_C, df=1) + 
+#'                 bolsc(T_A, df=1) + 
+#'                 bols(T_C, df=1) %Xc% bols(T_A, df=1),
+#'                 timeformula = ~ bbs(time, df=3),
+#'                 numInt = "equal", family = QuantReg(),
+#'                 offset = NULL, offset_control = o_control(k_min = 9),
+#'                 data = viscosity, control=boost_control(mstop = 200, nu = 0.4))
+#' ## cf. the formula that is passed to mboost
+#' mod1$formulaMboost
+#' 
+#' ## anisotropic effects using %A%
+#' mod1a <- FDboost(vis ~ 1 + 
+#'                 bolsc(T_C, df=1) %A% bbs(time, df=3) + 
+#'                 bolsc(T_A, df=1) %A% bbs(time, df=3) + 
+#'                 bols(T_C, df=1) %Xc% bols(T_A, df=1) %A% bbs(time, df=3),
+#'                 timeformula = ~ bbs(time, df=3),
+#'                 numInt = "equal", family = QuantReg(),
+#'                 offset = NULL, offset_control = o_control(k_min = 9),
+#'                 data = viscosity, control=boost_control(mstop = 200, nu = 0.4)) 
+#'                 
+#' ## optimize mstop for mod1 and mod1a
+#' ## ...
+#'                 
+#' ## compare estimated coefficients
+#' \dontrun{
+#' par(mfrow=c(4, 2))
+#' plot(mod1, which = 1)
+#' plot(mod1a, which = 1)
+#' plot(mod1, which = 2)
+#' plot(mod1a, which = 2)
+#' plot(mod1, which = 3)
+#' plot(mod1a, which = 3)
+#' funplot(mod1$yind, predict(mod1, which=4))
+#' funplot(mod1$yind, predict(mod1a, which=4))
+#' }
 #' 
 #' @export
 "%A%" <- function(bl1, bl2) {

@@ -12,10 +12,12 @@ bl1 \%A\% bl2
 \item{bl2}{base-learner 2, e.g. \code{bbs(x2)}}
 }
 \description{
-EXPERIMENTAL! Ignores weights that are specified in the model-call for the computation of
-the anisotropic penalty!
+EXPERIMENTAL!
 }
 \details{
+Ignores weights that are specified in the model-call for the computation of
+the anisotropic penalty!
+
 EXPERIMENTAL!
 
 When \code{\%O\%} is called with a specification of \code{df} in both base-learners,
@@ -49,6 +51,56 @@ If the \code{formula} in \code{FDboost} contains base-learners connected by
 \code{\%O\%} or \code{\%A\%},
 those effects are not expanded with \code{timeformula}, allowing for model specifications
 with different effects in time-direction.
+}
+\examples{
+######## Example for anisotropic penalty
+data("viscosity", package = "FDboost")
+## set time-interval that should be modeled
+interval <- "101"
+
+## model time until "interval" and take log() of viscosity
+end <- which(viscosity$timeAll == as.numeric(interval))
+viscosity$vis <- log(viscosity$visAll[,1:end])
+viscosity$time <- viscosity$timeAll[1:end]
+# with(viscosity, funplot(time, vis, pch = 16, cex = 0.2))
+
+## isotropic penalty, as timeformula is kroneckered to each effect using \%O\%...
+mod1 <- FDboost(vis ~ 1 +
+                bolsc(T_C, df=1) +
+                bolsc(T_A, df=1) +
+                bols(T_C, df=1) \%Xc\% bols(T_A, df=1),
+                timeformula = ~ bbs(time, df=3),
+                numInt = "equal", family = QuantReg(),
+                offset = NULL, offset_control = o_control(k_min = 9),
+                data = viscosity, control=boost_control(mstop = 200, nu = 0.4))
+## cf. the formula that is passed to mboost
+mod1$formulaMboost
+
+## anisotropic effects using \%A\%
+mod1a <- FDboost(vis ~ 1 +
+                bolsc(T_C, df=1) \%A\% bbs(time, df=3) +
+                bolsc(T_A, df=1) \%A\% bbs(time, df=3) +
+                bols(T_C, df=1) \%Xc\% bols(T_A, df=1) \%A\% bbs(time, df=3),
+                timeformula = ~ bbs(time, df=3),
+                numInt = "equal", family = QuantReg(),
+                offset = NULL, offset_control = o_control(k_min = 9),
+                data = viscosity, control=boost_control(mstop = 200, nu = 0.4))
+
+## optimize mstop for mod1 and mod1a
+## ...
+
+## compare estimated coefficients
+\dontrun{
+par(mfrow=c(4, 2))
+plot(mod1, which = 1)
+plot(mod1a, which = 1)
+plot(mod1, which = 2)
+plot(mod1a, which = 2)
+plot(mod1, which = 3)
+plot(mod1a, which = 3)
+funplot(mod1$yind, predict(mod1, which=4))
+funplot(mod1$yind, predict(mod1a, which=4))
+}
 }
 \references{
 Brockhaus, S., Scheipl, F., Hothorn, T. and Greven, S. (2015):

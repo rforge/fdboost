@@ -12,16 +12,23 @@ bl1 \%Xc\% bl2
 \item{bl2}{base-learner 2, e.g. \code{bols(x2)}}
 }
 \description{
-EXPERIMENTAL! Combining single base-learners to form new, more complex base-learners, with
-an identifiability constraint suitable for functional response.
+EXPERIMENTAL!
 }
 \details{
-Similar to \code{\%X\%} in package mboost, see \code{\link[mboost]{\%X\%}}, a tensor product of two
+Combining single base-learners to form new, more complex base-learners, with
+an identifiability constraint to center the interaction around the intercept and
+around the two main effects. Suitable for functional response.
+
+Similar to \code{\%X\%} in package mboost, see \code{\link[mboost]{\%X\%}},
+a row tensor product of two
 or more linear base-learners is returned by \code{\%Xc\%}.
 But \code{\%Xc\%} applies a sum-to-zero constraint to the design matrix suitable for
-functional response if an interaction of two scalar covariates is specified. Before the constraint
-is applied an intercept-column is added to the design matrix, thus the two base-learners that are
-connected by \code{\%Xc\%} should both not contain an intercept.
+functional response if an interaction of two scalar covariates is specified
+in the case that the model contains a global intercept and both main effects,
+as the interaction in centerd around the intercept and centered around the main effects.
+Use e.g. in a model call to \code{FDboost}, following the scheme,
+\code{y ~ 1 + bolsc(x1) + bolsc(x2) + bols(x1) \%Xc\% bols(x2)},
+where \code{1} induces a global intercet and \code{x1}, \code{x2} are factor variables.
 }
 \examples{
 ######## Example for function-on-scalar-regression with interaction effect of two scalar covariates
@@ -35,15 +42,31 @@ viscosity$vis <- log(viscosity$visAll[,1:end])
 viscosity$time <- viscosity$timeAll[1:end]
 # with(viscosity, funplot(time, vis, pch = 16, cex = 0.2))
 
-## fit median regression model with 100 boosting iterations,
-## step-length 0.4 and smooth time-specific offset
-## the factors are coded such that the intercept is the global median
-## no integration weights are used!
-mod1 <- FDboost(vis ~ 1 + bolsc(T_C, df=2) + bolsc(T_A, df=2) +
-                bolsc(T_C, df=2) \%Xc\% bolsc(T_A, df=1),
+## fit model with interaction that is centered around the intercept
+## and the two main effects
+mod1 <- FDboost(vis ~ 1 + bolsc(T_C, df=1) + bolsc(T_A, df=1) +
+                bols(T_C, df=2) \%Xc\% bols(T_A, df=1),
                 timeformula = ~bbs(time, df=3),
                 numInt = "equal", family = QuantReg(),
                 offset = NULL, offset_control = o_control(k_min = 9),
                 data = viscosity, control=boost_control(mstop = 100, nu = 0.4))
+
+## check centering around intercept
+colMeans(predict(mod1, which = 4))
+
+## check centering around main effects
+colMeans(predict(mod1, which = 4)[viscosity$T_A == "low", ])
+colMeans(predict(mod1, which = 4)[viscosity$T_A == "high", ])
+colMeans(predict(mod1, which = 4)[viscosity$T_C == "low", ])
+colMeans(predict(mod1, which = 4)[viscosity$T_C == "low", ])
+
+## find optimal mstop using cvrsik() or validateFDboost()
+## ...
+
+## look at interaction effect in one plot
+# funplot(mod1$yind, predict(mod1, which=4))
+}
+\author{
+Sarah Brockhaus, David Ruegamer
 }
 
