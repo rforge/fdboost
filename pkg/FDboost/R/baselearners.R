@@ -1911,8 +1911,8 @@ hyper_bbsc <- function(Z, ...){
 #' response \eqn{t} constraints that enforce 
 #' \eqn{\sum_i \hat f(z_i, x_i, t) = 0} for all \eqn{t} are used, so that 
 #' effects varying over \eqn{t} can be interpreted as deviations 
-#' from the global functional intercept, see the web appendix of 
-#' Scheipl et al. (2015) and Brockhaus et al. (2015) for details on how to enforce the 
+#' from the global functional intercept, see Web Appendix A of 
+#' Scheipl et al. (2015) and Web Appendix A of Brockhaus et al. (2015) for details on how to enforce the 
 #' constraints. 
 #' 
 #' Cannot deal with any missing values in the covariates.
