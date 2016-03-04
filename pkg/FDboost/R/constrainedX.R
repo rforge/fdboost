@@ -386,13 +386,13 @@
     args <- list(lambda = NA, df = NA)
   } else {
     
-    args <- list(lambda = NULL,
-                 df = ifelse(is.null(args1$df), 1, args1$df) *
-                   ifelse(is.null(args2$df), 1, args2$df))
-    
     ### <SB> anisotropic penalty matrix 
     df1 <- args1$df
     df2 <- args2$df
+    
+    args <- list(lambda = NULL,
+                 df = ifelse(is.null(df1), 1, df1) *
+                   ifelse(is.null(df2), 1, df2))
 
     ## case that df equals nr columns of design matrix -> no penalty -> lambda = 0
     if( abs(ncol(environment(bl1$dpp)$X) - df1) < .Machine$double.eps*10^10){ 
