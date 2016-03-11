@@ -86,7 +86,7 @@
 #' as a vector in long format and the argument \code{id} has  
 #' to be specified (as formula!) to define which observations belong to which curve.  
 #' In this case the base-learners are built as row tensor-products of marginal base-learners, 
-#' see Scheipl et al. (2015), for details on how to set up the effects. 
+#' see Scheipl et al. (2015) and Brockhaus et al. (2016), for details on how to set up the effects. 
 #' The row tensor product of two marginal bases is implemented in R-package mboost 
 #' in the function \code{\%X\%}, see \code{\link[mboost]{\%X\%}}. 
 #' 
@@ -170,8 +170,7 @@
 #' cases not adequate (the optimal number of boosting iterations can considerably exceed 100). 
 #' The optimal stopping iteration can be determined by resampling methods like
 #' cross-validation or bootstrapping, see the function \code{\link{cvrisk.FDboost}} which searches 
-#' the optimal stopping iteration on a grid, which in many cases has to be extended.   
-
+#' the optimal stopping iteration on a grid, which in many cases has to be extended.  
 #' 
 #' @return An object of class \code{FDboost} that inherits from \code{mboost}.
 #' Special \code{\link{predict.FDboost}}, \code{\link{coef.FDboost}} and 
@@ -209,6 +208,10 @@
 #' @references 
 #' Brockhaus, S., Scheipl, F., Hothorn, T. and Greven, S. (2015): 
 #' The functional linear array model. Statistical Modelling, 15(3), 279-300. 
+#' 
+#' Brockhaus, S., Melcher, M., Leisch, F. and Greven, S. (2016): 
+#' Boosting flexible functional regression models with a high number of functional historical effects,  
+#' under revision.  
 #' 
 #' Currie, I.D., Durban, M. and Eilers P.H.C. (2006):  
 #' Generalized linear array models with applications to multidimensional smoothing. 
@@ -270,7 +273,7 @@
 #' fuelSubset$UVVIS <- scale(fuelSubset$UVVIS, scale = FALSE)
 #' fuelSubset$NIR <- scale(fuelSubset$NIR, scale = FALSE)
 #' 
-#' ## to make mboost::df2lambda() happy (all design matrix entries < 10)
+#' ## to make mboost:::df2lambda() happy (all design matrix entries < 10)
 #' ## reduce range of argvals to [0,1] to get smaller integration weights
 #' fuelSubset$uvvis.lambda <- with(fuelSubset, (uvvis.lambda - min(uvvis.lambda)) / 
 #'                                           (max(uvvis.lambda) - min(uvvis.lambda) ))
@@ -392,6 +395,7 @@
 #' @importFrom splines bs splineDesign
 #' @importFrom mgcv gam s
 #' @importFrom zoo na.locf
+#' @importFrom MASS Null
 #' @importFrom parallel mclapply
 #' @importFrom refund fpca.sc
 FDboost <- function(formula,          ### response ~ xvars
@@ -527,7 +531,8 @@ FDboost <- function(formula,          ### response ~ xvars
   # data <- as.data.frame(data)
   allCovs <- unique(c(nameid, all.vars(formula)))
   if(length(allCovs) > 1){
-    data <- data[allCovs[!allCovs %in% c(yname, nameyind)] ]    
+    data <- data[allCovs[!allCovs %in% c(yname, nameyind)] ]
+    if( any(is.na(names(data))) ) data <- data[ !is.na(names(data)) ]
   }else data <- list(NULL)  # <SB> intercept-model without covariates
         
   ### get covariates that are modeled constant over time
@@ -611,8 +616,9 @@ FDboost <- function(formula,          ### response ~ xvars
     }
     
     ## for FLAM model with %O% use anisotropic Kronecker product for not penalizing in direction of ONEx
+    ## use %A0%, as smooth intercept has smooting parameter 0 in 1-direction 
     if(is.null(id)){
-      xfm[[1]] <- paste(xfm[[1]], "%A%", tfm)
+      xfm[[1]] <- paste(xfm[[1]], "%A0%", tfm)
     }
     
     where.c <- where.c + 1
@@ -667,6 +673,10 @@ FDboost <- function(formula,          ### response ~ xvars
   if( length(grep("%A%", xfm)) > 0 ) 
     tmp[grep("%A%", xfm)] <- xfm[grep("%A%", xfm)]
   
+  ## do not expand effects in formula including %A0% with timeformula
+  if( length(grep("%A0%", xfm)) > 0 ) 
+    tmp[grep("%A0%", xfm)] <- xfm[grep("%A0%", xfm)]
+  
   ## do not expand effects in formula including %O% with timeformula
   if( length(grep("%O%", xfm)) > 0 ) 
     tmp[grep("%O%", xfm)] <- xfm[grep("%O%", xfm)]
@@ -693,16 +703,25 @@ FDboost <- function(formula,          ### response ~ xvars
     if (length(w) == nr) w <- rep(w, nc) # expand weights if they are only on the columns
     if(length(w) != nc*nr) stop("Dimensions of weights do not match the dimensions of the response.") # check dimensions of w  
   }
-   
+
+  ## save the integration weights as data_weights
+  ## per default the data_weights are all 1 
+  data_weights <- 1
+  
   ### multiply integration weights numInt to weights and w
   if(is.numeric(numInt)){
     if(length(numInt) != length(time)) stop("Length of integration weights and time vector are not equal.")
-    weights <- weights*numInt
-    w <- rep(weights, each = nr)
+    weights <- weights * numInt
+    data_weights <- numInt
+    if(!is.null(ydim)){ ## only blow up for array model
+      w <- rep(weights, each = nr)
+      data_weights <- rep(data_weights, each = nr)
+    }
   }else{
     if(!numInt %in% c("equal", "Riemann")) warning("argument numInt is ignored as it is neither numeric nor one of (\"equal\", \"Riemann\")")
     if(numInt == "Riemann"){ 
-      w <- w*as.vector(integrationWeights(X1 = response, time, id = id))
+      data_weights <- as.vector(integrationWeights(X1 = response, time, id = id))
+      w <- w * data_weights
     }
   }
   

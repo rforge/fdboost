@@ -7,13 +7,13 @@
 #' the models. 
 #' 
 #' @param object fitted FDboost-object
-#' @param response you can specify a response vector to calculate predictions errors. 
+#' @param response optional, specify a response vector for the computation of the prediction errors.  
 #' Defaults to \code{NULL} which means that the response of the fitted model is used.
 #' @param folds a weight matrix with number of rows equal to the number of observed trajectories.  
 #' @param grid the grid over which the optimal number of boosting iterations (mstop) is searched.  
 #' @param getCoefCV logical, defaults to \code{TRUE}. Should the coefficients and predictions
 #' be computed for all the models on the sampled data?
-#' @param riskopt how is the optimal stopping iteration determined. Defaults to the mean
+#' @param riskopt how is the optimal stopping iteration determined. Defaults to the mean, 
 #' but median is possible as well. 
 #' @param mrdDelete Delete values that are \code{mrdDelete} percent smaller than the mean
 #' of the response. Defaults to 0 which means that only response values being 0 

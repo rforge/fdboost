@@ -582,7 +582,18 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
       }else{
         return("offset")
       }  
-    } 
+    }
+    
+    if(is.null(which)) which <- 1:length(object$baselearner)
+    
+    ## special case of ~1 intercept specification with scalar response
+    if( object$ydim[[2]] == 1 && 
+        any(which == 1) && 
+        length(object$coef(which = 1)[[1]]) == 1 ){
+      ret$intercept <- object$coef(which = 1)[[1]]
+      which <- which[which != 1]
+      if(length(which) == 0) return(ret)
+    }
     
     getCoefs <- function(i){
       ## this constructs a grid over the range of the covariates
@@ -724,7 +735,7 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
         varnms <- trm$get_names()
         yListPlace <- NULL
         zListPlace <- NULL
-        
+
         # generate grid of values in range of original data
         if(trm$dim==1){
           ng <- n1
@@ -735,6 +746,7 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
             xg <- seq(min(x), max(x),length=ng) 
             varnms[1] <- attr(trm$model.frame()[[1]], "indname")            
           }else{
+            # if(length(varnms) == 0)
             x <- trm$model.frame()[[varnms]]
             xg <- if(is.factor(x)) {
               sort(unique(x))
@@ -1180,8 +1192,6 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
       } 
       ret
     }
-    
-    if(is.null(which)) which <- 1:length(object$baselearner)
 
     ## short names for the terms, if shortnames() does not work, use the original names
     shrtlbls <- try(unlist(lapply(names(object$baselearner), shortnames)))

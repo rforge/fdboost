@@ -84,11 +84,15 @@ X_histx <- function(mf, vary, args, getDesign=TRUE) {
   # compute design-matrix in s-direction
   Bs <- switch(args$inS, 
                # B-spline basis of specified degree 
-               "smooth" = bsplines(xind, knots=args$knots[[varnames]]$knots, 
-                                   boundary.knots=args$knots[[varnames]]$boundary.knots, 
-                                   degree=args$degree),
-               "linear" = matrix(c(rep(1, length(xind)), xind), ncol=2),
-               "constant"=  matrix(c(rep(1, length(xind))), ncol=1))
+               #"smooth" = bsplines(xind, knots=args$knots[[varnames]]$knots, 
+               #                     boundary.knots=args$knots[[varnames]]$boundary.knots, 
+               #                    degree=args$degree),
+               "smooth" = mboost_intern(xind, knots = args$knots[[varnames]]$knots, 
+                                        boundary.knots = args$knots[[varnames]]$boundary.knots, 
+                                        degree = args$degree, 
+                                        fun = "bsplines"),
+               "linear" = matrix(c(rep(1, length(xind)), xind), ncol = 2),
+               "constant"=  matrix(c(rep(1, length(xind))), ncol = 1))
   
   colnames(Bs) <- paste(xname, 1:ncol(Bs), sep="")
   
@@ -204,10 +208,17 @@ X_histx <- function(mf, vary, args, getDesign=TRUE) {
     #      ### the response is a vector (y1(t1), y2(t1), ... , yn(t1), yn(tG))
     #      X1des <- X1[rep(1:nobs, times=length(yind)), ]
     #    } else{ # yind is over all observations in long format
-    X1des <- X1[id, ] 
+    
     #    }
+    
+    X1des <- X1[id, ] 
     X1des[ind0] <- 0    
     X1des <- Matrix(X1des, sparse=TRUE) # convert into sparse matrix
+
+    ## if(!is(X1, "sparseMatrix")) 
+    # X1 <- Matrix(X1, sparse=TRUE) # convert into sparse matrix
+    # X1des <- X1[as.numeric(id), ] 
+    # X1des[ind0] <- 0    
     
   }else{ # small matrices: do not use Matrix
     #    if(args$format == "wide"){
@@ -267,9 +278,13 @@ X_histx <- function(mf, vary, args, getDesign=TRUE) {
   # long: design matrix over index of response (yind has long format!)
   Bt <- switch(args$inTime, 
                # B-spline basis of specified degree 
-               "smooth" = bsplines(yind, knots=args$knots[[varnames]]$knots, 
-                                   boundary.knots=args$knots[[varnames]]$boundary.knots, 
-                                   degree=args$degree),
+               # "smooth" = bsplines(yind, knots=args$knots[[varnames]]$knots, 
+               #                   boundary.knots=args$knots[[varnames]]$boundary.knots, 
+               #                   degree=args$degree),
+               "smooth" = mboost_intern(yind, knots = args$knots[[varnames]]$knots, 
+                                        boundary.knots = args$knots[[varnames]]$boundary.knots, 
+                                        degree = args$degree, 
+                                        fun = "bsplines"),
                "linear" = matrix(c(rep(1, length(yind)), yind), ncol=2),
                "constant"=  matrix(c(rep(1, length(yind))), ncol=1))
   
@@ -278,14 +293,14 @@ X_histx <- function(mf, vary, args, getDesign=TRUE) {
   #     Bt <- Bt[rep(1:length(yind), each=nobs), ]
   #   }
   
-  if(!isMATRIX(Bt)) Bt <- matrix(Bt, ncol=1)
+  if(! mboost_intern(Bt, fun = "isMATRIX") ) Bt <- matrix(Bt, ncol=1)
   
   # calculate row-tensor
   # X <- (X1 %x% t(rep(1, ncol(X2))) ) * ( t(rep(1, ncol(X1))) %x% X2  )
   dimnames(Bt) <- NULL # otherwise warning "dimnames [2] mismatch..."
   X <- X1des[,rep(1:ncol(Bs), each=ncol(Bt))] * Bt[,rep(1:ncol(Bt), times=ncol(Bs))]
   
-  if(!isMATRIX(X)) X <- matrix(X, ncol=1)
+  if(! mboost_intern(X, fun = "isMATRIX") ) X <- matrix(X, ncol=1)
   
   colnames(X) <- paste0(xname, 1:ncol(X))
   
@@ -505,7 +520,8 @@ bhistx <- function(x,
   
   vary <- ""
   
-  CC <- all(Complete.cases(mf))
+  # CC <- all(Complete.cases(mf))
+  CC <- all(mboost_intern(mf, fun = "Complete.cases"))
   if (!CC)
     warning("base-learner contains missing values;\n",
             "missing values are excluded per base-learner, ",
@@ -559,6 +575,8 @@ bhistx <- function(x,
   class(ret) <- "blg"
   
   ### call fitter with X_histx 
-  ret$dpp <- bl_lin(ret, Xfun = X_histx, args = temp$args) 
+  # ret$dpp <- bl_lin(ret, Xfun = X_histx, args = temp$args) 
+  ret$dpp <- mboost_intern(ret, Xfun = X_histx, args = temp$args, fun = "bl_lin")
+  
   return(ret)
 }

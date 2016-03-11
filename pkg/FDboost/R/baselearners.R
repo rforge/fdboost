@@ -266,18 +266,16 @@ X_bsignal <- function(mf, vary, args) {
   
   if(ncol(X1)!=length(xind)) stop(xname, ": Dimension of signal matrix and its index do not match.")
   
-  # B-spline basis of specified degree  
-  # Bs <- bs(xind, knots=knots, degree=args$degree, intercept=TRUE) # old version   
-  # Bs <- bsplines(xind, 
-  #               knots=args$knots$knots, boundary.knots=args$knots$boundary.knots, 
-  #               degree=args$degree)
-  
   # compute design-matrix in s-direction
   Bs <- switch(args$inS, 
                # B-spline basis of specified degree 
-               "smooth" = bsplines(xind, knots=args$knots$knots, 
-                                   boundary.knots=args$knots$boundary.knots, 
-                                   degree=args$degree),
+               # "smooth" = bsplines(xind, knots=args$knots$knots, 
+               #                   boundary.knots=args$knots$boundary.knots, 
+               #                   degree=args$degree),
+               "smooth" = mboost_intern(xind, knots = args$knots$knots, 
+                                        boundary.knots = args$knots$boundary.knots, 
+                                        degree = args$degree, 
+                                        fun = "bsplines"),
                "linear" = matrix(c(rep(1, length(xind)), xind), ncol=2),
                "constant"=  matrix(c(rep(1, length(xind))), ncol=1))
   
@@ -286,9 +284,14 @@ X_bsignal <- function(mf, vary, args) {
   
   # use cyclic splines
   if (args$cyclic) {
-    Bs <- cbs(xind, knots = args$knots$knots,
-              boundary.knots = args$knots$boundary.knots,
-              degree = args$degree)
+    if(args$inS != "smooth") stop("Cyclic splines are only meaningful for a smooth effect.")
+    # Bs <- cbs(xind, knots = args$knots$knots,
+    #          boundary.knots = args$knots$boundary.knots,
+    #          degree = args$degree)
+    Bs <- mboost_intern(xind, knots = args$knots$knots,
+                        boundary.knots = args$knots$boundary.knots,
+                        degree = args$degree, 
+                        fun = "cbs")
   }
   
   colnames(Bs) <- paste(xname, 1:ncol(Bs), sep="")  
@@ -353,7 +356,7 @@ X_bsignal <- function(mf, vary, args) {
   
   colnames(X) <- paste0(xname, 1:ncol(X))
  
-  ## see Scheipl and Greven (2015): Identifiability in penalized function-on-function regression models  
+  ## see Scheipl and Greven (2016): Identifiability in penalized function-on-function regression models  
   if(args$check.ident){
     res_check <- check_ident(X1=X1, L=L, Bs=Bs, K=K, xname=xname, 
                              penalty=args$penalty, cumOverlap=FALSE)
@@ -453,7 +456,7 @@ X_bsignal <- function(mf, vary, args) {
 #' @param penalty by default, \code{penalty="ps"}, the difference penalty for P-splines is used, 
 #' for \code{penalty="pss"} the penalty matrix is transformed to have full rank, 
 #' so called shrinkage approach by Marra and Wood (2011)
-#' @param check.ident use checks for identifiability of the effect, based on Scheipl and Greven (2015b)
+#' @param check.ident use checks for identifiability of the effect, based on Scheipl and Greven (2016)
 #' @param standard the historical effect can be standardized with a factor. 
 #' "no" means no standardization, "time" standardizes with the current value of time and 
 #' "length" standardizes with the length of the integral 
@@ -503,17 +506,16 @@ X_bsignal <- function(mf, vary, args) {
 #' where \eqn{t0} is the minimal index of \eqn{t} of the response \eqn{Y(t)}. 
 #' \code{bhist} can only be used if \eqn{Y(t)} and \eqn{x(s)} are observed over
 #' the same domain \eqn{s,t \in [t_0, T]}. 
-#' The functional variable must be observed on one common grid \code{s}.  
+#' The functional variable must be observed on one common grid \code{s}, 
+#' see Brockhaus et al. (2016) for details on historical effects.   
 #' 
 #' \code{bfpc} is a base-learner for functional covariates based on 
 #' functional principal component analysis (FPCA). The functional covariate
 #' \eqn{x(s)} is decomposed into \eqn{x(s) \approx \sum_{k=1}^K \xi_{ik} \Phi_k(s)} using 
 #' \code{\link[refund]{fpca.sc}} and represents \eqn{\beta(s)} in the function
-#' space spanned by \eqn{\Phi_k(s)}, see Scheipl et al. (2015a) for details. 
+#' space spanned by \eqn{\Phi_k(s)}, see Scheipl et al. (2015) for details. 
 #' The implementation is similar to \code{\link[refund]{ffpc}}.  
 #' This is an experimental base-learner and not well tested yet. 
-#' The functional variable must be observed on a regular grid \code{s}, 
-#' i.e. an even-spaced grid.      
 #' 
 #' It is recommended to use centered functional covariates with 
 #' \eqn{\sum_i x_i(s) = 0} for all \eqn{s} in \code{bsignal}-, 
@@ -528,7 +530,7 @@ X_bsignal <- function(mf, vary, args) {
 #' @return Equally to the base-learners of package mboost: 
 #' 
 #' An object of class \code{blg} (base-learner generator) with a 
-#' \code{dpp} function. 
+#' \code{dpp} function (dpp, data pre-processing). 
 #' 
 #' The call of \code{dpp} returns an object of class 
 #' \code{bl} (base-learner) with a \code{fit} function. The call to 
@@ -541,14 +543,18 @@ X_bsignal <- function(mf, vary, args) {
 #' Brockhaus, S., Scheipl, F., Hothorn, T. and Greven, S. (2015): 
 #' The functional linear array model. Statistical Modelling, 15(3), 279-300.
 #' 
+#' Brockhaus, S., Melcher, M., Leisch, F. and Greven, S. (2016): 
+#' Boosting flexible functional regression models with a high number of functional historical effects, 
+#' under revision. 
+#' 
 #' Marra, G. and Wood, S.N. (2011): Practical variable selection for generalized additive models. 
 #' Computational Statistics & Data Analysis, 55, 2372-2387.
 #' 
-#' Scheipl, F., Staicu, A.-M. and Greven, S. (2015a): 
+#' Scheipl, F., Staicu, A.-M. and Greven, S. (2015): 
 #' Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 24(2), 477-501. 
 #' 
-#' Scheipl, F. and Greven, S. (2015b): Identifiability in penalized function-on-function regression models. 
-#' Technical Report 125, Department of Statistics, LMU Muenchen.
+#' Scheipl, F. and Greven, S. (2016): Identifiability in penalized function-on-function regression models. 
+#' Electronic Journal of Statistics, 10(1), 495-526. 
 #'  
 #' @examples 
 #' ######## Example for scalar-on-function-regression 
@@ -558,7 +564,7 @@ X_bsignal <- function(mf, vary, args) {
 #' fuelSubset$UVVIS <- scale(fuelSubset$UVVIS, scale = FALSE)
 #' fuelSubset$NIR <- scale(fuelSubset$NIR, scale = FALSE)
 #' 
-#' ## to make mboost::df2lambda() happy (all design matrix entries < 10)
+#' ## to make mboost:::df2lambda() happy (all design matrix entries < 10)
 #' ## reduce range of argvals to [0,1] to get smaller integration weights
 #' fuelSubset$uvvis.lambda <- with(fuelSubset, (uvvis.lambda - min(uvvis.lambda)) /
 #'                                   (max(uvvis.lambda) - min(uvvis.lambda) ))
@@ -587,7 +593,8 @@ bsignal <- function(x, s, index = NULL, inS=c("smooth", "linear", "constant"), #
   inS <- match.arg(inS)
   #print(cll)
   
-  if(!isMATRIX(x)) stop("signal has to be a matrix")
+  # if(!isMATRIX(x)) stop("signal has to be a matrix")
+  if( ! mboost_intern(x, fun = "isMATRIX")) stop("signal has to be a matrix")
   
   varnames <- all.vars(cll)
   #   if(length(mfL)==1){ 
@@ -620,8 +627,8 @@ bsignal <- function(x, s, index = NULL, inS=c("smooth", "linear", "constant"), #
   
   vary <- ""
   
-  CC <- all(Complete.cases(mf))
-  #  CC <- all(Complete.cases(mf[1]))
+  # CC <- all(Complete.cases(mf))
+  CC <- all(mboost_intern(mf, fun = "Complete.cases"))
   if (!CC)
     warning("base-learner contains missing values;\n",
             "missing values are excluded per base-learner, ",
@@ -680,7 +687,8 @@ bsignal <- function(x, s, index = NULL, inS=c("smooth", "linear", "constant"), #
   #print("bsignal")
   #print(Z)
   
-  ret$dpp <- bl_lin(ret, Xfun = X_bsignal, args = temp$args)
+  # ret$dpp <- bl_lin(ret, Xfun = X_bsignal, args = temp$args)
+  ret$dpp <- mboost_intern(ret, Xfun = X_bsignal, args = temp$args, fun = "bl_lin")
   
   rm(temp)
   
@@ -731,11 +739,15 @@ X_conc <- function(mf, vary, args) {
   # compute design-matrix in s-direction
   Bs <- switch(args$inS, 
                # B-spline basis of specified degree 
-               "smooth" = bsplines(xind, knots=args$knots$s$knots, 
-                                   boundary.knots=args$knots$s$boundary.knots, 
-                                   degree=args$degree),
-               "linear" = matrix(c(rep(1, length(xind)), xind), ncol=2),
-               "constant"=  matrix(c(rep(1, length(xind))), ncol=1))
+               # "smooth" = bsplines(xind, knots=args$knots$s$knots, 
+               #                   boundary.knots=args$knots$s$boundary.knots, 
+               #                   degree=args$degree),
+               "smooth" = mboost_intern(xind, knots = args$knots$s$knots, 
+                                        boundary.knots = args$knots$s$boundary.knots, 
+                                        degree = args$degree, 
+                                        fun = "bsplines"),
+               "linear" = matrix(c(rep(1, length(xind)), xind), ncol = 2),
+               "constant"=  matrix(c(rep(1, length(xind))), ncol = 1))
   
   colnames(Bs) <- paste(xname, 1:ncol(Bs), sep="")
     
@@ -797,9 +809,9 @@ bconcurrent <- function(x, s, time, index = NULL, #by = NULL,
   cll[[1]] <- as.name("bconcurrent")
   #print(cll)
   
-  if(!isMATRIX(x) && is.null(index)) stop("signal has to be a matrix for regular response")
-  if(isMATRIX(x) && NCOL(x)!=length(s)) stop("Dimension of x and s do not match.")
-  if(!isMATRIX(x) && length(x)!=length(s)) stop("Dimension of x and s do not match.")
+  if(!mboost_intern(x, fun = "isMATRIX") && is.null(index)) stop("signal has to be a matrix for regular response")
+  if( mboost_intern(x, fun = "isMATRIX") && NCOL(x)!=length(s)) stop("Dimension of x and s do not match.")
+  if(!mboost_intern(x, fun = "isMATRIX") && length(x)!=length(s)) stop("Dimension of x and s do not match.")
   
   varnames <- all.vars(cll)
   
@@ -824,7 +836,8 @@ bconcurrent <- function(x, s, time, index = NULL, #by = NULL,
   attr(x, "indnameY") <- indnameY
   attr(x, "id") <- index
   
-  if(isMATRIX(x) && is.null(colnames(x))) colnames(x) <- paste(xname, 1:ncol(x), sep="_")
+  if(mboost_intern(x, fun = "isMATRIX") && 
+     is.null(colnames(x))) colnames(x) <- paste(xname, 1:ncol(x), sep="_")
   attr(x, "signalIndex") <- s
   attr(x, "xname") <- xname
   attr(x, "indname") <- indname 
@@ -842,7 +855,8 @@ bconcurrent <- function(x, s, time, index = NULL, #by = NULL,
   
   vary <- ""
   
-  CC <- all(Complete.cases(mf))
+  # CC <- all(Complete.cases(mf))
+  CC <- all(mboost_intern(mf, fun = "Complete.cases"))
   if (!CC)
     warning("base-learner contains missing values;\n",
             "missing values are excluded per base-learner, ",
@@ -914,7 +928,9 @@ bconcurrent <- function(x, s, time, index = NULL, #by = NULL,
     })
   class(ret) <- "blg"
   
-  ret$dpp <- bl_lin(ret, Xfun = X_conc, args = temp$args)
+  # ret$dpp <- bl_lin(ret, Xfun = X_conc, args = temp$args)
+  ret$dpp <- mboost_intern(ret, Xfun = X_conc, args = temp$args, fun = "bl_lin")
+  
   return(ret)
 }
 
@@ -1028,12 +1044,16 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   
   # compute design-matrix in s-direction
   Bs <- switch(args$inS, 
-                # B-spline basis of specified degree 
-                "smooth" = bsplines(xind, knots=args$knots$s$knots, 
-                                    boundary.knots=args$knots$s$boundary.knots, 
-                                    degree=args$degree),
-                "linear" = matrix(c(rep(1, length(xind)), xind), ncol=2),
-                "constant"=  matrix(c(rep(1, length(xind))), ncol=1))
+               # B-spline basis of specified degree 
+               #"smooth" = bsplines(xind, knots=args$knots$s$knots, 
+               #                    boundary.knots=args$knots$s$boundary.knots, 
+               #                    degree=args$degree),
+               "smooth" = mboost_intern(xind, knots = args$knots$s$knots, 
+                                        boundary.knots = args$knots$s$boundary.knots, 
+                                        degree = args$degree, 
+                                        fun = "bsplines"),
+               "linear" = matrix(c(rep(1, length(xind)), xind), ncol = 2),
+               "constant"=  matrix(c(rep(1, length(xind))), ncol = 1))
   
   colnames(Bs) <- paste(xname, 1:ncol(Bs), sep="")
   
@@ -1217,26 +1237,30 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   # wide: design matrix over index of response for one response
   # long: design matrix over index of response (yind has long format!)
   Bt <- switch(args$inTime, 
-                # B-spline basis of specified degree 
-                "smooth" = bsplines(yind, knots=args$knots$time$knots, 
-                                    boundary.knots=args$knots$time$boundary.knots, 
-                                    degree=args$degree),
-                "linear" = matrix(c(rep(1, length(yind)), yind), ncol=2),
-                "constant"=  matrix(c(rep(1, length(yind))), ncol=1))
+               # B-spline basis of specified degree 
+               #"smooth" = bsplines(yind, knots=args$knots$time$knots, 
+               #                    boundary.knots=args$knots$time$boundary.knots, 
+               #                    degree=args$degree),
+               "smooth" = mboost_intern(yind, knots = args$knots$time$knots, 
+                                        boundary.knots = args$knots$time$boundary.knots, 
+                                        degree = args$degree, 
+                                        fun = "bsplines"),
+               "linear" = matrix(c(rep(1, length(yind)), yind), ncol = 2),
+               "constant"=  matrix(c(rep(1, length(yind))), ncol = 1))
     
   # stack design-matrix of response nobs times in wide format
   if(args$format == "wide"){
     Bt <- Bt[rep(1:length(yind), each=nobs), ]
   }
   
-  if(!isMATRIX(Bt)) Bt <- matrix(Bt, ncol=1)
+  if(! mboost_intern(Bt, fun = "isMATRIX") ) Bt <- matrix(Bt, ncol=1)
     
   # calculate row-tensor
   # X <- (X1 %x% t(rep(1, ncol(X2))) ) * ( t(rep(1, ncol(X1))) %x% X2  )
   dimnames(Bt) <- NULL # otherwise warning "dimnames [2] mismatch..."
   X <- X1des[,rep(1:ncol(Bs), each=ncol(Bt))] * Bt[,rep(1:ncol(Bt), times=ncol(Bs))]
   
-  if(!isMATRIX(X)) X <- matrix(X, ncol=1)
+  if(! mboost_intern(X, fun = "isMATRIX") ) X <- matrix(X, ncol=1)
   
   colnames(X) <- paste0(xname, 1:ncol(X))
   
@@ -1324,8 +1348,8 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
   inTime <- match.arg(inTime)
   #print(inS)
   
-  if(!isMATRIX(x)) stop("signal has to be a matrix")
-  if(ncol(x)!=length(s)) stop("Dimension of x and s do not match.")
+  if(! mboost_intern(x, fun = "isMATRIX") ) stop("signal has to be a matrix")
+  if(ncol(x) != length(s)) stop("Dimension of x and s do not match.")
   
   varnames <- all.vars(cll)
   
@@ -1369,7 +1393,8 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
   
   vary <- ""
   
-  CC <- all(Complete.cases(mf))
+  # CC <- all(Complete.cases(mf))
+  CC <- all(mboost_intern(mf, fun = "Complete.cases"))
   if (!CC)
     warning("base-learner contains missing values;\n",
             "missing values are excluded per base-learner, ",
@@ -1449,7 +1474,8 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
   class(ret) <- "blg"
   
   ### X_hist is for data in wide format with regular response
-  ret$dpp <- bl_lin(ret, Xfun = X_hist, args = temp$args) 
+  # ret$dpp <- bl_lin(ret, Xfun = X_hist, args = temp$args) 
+  ret$dpp <- mboost_intern(ret, Xfun = X_hist, args = temp$args, fun = "bl_lin")
   return(ret)
 }
 
@@ -1566,7 +1592,7 @@ bfpc <- function(x, s, index = NULL, df = 4,
   cll[[1]] <- as.name("bfpc")
   #print(cll)
   
-  if(!isMATRIX(x)) stop("signal has to be a matrix")
+  if(! mboost_intern(x, fun = "isMATRIX") ) stop("signal has to be a matrix")
   
   varnames <- all.vars(cll)
   
@@ -1584,7 +1610,8 @@ bfpc <- function(x, s, index = NULL, df = 4,
   vary <- ""
   
   ## <FIXME> for a FPCA based base-learner the X can contain missings!
-  CC <- all(Complete.cases(mf))
+  # CC <- all(Complete.cases(mf))
+  CC <- all(mboost_intern(mf, fun = "Complete.cases"))
   if (!CC)
     warning("base-learner contains missing values;\n",
             "missing values are excluded per base-learner, ",
@@ -1637,7 +1664,8 @@ bfpc <- function(x, s, index = NULL, df = 4,
     })
   class(ret) <- "blg"
   
-  ret$dpp <- bl_lin(ret, Xfun = X_fpc, args = temp$args)
+  # ret$dpp <- bl_lin(ret, Xfun = X_fpc, args = temp$args)
+  ret$dpp <- mboost_intern(ret, Xfun = X_fpc, args = temp$args, fun = "bl_lin")
   
   rm(temp)
   
@@ -1658,18 +1686,31 @@ X_bbsc <- function(mf, vary, args) {
 
   stopifnot(is.data.frame(mf))
   mm <- lapply(which(colnames(mf) != vary), function(i) {
-    X <- bsplines(mf[[i]],
-                  knots = args$knots[[i]]$knots,
-                  boundary.knots = args$knots[[i]]$boundary.knots,
-                  degree = args$degree, 
-                  Ts_constraint = args$Ts_constraint,
-                  deriv = args$deriv)
+    # X <- bsplines(mf[[i]],
+    #              knots = args$knots[[i]]$knots,
+    #              boundary.knots = args$knots[[i]]$boundary.knots,
+    #              degree = args$degree, 
+    #              Ts_constraint = args$Ts_constraint,
+    #              deriv = args$deriv)
+    X <- mboost_intern(mf[[i]],
+                       knots = args$knots[[i]]$knots,
+                       boundary.knots = args$knots[[i]]$boundary.knots,
+                       degree = args$degree, 
+                       Ts_constraint = args$Ts_constraint,
+                       deriv = args$deriv, 
+                       fun = "bsplines")
     if (args$cyclic) {
-      X <- cbs(mf[[i]],
-               knots = args$knots[[i]]$knots,
-               boundary.knots = args$knots[[i]]$boundary.knots,
-               degree = args$degree,
-               deriv = args$deriv)
+      # X <- cbs(mf[[i]],
+      #         knots = args$knots[[i]]$knots,
+      #         boundary.knots = args$knots[[i]]$boundary.knots,
+      #         degree = args$degree,
+      #         deriv = args$deriv)
+      X <- mboost_intern(mf[[i]],
+                         knots = args$knots[[i]]$knots,
+                         boundary.knots = args$knots[[i]]$boundary.knots,
+                         degree = args$degree,
+                         deriv = args$deriv,
+                         fun = "cbs")
     }
     class(X) <- "matrix"
     return(X)
@@ -1824,18 +1865,38 @@ X_bbsc <- function(mf, vary, args) {
   
   #----------------------------------
   ### <SB> Calculate constraints
-  
-  # If the argument Z is not NULL use the given Z (important for prediction!)
-  if(is.null(args$Z)){
-    C <- t(X) %*% rep(1, nrow(X))
-    Q <- qr.Q(qr(C), complete=TRUE) # orthonormal matrix of QR decomposition
-    args$Z <- Q[  , 2:ncol(Q)] # only keep last columns    
+
+  ## for center = TRUE, design matrix does not contain constant part 
+  if(args$center != FALSE){ 
+    
+    ## center the columns of the design matrix 
+    ## Z contains column means
+    # If the argument Z is not NULL use the given Z (important for prediction!)
+    if(is.null(args$Z)){
+      args$Z <- colMeans(X)
+    }
+    
+    ### Transform design and penalty matrix 
+    ## use column means of original design matrix
+    X <- scale(X, center = args$Z, scale = FALSE)
+    
+  }else{
+    ## sum-to-zero constraint - orthogonal to constant part, 
+    ## cf. Web Appendix A of Brockhaus et al. 2015
+    
+    # If the argument Z is not NULL use the given Z (important for prediction!)
+    if(is.null(args$Z)){
+      C <- t(X) %*% rep(1, nrow(X))
+      Q <- qr.Q(qr(C), complete=TRUE) # orthonormal matrix of QR decomposition
+      args$Z <- Q[  , 2:ncol(Q)] # only keep last columns    
+    }
+    
+    ### Transform design and penalty matrix
+    X <- X %*% args$Z
+    K <- t(args$Z) %*% K %*% args$Z
+    #print(args$Z)
   }
-  
-  ### Transform design and penalty matrix
-  X <- X %*% args$Z
-  K <- t(args$Z) %*% K %*% args$Z
-  #print(args$Z)
+
   #----------------------------------
   
   ## compare specified degrees of freedom to dimension of null space
@@ -1858,7 +1919,8 @@ X_bbsc <- function(mf, vary, args) {
 
 ## add the parameter Z to the arguments of hyper_bbs()
 hyper_bbsc <- function(Z, ...){
-  return(c(hyper_bbs(...), list(Z=Z)))
+  ret <- c(mboost_intern(..., fun = "hyper_bbs"), list(Z=Z))
+  return(ret)
 }
 
 
@@ -1937,6 +1999,8 @@ hyper_bbsc <- function(Z, ...){
 #' Scheipl, F., Staicu, A.-M. and Greven, S. (2015):  
 #' Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 24(2), 477-501.
 #' 
+#' @author Sarah Brockhaus, Almond Stoecker
+#' 
 #' @keywords models
 #' @aliases brandomc bolsc
 #' @export
@@ -1944,12 +2008,13 @@ bbsc <- function(..., by = NULL, index = NULL, knots = 10, boundary.knots = NULL
                  degree = 3, differences = 2, df = 4, lambda = NULL, center = FALSE,
                  cyclic = FALSE) {
   
-  if(center) warning("Do not set center = TRUE within bbsc().")
-  
-  ## new arguments constraint and dervi are set to their defaults
+  #----------------------------------
+  ## <SB> arguments constraint and dervi of bbs() are set to their defaults
+  ## i.e. no constraints and no derivatives 
   # constraint <- match.arg(constraint)
   constraint <- "none"
   deriv <- 0
+  #----------------------------------
   
   if (!is.null(lambda)) df <- NULL
   
@@ -1981,7 +2046,8 @@ bbsc <- function(..., by = NULL, index = NULL, knots = 10, boundary.knots = NULL
     colnames(mf)[ncol(mf)] <- vary <- deparse(substitute(by))
   }
   
-  CC <- all(Complete.cases(mf))
+  # CC <- all(Complete.cases(mf))
+  CC <- all(mboost_intern(mf, fun = "Complete.cases"))
   if (!CC)
     warning("base-learner contains missing values;\n",
             "missing values are excluded per base-learner, ",
@@ -1991,7 +2057,8 @@ bbsc <- function(..., by = NULL, index = NULL, knots = 10, boundary.knots = NULL
   DOINDEX <- (nrow(mf) > options("mboost_indexmin")[[1]])
   if (is.null(index)) {
     if (!CC || DOINDEX) {
-      index <- get_index(mf)
+      # index <- get_index(mf)
+      index <- mboost_intern(mf, fun = "get_index")
       mf <- mf[index[[1]],,drop = FALSE]
       index <- index[[2]]
     }
@@ -2029,7 +2096,8 @@ bbsc <- function(..., by = NULL, index = NULL, knots = 10, boundary.knots = NULL
     })
   class(ret) <- "blg"
   
-  ret$dpp <- bl_lin(ret, Xfun = X_bbsc, args = temp$args)
+  # ret$dpp <- bl_lin(ret, Xfun = X_bbsc, args = temp$args)
+  ret$dpp <- mboost_intern(ret, Xfun = X_bbsc, args = temp$args, fun = "bl_lin")
   return(ret)
 }
 
@@ -2045,7 +2113,7 @@ bbsc <- function(..., by = NULL, index = NULL, knots = 10, boundary.knots = NULL
 ### model.matrix for constrained ols base-learner with penalty matrix K
 X_olsc <- function(mf, vary, args) {
   
-  if (isMATRIX(mf)) {
+  if ( mboost_intern(mf, fun = "isMATRIX") ) {
     X <- mf
     contr <- NULL
   } else {
@@ -2174,11 +2242,12 @@ bolsc <- function(..., by = NULL, index = NULL, intercept = TRUE, df = NULL,
 
   if(!intercept && length(mf)==1) stop("Intercept has to be TRUE for bolsc with one covariate.")
   
-  if (length(mf) == 1 && ((isMATRIX(mf[[1]]) || is.data.frame(mf[[1]])) &&
+  if (length(mf) == 1 && (( mboost_intern(mf[[1]], fun = "isMATRIX") || 
+                            is.data.frame(mf[[1]])) &&
                             ncol(mf[[1]]) > 1 )) {
     mf <- mf[[1]]
     ### spline bases should be matrices
-    if (isMATRIX(mf) && !is(mf, "Matrix"))
+    if ( mboost_intern(mf, fun = "isMATRIX") && !is(mf, "Matrix"))
       class(mf) <- "matrix"
   } else {
     mf <- as.data.frame(mf)
@@ -2202,7 +2271,8 @@ bolsc <- function(..., by = NULL, index = NULL, intercept = TRUE, df = NULL,
     colnames(mf)[ncol(mf)] <- vary <- deparse(substitute(by))
   }
   
-  CC <- all(Complete.cases(mf))
+  # CC <- all(Complete.cases(mf))
+  CC <- all(mboost_intern(mf, fun = "Complete.cases"))
   if (!CC)
     warning("base-learner contains missing values;\n",
             "missing values are excluded per base-learner, ",
@@ -2215,19 +2285,19 @@ bolsc <- function(..., by = NULL, index = NULL, intercept = TRUE, df = NULL,
     ### try to remove duplicated observations or
     ### observations with missings
     if (!CC || DOINDEX) {
-      index <- get_index(mf)
+      # index <- get_index(mf)
+      index <- mboost_intern(mf, fun = "get_index")
       mf <- mf[index[[1]],,drop = FALSE]
       index <- index[[2]]
     }
   }
-  
+
   ## call X_bbsc in oder to compute the transformation matrix Z, 
   ## Z is saved in args$Z and is used after the model fit
   temp <- X_olsc(mf, vary, 
                  args = hyper_olsc(df = df, lambda = lambda, 
-                                   K = K, # use penalty matrix as argument
                                    intercept = intercept, contrasts.arg = contrasts.arg,
-                                   Z = NULL))
+                                   K = K, Z = NULL)) # use penalty matrix as argument
   
   ret <- list(model.frame = function()
     if (is.null(index)) return(mf) else return(mf[index,,drop = FALSE]),
@@ -2252,21 +2322,21 @@ bolsc <- function(..., by = NULL, index = NULL, intercept = TRUE, df = NULL,
     })
   class(ret) <- "blg"
   
-  ret$dpp <- bl_lin(ret, Xfun = X_olsc, args = temp$args)
+  # ret$dpp <- bl_lin(ret, Xfun = X_olsc, args = temp$args)
+  ret$dpp <- mboost_intern(ret, Xfun = X_olsc, args = temp$args, fun = "bl_lin")
   return(ret)
 }
 
+
 ### hyper parameters for olsc base-learner
-# add the parameters Z and K
-hyper_olsc <- function(df = NULL, lambda = 0, K = NULL, intercept = TRUE,
-                       contrasts.arg = "contr.treatment", Z = NULL){
+## add the parameter Z and K to the arguments of hyper_ols()
+hyper_olsc <- function(Z = NULL, K = NULL, ...){
   
   ## prediction is usually set in/by newX()
-  list(df = df, lambda = lambda, K=K,
-       intercept = intercept, contrasts.arg = contrasts.arg, prediction = FALSE, 
-       Z = Z)
+  ret <- c(mboost_intern(..., fun = "hyper_ols"), list(Z = Z, K = K, prediction = FALSE))
+  
+  return(ret)
 }
-
 
 
 #' @rdname bbsc

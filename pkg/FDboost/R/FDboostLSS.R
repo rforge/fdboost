@@ -58,14 +58,6 @@ do_trace <- function(current, mstart, risk,
 }
 
 
-
-## helper function copied from mboost_2.2-3
-rescale_weights <- function(w) {
-  if (max(abs(w - floor(w))) < sqrt(.Machine$double.eps))
-    return(w)
-  return(w / sum(w) * sum(w > 0))
-}
-
 ## helper function copied from mboost_2.2-3
 ### check measurement scale of response for some losses
 check_y_family <- function(y, family){
@@ -93,6 +85,8 @@ check_y_family <- function(y, family){
 #' expansion of the effects along \code{t}. In the limiting case that \eqn{Y_i} is a scalar response
 #' use \code{~bols(1)}, which sets up a base-learner for the scalar 1. 
 #' Or you can use \code{timeformula=NULL}, then the scalar response is treated as scalar. 
+#' Analogously to \code{formula}, \code{timeformula} can either be a one-sided formula or 
+#' a named list of one-sided formulas. 
 #' @param data a data frame or list containing the variables in the model.
 #' @param families an object of class \code{families}. It can be either one of the pre-defined distributions 
 #' that come along with the package \code{gamboostLSS} or a new distribution specified by the user 
@@ -142,7 +136,7 @@ check_y_family <- function(y, family){
 #' Journal of the Royal Statistical Society: Series C (Applied Statistics), 54(3), 507-554. 
 #' 
 #' @examples 
-#' ########### simulate data
+#' ########### simulate Gaussian scalar-on-function data
 #' n <- 500 ## number of observations
 #' G <- 120 ## number of observations per functional covariate
 #' set.seed(123) ## ensure reproducibility
@@ -151,9 +145,9 @@ check_y_family <- function(y, family){
 #' s <- seq(0, 1, l=G) ## index of functional covariate
 #' ## generate functional covariate
 #' if(require(splines)){
-#'    x <- t(replicate(n, drop(bs(s, df=5, int=TRUE) %*% runif(5, min=-1, max=1))))
+#'    x <- t(replicate(n, drop(bs(s, df = 5, int = TRUE) %*% runif(5, min = -1, max = 1))))
 #' }else{
-#'   x <- matrix(rnorm(n*G), ncol=G, nrow=n)
+#'   x <- matrix(rnorm(n*G), ncol = G, nrow = n)
 #' }
 #' x <- scale(x, center = TRUE, scale = FALSE) ## center x per observation point
 #' 
@@ -164,34 +158,35 @@ check_y_family <- function(y, family){
 #' 
 #' ## save data as list containing s as well 
 #' dat_list <- list(y = y, z = z, x = I(x), s = s)
-#' #' ## to fit a GAMLSS-model it is necessary to load package gamboostLSS
+#' 
+#' ## model fit by boosting
 #' if(require(gamboostLSS)){
-#'   ## model fit by boosting
-#'   m_boost <- FDboostLSS(list(mu = y ~ bols(z, df=2) + bsignal(x, s, df=2, knots = 16), 
-#'                            sigma = y ~ bols(z, df=2) + bsignal(x, s, df=2, knots = 16)), 
+#' m_boost <- FDboostLSS(list(mu = y ~ bols(z, df = 2) + bsignal(x, s, df = 2, knots = 16), 
+#'                            sigma = y ~ bols(z, df = 2) + bsignal(x, s, df = 2, knots = 16)), 
 #'                            timeformula = NULL, data = dat_list)
-#'   \dontrun{
+#' \dontrun{
 #'   ## find optimal number of boosting iterations on a grid in [1, 500]
 #'   ## using 5-fold bootstrap
-#'   grid <-  make.grid(c(mu=500, sigma=500), length.out = 10)
-#'   ## takes some time, easy to parallelize on Linux 
+#'   grid <-  make.grid(c(mu = 500, sigma = 500), length.out = 10)
+#'   ## takes some time, easy to parallelize on Linux
+#'   set.seed(123) 
 #'   cvr <- cvrisk(m_boost, folds = cv(model.weights(m_boost), B = 5),
 #'                 grid = grid, trace = FALSE)
 #'   ## use model at optimal stopping iterations 
-#'   m_boost <- m_boost[mstop(cvr)] ## c(253, 126)
-#'   }
+#'   m_boost <- m_boost[mstop(cvr)] ## [c(172, 63)]
+#' }
 #' 
-#'   m_boost[c(253, 126)]
-#'   summary(m_boost)
+#' m_boost[c(172, 63)]
+#' summary(m_boost)
 #'    
-#'   \dontrun{           
+#' \dontrun{           
 #'   ## plot smooth effects of functional covariates
-#'   par(mfrow=c(1,2))
-#'   plot(m_boost$mu, which=2, ylim=c(0,5))
-#'   lines(s, sin(s*pi)*5, col=3, lwd=2)
-#'   plot(m_boost$sigma, which=2, ylim=c(-2.5,2.5))
-#'   lines(s, -cos(s*pi)*2, col=3, lwd=2)
-#'   }
+#'   par(mfrow = c(1,2))
+#'   plot(m_boost$mu, which = 2, ylim = c(0,5))
+#'   lines(s, sin(s*pi)*5, col = 3, lwd = 2)
+#'   plot(m_boost$sigma, which = 2, ylim = c(-2.5,2.5))
+#'   lines(s, -cos(s*pi)*2, col = 3, lwd = 2)
+#' } 
 #' }
 #' @export
 ## function that calls FDboost for each distribution parameter
@@ -199,7 +194,7 @@ FDboostLSS <- function(formula, timeformula, data = list(), families = GaussianL
                        control = boost_control(), weights = NULL, ...){
   
   cl <- match.call()
-  if(is.null(cl$families)) cl$families <- GaussianLSS()
+  if(is.null(cl$families)) cl$families <- families
   
   ## warnings for functional response are irrelevant for scalar response  
   if( !is.null(timeformula) && timeformula != ~bols(1) ){
@@ -252,7 +247,19 @@ FDboostLSS_fit <- function(formula, timeformula, data = list(), families = Gauss
       tmp[[i]] <- formula
     formula <- tmp
   }
-  
+
+  if (is.list(timeformula)){
+    if (!all(names(timeformula) %in% names(families)) ||
+        length(unique(names(timeformula))) != length(names(families)))
+      stop(sQuote("timeformula"), " can be either a one-sided formula or a named list",
+           " of timeformulas with same names as ",  sQuote("families"), ".")
+  } else {
+    tmp <- vector("list", length = length(families))
+    names(tmp) <- names(families)
+    for (i in 1:length(tmp))
+      tmp[i] <- list(timeformula)
+    timeformula <- tmp
+  }
   mstop <- mstoparg <- control$mstop
   control$mstop <- 1
   mstop <- check(mstop, "mstop", names(families))
@@ -289,24 +296,28 @@ FDboostLSS_fit <- function(formula, timeformula, data = list(), families = Gauss
     }
   } ## weights=rep(1, ncol(response[[j]])*nrow(response[[j]]) )
   
-  weights <- rescale_weights(weights)
+  weights <- mboost_intern(weights, fun = "rescale_weights")
   
   fit <- vector("list", length = length(families))
   names(fit) <- names(families)
   
   mods <- 1:length(fit)
-  
+
   offset <- vector("list", length = length(mods))
   names(offset) <- names(families)
   for (j in mods){
     if (!is.list(response)) {
       response <- check_y_family(response, families[[j]])
-      offset[[j]] <- families[[j]]@offset(y = response, w = weights)
+      offset[[j]] <- families[[j]]@offset(y = c(response), w = weights)
     } else {
       response[[j]] <- check_y_family(response[[j]], families[[j]])
-      offset[[j]] <- families[[j]]@offset(y = response[[j]], w = weights)
+      offset[[j]] <- families[[j]]@offset(y = c(response[[j]]), w = weights)
     }
-    for (k in mods){
+	
+	## SB: e.g. for Families 'GaussianLSS' the offsets of mu and sigma are
+    ## both written into both environments of the Family for mu and sigma
+    ## for the computation of ngradient()
+    for (k in mods){ ## <FIXME> SB: to this double-loop outside of this j-loop?
       for (l in mods){
         if (!is.null(offset[[l]]))
           assign(names(offset)[l], families[[l]]@response(offset[[l]]),
@@ -328,8 +339,10 @@ FDboostLSS_fit <- function(formula, timeformula, data = list(), families = Gauss
     ## use appropriate nu for the model
     control$nu <- nu[[j]]
     ## <FIXME> Do we need to recompute ngradient?
+    ## SB: look at environment within family 
+    ## ls.str(environment(families[[j]]@ngradient))
     fit[[j]] <- do.call(fun, list(formula[[names(families)[[j]]]], 
-                                  timeformula = timeformula, 
+                                  timeformula = timeformula[[names(families)[[j]]]], ## <SB> timeformula for FDboost
                                   data = data, family = families[[j]],
                                   offset = "scalar", ## <SB> fixme: always use scalar offset?
                                   control=control, weights = w,

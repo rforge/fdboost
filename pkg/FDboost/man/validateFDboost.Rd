@@ -27,7 +27,7 @@ cvMa(ydim, weights = rep(1, l = ydim[1] * ydim[2]), type = c("bootstrap",
 \arguments{
 \item{object}{fitted FDboost-object}
 
-\item{response}{you can specify a response vector to calculate predictions errors.
+\item{response}{optional, specify a response vector for the computation of the prediction errors.
 Defaults to \code{NULL} which means that the response of the fitted model is used.}
 
 \item{folds}{a weight matrix with number of rows equal to the number of observed trajectories.}
@@ -37,7 +37,7 @@ Defaults to \code{NULL} which means that the response of the fitted model is use
 \item{getCoefCV}{logical, defaults to \code{TRUE}. Should the coefficients and predictions
 be computed for all the models on the sampled data?}
 
-\item{riskopt}{how is the optimal stopping iteration determined. Defaults to the mean
+\item{riskopt}{how is the optimal stopping iteration determined. Defaults to the mean,
 but median is possible as well.}
 
 \item{mrdDelete}{Delete values that are \code{mrdDelete} percent smaller than the mean

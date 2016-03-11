@@ -1,21 +1,25 @@
 Package: FDboost
 Type: Package
 Title: Boosting Functional Regression Models
-Version: 0.0-17
-Date: 2016-02-25
-Author: Sarah Brockhaus
-Maintainer: Sarah Brockhaus <Sarah.Brockhaus@stat.uni-muenchen.de>
+Version: 0.1-0
+Date: 2016-03-04 
+Authors@R: c(person("Sarah", "Brockhaus", role = c("aut", "cre"),
+		     email = "Sarah.Brockhaus@stat.uni-muenchen.de"), 
+			 person("David", "Ruegamer", role = "ctb"),
+			 person("Torsten", "Hothorn", role = "ctb"), 
+			 person("with contributions by many others", "(see inst/CONTRIBUTIONS)"), role = "ctb")
 Description: Regression models for functional data, i.e., scalar-on-function,
     function-on-scalar and function-on-function regression models, are fitted
-    using a component-wise gradient boosting algorithm. 
+    by a component-wise gradient boosting algorithm. 
 Depends:
     R (>= 3.0.0),
-    mboost (>= 2.5-0)
+    mboost (>= 2.6-0)
 Imports:
     Matrix,
 	gamboostLSS, 
     mgcv,
-	refund, 
+	refund,
+    MASS, 	
     zoo
 Suggests:
     fda,
@@ -32,6 +36,5 @@ Collate:
     'crossvalidation.R'
 	'FDboostLSS.R'
 	'hmatrix.R'
-    'internalsMboost.R'
     'methods.R'
     'utilityFunctions.R'

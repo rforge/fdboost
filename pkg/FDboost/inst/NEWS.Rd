@@ -2,6 +2,30 @@
 \title{News for Package 'FDboost'}
 
 
+\section{Changes in FDboost version 0.1-0 (2016-03-10)}{
+  \subsection{User-visible changes}{
+    \itemize{
+	    \item new operator %A0% for Kronecker product of two base-learners with 
+		      anisotropic penalty for the special case where lambda1 or lambda2 is zero 
+	    \item the base-learner bbsc() can be used with center = TRUE, derived by Almond Stoecker 
+		\item in FDboostLSS() a list of one-sided formulas can be specified for timeformula  	
+    }
+  }
+  \subsection{Bug-fixes}{
+    \itemize{
+      \item FDboostLSS works with families = GammaLSS()
+    }
+  }
+  \subsection{Miscellaneous}{
+    \itemize{
+	  \item operator %A% uses weights in model call; only works correctly for weights on level 
+            of blg1 and blg2 (which is the same as weights on rows and columns of the response matrix)	  
+      \item call to internal functions of mboost is done using mboost_intern() 	
+      \item hyper_olsc() is based on hyper_ols() of mboost 		 
+    }
+  }
+}
+
 \section{Changes in FDboost version 0.0-17 (2016-02-25)}{
   \subsection{User-visible changes}{
     \itemize{

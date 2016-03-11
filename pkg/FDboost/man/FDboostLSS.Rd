@@ -17,7 +17,9 @@ parameter of the GAMLSS distribution. The names must be the same as in the \code
 For a functional response \eqn{Y_i(t)} typically \code{~bbs(t)} to obtain a smooth
 expansion of the effects along \code{t}. In the limiting case that \eqn{Y_i} is a scalar response
 use \code{~bols(1)}, which sets up a base-learner for the scalar 1.
-Or you can use \code{timeformula=NULL}, then the scalar response is treated as scalar.}
+Or you can use \code{timeformula=NULL}, then the scalar response is treated as scalar.
+Analogously to \code{formula}, \code{timeformula} can either be a one-sided formula or
+a named list of one-sided formulas.}
 
 \item{data}{a data frame or list containing the variables in the model.}
 
@@ -55,7 +57,7 @@ See \code{\link[gamboostLSS]{mboostLSS}} for
 details on boosting of GAMLSS for scalar variables as introduced by Mayr et al. (2012).
 }
 \examples{
-########### simulate data
+########### simulate Gaussian scalar-on-function data
 n <- 500 ## number of observations
 G <- 120 ## number of observations per functional covariate
 set.seed(123) ## ensure reproducibility
@@ -64,9 +66,9 @@ z <- z - mean(z)
 s <- seq(0, 1, l=G) ## index of functional covariate
 ## generate functional covariate
 if(require(splines)){
-   x <- t(replicate(n, drop(bs(s, df=5, int=TRUE) \%*\% runif(5, min=-1, max=1))))
+   x <- t(replicate(n, drop(bs(s, df = 5, int = TRUE) \%*\% runif(5, min = -1, max = 1))))
 }else{
-  x <- matrix(rnorm(n*G), ncol=G, nrow=n)
+  x <- matrix(rnorm(n*G), ncol = G, nrow = n)
 }
 x <- scale(x, center = TRUE, scale = FALSE) ## center x per observation point
 
@@ -77,34 +79,35 @@ y <- rnorm(mean = mu, sd = sigma, n = n) ## draw respone y_i ~ N(mu_i, sigma_i)
 
 ## save data as list containing s as well
 dat_list <- list(y = y, z = z, x = I(x), s = s)
-#' ## to fit a GAMLSS-model it is necessary to load package gamboostLSS
+
+## model fit by boosting
 if(require(gamboostLSS)){
-  ## model fit by boosting
-  m_boost <- FDboostLSS(list(mu = y ~ bols(z, df=2) + bsignal(x, s, df=2, knots = 16),
-                           sigma = y ~ bols(z, df=2) + bsignal(x, s, df=2, knots = 16)),
+m_boost <- FDboostLSS(list(mu = y ~ bols(z, df = 2) + bsignal(x, s, df = 2, knots = 16),
+                           sigma = y ~ bols(z, df = 2) + bsignal(x, s, df = 2, knots = 16)),
                            timeformula = NULL, data = dat_list)
-  \dontrun{
+\dontrun{
   ## find optimal number of boosting iterations on a grid in [1, 500]
   ## using 5-fold bootstrap
-  grid <-  make.grid(c(mu=500, sigma=500), length.out = 10)
+  grid <-  make.grid(c(mu = 500, sigma = 500), length.out = 10)
   ## takes some time, easy to parallelize on Linux
+  set.seed(123)
   cvr <- cvrisk(m_boost, folds = cv(model.weights(m_boost), B = 5),
                 grid = grid, trace = FALSE)
   ## use model at optimal stopping iterations
-  m_boost <- m_boost[mstop(cvr)] ## c(253, 126)
-  }
+  m_boost <- m_boost[mstop(cvr)] ## [c(172, 63)]
+}
 
-  m_boost[c(253, 126)]
-  summary(m_boost)
+m_boost[c(172, 63)]
+summary(m_boost)
 
-  \dontrun{
+\dontrun{
   ## plot smooth effects of functional covariates
-  par(mfrow=c(1,2))
-  plot(m_boost$mu, which=2, ylim=c(0,5))
-  lines(s, sin(s*pi)*5, col=3, lwd=2)
-  plot(m_boost$sigma, which=2, ylim=c(-2.5,2.5))
-  lines(s, -cos(s*pi)*2, col=3, lwd=2)
-  }
+  par(mfrow = c(1,2))
+  plot(m_boost$mu, which = 2, ylim = c(0,5))
+  lines(s, sin(s*pi)*5, col = 3, lwd = 2)
+  plot(m_boost$sigma, which = 2, ylim = c(-2.5,2.5))
+  lines(s, -cos(s*pi)*2, col = 3, lwd = 2)
+}
 }
 }
 \author{

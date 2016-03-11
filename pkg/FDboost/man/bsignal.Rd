@@ -77,7 +77,7 @@ that all trajectories have the same mean
 for \code{penalty="pss"} the penalty matrix is transformed to have full rank,
 so called shrinkage approach by Marra and Wood (2011)}
 
-\item{check.ident}{use checks for identifiability of the effect, based on Scheipl and Greven (2015b)}
+\item{check.ident}{use checks for identifiability of the effect, based on Scheipl and Greven (2016)}
 
 \item{time}{vector for the index of the functional response y(time)
 giving the measurement points.}
@@ -111,7 +111,7 @@ which is the index of the functional response y(time).}
 Equally to the base-learners of package mboost:
 
 An object of class \code{blg} (base-learner generator) with a
-\code{dpp} function.
+\code{dpp} function (dpp, data pre-processing).
 
 The call of \code{dpp} returns an object of class
 \code{bl} (base-learner) with a \code{fit} function. The call to
@@ -148,17 +148,16 @@ The base-learner defaults to a historical effect of the form
 where \eqn{t0} is the minimal index of \eqn{t} of the response \eqn{Y(t)}.
 \code{bhist} can only be used if \eqn{Y(t)} and \eqn{x(s)} are observed over
 the same domain \eqn{s,t \in [t_0, T]}.
-The functional variable must be observed on one common grid \code{s}.
+The functional variable must be observed on one common grid \code{s},
+see Brockhaus et al. (2016) for details on historical effects.
 
 \code{bfpc} is a base-learner for functional covariates based on
 functional principal component analysis (FPCA). The functional covariate
 \eqn{x(s)} is decomposed into \eqn{x(s) \approx \sum_{k=1}^K \xi_{ik} \Phi_k(s)} using
 \code{\link[refund]{fpca.sc}} and represents \eqn{\beta(s)} in the function
-space spanned by \eqn{\Phi_k(s)}, see Scheipl et al. (2015a) for details.
+space spanned by \eqn{\Phi_k(s)}, see Scheipl et al. (2015) for details.
 The implementation is similar to \code{\link[refund]{ffpc}}.
 This is an experimental base-learner and not well tested yet.
-The functional variable must be observed on a regular grid \code{s},
-i.e. an even-spaced grid.
 
 It is recommended to use centered functional covariates with
 \eqn{\sum_i x_i(s) = 0} for all \eqn{s} in \code{bsignal}-,
@@ -178,7 +177,7 @@ data("fuelSubset", package = "FDboost")
 fuelSubset$UVVIS <- scale(fuelSubset$UVVIS, scale = FALSE)
 fuelSubset$NIR <- scale(fuelSubset$NIR, scale = FALSE)
 
-## to make mboost::df2lambda() happy (all design matrix entries < 10)
+## to make mboost:::df2lambda() happy (all design matrix entries < 10)
 ## reduce range of argvals to [0,1] to get smaller integration weights
 fuelSubset$uvvis.lambda <- with(fuelSubset, (uvvis.lambda - min(uvvis.lambda)) /
                                   (max(uvvis.lambda) - min(uvvis.lambda) ))
@@ -195,14 +194,18 @@ summary(mod2)
 Brockhaus, S., Scheipl, F., Hothorn, T. and Greven, S. (2015):
 The functional linear array model. Statistical Modelling, 15(3), 279-300.
 
+Brockhaus, S., Melcher, M., Leisch, F. and Greven, S. (2016):
+Boosting flexible functional regression models with a high number of functional historical effects,
+under revision.
+
 Marra, G. and Wood, S.N. (2011): Practical variable selection for generalized additive models.
 Computational Statistics & Data Analysis, 55, 2372-2387.
 
-Scheipl, F., Staicu, A.-M. and Greven, S. (2015a):
+Scheipl, F., Staicu, A.-M. and Greven, S. (2015):
 Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 24(2), 477-501.
 
-Scheipl, F. and Greven, S. (2015b): Identifiability in penalized function-on-function regression models.
-Technical Report 125, Department of Statistics, LMU Muenchen.
+Scheipl, F. and Greven, S. (2016): Identifiability in penalized function-on-function regression models.
+Electronic Journal of Statistics, 10(1), 495-526.
 }
 \seealso{
 \code{\link{FDboost}} for the model fit.
