@@ -234,27 +234,27 @@ viscosity$time <- viscosity$timeAll[1:end]
 ## the factors are coded such that the effects are zero for each timepoint t
 ## no integration weights are used!
 mod1 <- FDboost(vis ~ 1 + bolsc(T_C, df = 2) + bolsc(T_A, df = 2),
-               timeformula = ~bbs(time, df = 4),
+               timeformula = ~ bbs(time, df = 4),
                numInt = "equal", family = QuantReg(),
                offset = NULL, offset_control = o_control(k_min = 9),
                data = viscosity, control=boost_control(mstop = 100, nu = 0.4))
 
 \dontrun{
-## find optimal mstop over 5-fold bootstrap, small number of folds for example
-## do the resampling on the level of curves
-set.seed(123)
-val1 <- validateFDboost(mod1, folds = cv(rep(1, length(unique(mod1$id))), B = 5),
+  ## find optimal mstop over 5-fold bootstrap, small number of folds for example
+  ## do the resampling on the level of curves
+  set.seed(123)
+  val1 <- validateFDboost(mod1, folds = cv(rep(1, length(unique(mod1$id))), B = 5),
                         grid = 1:500)
-## plot(val1)
-mstop(val1)
-mod1[mstop(val1)]
+  ## plot(val1)
+  mstop(val1)
+  mod1[mstop(val1)]
 
-## find the optimal mstop over 5-fold bootstrap
-## using the function cvrisk; be careful to do the resampling on the level of curves
-folds1 <- cvLong(id = mod1$id, weights = model.weights(mod1), B = 5)
-cvm1 <- cvrisk(mod1, folds = folds1, grid = 1:500)
-## plot(cvm1)
-mstop(cvm1)
+  ## find the optimal mstop over 5-fold bootstrap
+  ## using the function cvrisk; be careful to do the resampling on the level of curves
+  folds1 <- cvLong(id = mod1$id, weights = model.weights(mod1), B = 5)
+  cvm1 <- cvrisk(mod1, folds = folds1, grid = 1:500)
+  ## plot(cvm1)
+  mstop(cvm1)
 }
 
 ## look at the model
@@ -301,6 +301,7 @@ summary(mod2)
 
 ## Example for function-on-function-regression
 if(require(fda)){
+
   data("CanadianWeather", package = "fda")
   CanadianWeather$l10precip <- t(log(CanadianWeather$monthlyPrecip))
   CanadianWeather$temp <- t(CanadianWeather$monthlyTemp)
@@ -312,11 +313,11 @@ if(require(fda)){
 
   ## fit model with cyclic splines over the year
   mod3 <- FDboost(l10precip ~ bols(region, df = 2.5, contrasts.arg = "contr.dummy")
-                 + bsignal(temp, month.s, knots = 11, cyclic = TRUE,
+                   + bsignal(temp, month.s, knots = 11, cyclic = TRUE,
                            df = 2.5, boundary.knots = c(0.5,12.5), check.ident = FALSE),
-                 timeformula = ~bbs(month.t, knots = 11, cyclic = TRUE,
-                                  df = 3, boundary.knots = c(0.5,12.5)),
-                                  offset = "scalar", offset_control = o_control(k_min = 5),
+                   timeformula = ~ bbs(month.t, knots = 11, cyclic = TRUE,
+                                  df = 3, boundary.knots = c(0.5, 12.5)),
+                   offset = "scalar", offset_control = o_control(k_min = 5),
                   data = CanadianWeather)
  ## find the optimal mstop over 5-fold bootstrap
  ## using the function cvrisk; be careful to do the resampling on the level of curves
@@ -356,7 +357,7 @@ dataIrregular <- with(viscosity, list(vis = c(vis)[selectObs],
 ## no integration weights are used!
 mod4 <- FDboost(vis ~ 1 + bols(T_C, contrasts.arg = "contr.sum", intercept = FALSE)
                 + bols(T_A, contrasts.arg = "contr.sum", intercept=FALSE),
-                timeformula = ~bbs(time, lambda=100), id = ~id,
+                timeformula = ~ bbs(time, lambda = 100), id = ~id,
                 numInt = "equal", family = QuantReg(),
                 offset = NULL, offset_control = o_control(k_min = 9),
                 data = dataIrregular, control = boost_control(mstop = 100, nu = 0.4))
@@ -365,10 +366,11 @@ summary(mod4)
 ## plotPredicted(mod4, lwdPred = 2)
 
 ## Find optimal mstop, small grid/low B for a fast example
-folds4 <- cvLong(id = mod4$id, weights = model.weights(mod4), B = 5)
-cvm4 <- cvrisk(mod4, folds = folds4, grid = 1:100)
+folds4 <- cvLong(id = mod4$id, weights = model.weights(mod4), B = 3)
+cvm4 <- cvrisk(mod4, folds = folds4, grid = 1:50)
 mstop(cvm4)
-## val4 <- validateFDboost(mod4, folds = cv(rep(1, length(unique(mod4$id))), B = 5))
+## val4 <- validateFDboost(mod4, folds = cv(rep(1, length(unique(mod4$id))), B = 3),
+##                         grid = 1:50)
 
 ## Be careful if you want to predict newdata with irregular response,
 ## as the argument index is not considered in the prediction of newdata.
@@ -382,8 +384,7 @@ newd <- list(T_A = factor(c(1,1,2,2), levels = 1:2,
                         labels = c("low", "high"))[rep(1:4, length(viscosity$time))],
              time = rep(viscosity$time, 4))
 
-# needs at least mboostPatch 2.5-1 to work
-# pred <- predict(mod4, newdata = newd)
+## pred <- predict(mod4, newdata = newd)
 ## funplot(x = rep(viscosity$time, 4), y = pred, id = rep(1:4, length(viscosity$time)))
 }
 \author{

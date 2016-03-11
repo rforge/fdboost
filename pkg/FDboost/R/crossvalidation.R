@@ -136,11 +136,11 @@
 #' ## plot(mod1)
 #'  
 #' ## for the example B is set to a small value so that bootstrap is fast   
-#' val1 <- validateFDboost(mod1, folds = cvLong(unique(mod1$id), B = 3) )            
+#' val1 <- validateFDboost(mod1, folds = cvLong(unique(mod1$id), B = 2) )            
 #'
 #' \dontrun{  
 #' ## the same, as folds are equal 
-#' val1 <- validateFDboost(mod1, folds = cv(rep(1, 64), B=3) )
+#' val1 <- validateFDboost(mod1, folds = cv(rep(1, 64), B = 2) )
 #' ## plot the risk per fold against the number of boosting-iterations
 #' plot(val1)
 #' ## plot the coefficients in the folds with point-wise intervals for base-learner 1
@@ -156,10 +156,10 @@
 #' plotPredCoef(val2, which = 1, terms = FALSE) # plot coefficients per fold
 #' }
 #' 
-#' ## find the optimal mstop over 5-fold bootstrap
+#' ## find the optimal mstop over 2-fold bootstrap
 #' ## using the function cvrisk, offset is not refitted! 
 #' folds1 <- cvLong(id = mod1$id, weights = model.weights(mod1), 
-#'                  type = "bootstrap", B = 5)
+#'                  type = "bootstrap", B = 2)
 #' cvm1 <- cvrisk(mod1, folds = folds1)
 #' ## plot(cvm1)
 #' mstop(cvm1)

@@ -88,7 +88,7 @@ mod1 <- FDboost(vis ~ 1 +
                 timeformula = ~ bbs(time, df = 3),
                 numInt = "equal", family = QuantReg(),
                 offset = NULL, offset_control = o_control(k_min = 9),
-                data = viscosity, control=boost_control(mstop = 200, nu = 0.4))
+                data = viscosity, control=boost_control(mstop = 100, nu = 0.4))
 ## cf. the formula that is passed to mboost
 mod1$formulaMboost
 
@@ -101,7 +101,7 @@ mod1a <- FDboost(vis ~ 1 +
                 timeformula = ~ bbs(time, df = 3),
                 numInt = "equal", family = QuantReg(),
                 offset = NULL, offset_control = o_control(k_min = 9),
-                data = viscosity, control=boost_control(mstop = 200, nu = 0.4))
+                data = viscosity, control=boost_control(mstop = 100, nu = 0.4))
 ## cf. the formula that is passed to mboost
 mod1a$formulaMboost
 
@@ -115,7 +115,7 @@ mod1k0 <- FDboost(vis ~ 1 +
                  timeformula = ~ bbs(time, df = 3),
                  numInt = "equal", family = QuantReg(),
                  offset = NULL, offset_control = o_control(k_min = 9),
-                 data = viscosity, control=boost_control(mstop = 200, nu = 0.4))
+                 data = viscosity, control=boost_control(mstop = 100, nu = 0.4))
 ## cf. the formula that is passed to mboost
 mod1k0$formulaMboost
 
