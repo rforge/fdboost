@@ -175,10 +175,10 @@ validateFDboost <- function(object, response=NULL,
                             mrdDelete=0, refitSmoothOffset=TRUE, 
                             showProgress=TRUE, ...){
   
-#   if(is.null(folds)){
-#     warning("is.null(folds), per default folds=cvMa(ydim=object$ydim, weights=model.weights(object), type=\"bootstrap\")")
-#     folds <- cvMa(ydim=object$ydim, weights=model.weights(object), type="bootstrap")
-#   }
+  #   if(is.null(folds)){
+  #     warning("is.null(folds), per default folds=cvMa(ydim=object$ydim, weights=model.weights(object), type=\"bootstrap\")")
+  #     folds <- cvMa(ydim=object$ydim, weights=model.weights(object), type="bootstrap")
+  #   }
   
   type <- attr(folds, "type")
   if(is.null(type)) type <- "unknown"
