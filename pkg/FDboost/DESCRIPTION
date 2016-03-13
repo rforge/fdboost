@@ -13,16 +13,13 @@ Description: Regression models for functional data, i.e., scalar-on-function,
     by a component-wise gradient boosting algorithm. 
 Depends:
     R (>= 3.0.0), 
-	methods, stats, 
+	methods,  
     mboost (>= 2.6-0)
 Imports: 
-    graphics, grDevices, utils, 
-    Matrix,
-	gamboostLSS, 
-    mgcv,
-	refund,
-    MASS, 	
-    zoo
+    graphics, grDevices, utils, stats,
+    Matrix, gamboostLSS, 
+    mgcv, refund, 
+    MASS, zoo
 Suggests:
     fda,
     fields,

@@ -392,10 +392,11 @@
 #'                   
 #'                 
 #' @export
-#' @import methods stats mboost Matrix gamboostLSS 
+#' @import methods mboost Matrix gamboostLSS 
 #' @importFrom grDevices heat.colors rgb
 #' @importFrom graphics abline barplot contour legend lines matplot par persp plot points
 #' @importFrom utils getS3method 
+#' @importFrom stats approx as.formula coef complete.cases fitted formula lm median model.matrix na.omit predict quantile sd terms.formula variable.names 
 #' @importFrom splines bs splineDesign
 #' @importFrom mgcv gam s
 #' @importFrom zoo na.locf
