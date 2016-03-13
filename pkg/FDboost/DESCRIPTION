@@ -12,7 +12,8 @@ Description: Regression models for functional data, i.e., scalar-on-function,
     function-on-scalar and function-on-function regression models, are fitted
     by a component-wise gradient boosting algorithm. 
 Depends:
-    R (>= 3.0.0),
+    R (>= 3.0.0), 
+	methods, stats, 
     mboost (>= 2.6-0)
 Imports:
     Matrix,

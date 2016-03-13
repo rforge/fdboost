@@ -392,7 +392,7 @@
 #'                   
 #'                 
 #' @export
-#' @import mboost Matrix gamboostLSS
+#' @import methods stats mboost Matrix gamboostLSS
 #' @importFrom splines bs splineDesign
 #' @importFrom mgcv gam s
 #' @importFrom zoo na.locf
