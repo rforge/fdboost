@@ -1,63 +1,6 @@
 ###########################################################################################
 ### internal functions taken from gamboostLSS 1.2-0
 
-## helper functions
-check <- function(what, what_char, names) {
-  
-  errormsg <- paste0(sQuote(what_char), " can be either a scalar, a (named) vector or a (named) list",
-                     " of ", what_char, " values with same names as ",  sQuote("families"), "in ",
-                     sQuote("boost_control"))
-  
-  if (is.list(what)) {
-    if (is.null(names(what)) && length(what) == length(names))
-      names(what) <- names
-    if (!all(names(what) %in% names) ||
-        length(unique(names(what))) != length(names))
-      stop(errormsg)
-    what <- what[names] ## sort in order of families
-    what <- unlist(what)
-  } else {
-    if(length(what) != 1 && length(what) != length(names))
-      stop(errormsg)
-    if (length(what) == 1) {
-      what <- rep(what, length(names))
-      names(what) <- names
-    } else {
-      if (is.null(names(what)))
-        names(what) <- names
-      if (!all(names(what) %in% names))
-        stop(errormsg)
-      what <- what[names] ## sort in order of families
-    }
-  }
-  
-  return(what)
-}
-
-
-## helper function in a modified version based on mboost_2.2-3
-## print trace of boosting iterations
-do_trace <- function(current, mstart, risk,
-                     linebreak = options("width")$width / 2, mstop = 1000) {
-  current <- current - mstart
-  if (current != mstop) {
-    if ((current - 1) %/% linebreak == (current - 1) / linebreak) {
-      mchr <- formatC(current + mstart, format = "d",
-                      width = nchar(mstop) + 1, big.mark = "'")
-      cat(paste("[", mchr, "] ",sep = ""))
-    } else {
-      if ((current %/% linebreak != current / linebreak)) {
-        cat(".")
-      } else {
-        cat(" -- risk:", risk[current + mstart], "\n")
-      }
-    }
-  } else {
-    cat("\nFinal risk:", risk[current + mstart], "\n")
-  }
-}
-
-
 ## helper function copied from mboost_2.2-3
 ### check measurement scale of response for some losses
 check_y_family <- function(y, family){
@@ -170,7 +113,7 @@ check_y_family <- function(y, family){
 #'   grid <-  make.grid(c(mu = 500, sigma = 500), length.out = 10)
 #'   ## takes some time, easy to parallelize on Linux
 #'   set.seed(123) 
-#'   cvr <- cvrisk(m_boost, folds = cv(model.weights(m_boost), B = 5),
+#'   cvr <- cvrisk(m_boost, folds = cv(model.weights(m_boost[[1]]), B = 5),
 #'                 grid = grid, trace = FALSE)
 #'   ## use model at optimal stopping iterations 
 #'   m_boost <- m_boost[mstop(cvr)] ## [c(172, 63)]
@@ -262,10 +205,10 @@ FDboostLSS_fit <- function(formula, timeformula, data = list(), families = Gauss
   }
   mstop <- mstoparg <- control$mstop
   control$mstop <- 1
-  mstop <- check(mstop, "mstop", names(families))
+  mstop <- gamboostLSS_intern(mstop, "mstop", names(families), fun = "check")
   
   nu <- control$nu
-  nu <- check(nu, "nu", names(families))
+  nu <- gamboostLSS_intern(nu, "nu", names(families), fun = "check")
   
   if (is.list(control$risk) || is.list(control$center) || is.list(control$trace))
     stop(sQuote("risk"),", ", sQuote("center"), " and ", sQuote("trace") ,
@@ -349,9 +292,10 @@ FDboostLSS_fit <- function(formula, timeformula, data = list(), families = Gauss
                                   ...))    
   }
   if (trace)
-    do_trace(current = 1, mstart = 0,
-             mstop = max(mstop),
-             risk = fit[[length(fit)]]$risk())
+    gamboostLSS_intern(current = 1, mstart = 0,
+                       mstop = max(mstop),
+                       risk = fit[[length(fit)]]$risk(), 
+                       fun = "do_trace")
   
   ### set up a function for iterating boosting steps
   iBoost <- function(niter) {
@@ -388,10 +332,11 @@ FDboostLSS_fit <- function(formula, timeformula, data = list(), families = Gauss
         ## which is the current risk? rev() needed to get the last
         ## list element with maximum length
         whichRisk <- names(which.max(rev(lapply(lapply(fit, function(x) x$risk()), length))))
-        do_trace(current = max(sapply(mvals, function(x) x[i])),
-                 mstart = ifelse(firstRun, 0, max(start)),
-                 mstop = ifelse(firstRun, max(niter) + 1, max(niter)),
-                 risk = fit[[whichRisk]]$risk())
+        gamboostLSS_intern(current = max(sapply(mvals, function(x) x[i])),
+                           mstart = ifelse(firstRun, 0, max(start)),
+                           mstop = ifelse(firstRun, max(niter) + 1, max(niter)),
+                           risk = fit[[whichRisk]]$risk(), 
+                           fun = "do_trace")
       }
     }
     return(TRUE)
@@ -414,7 +359,7 @@ FDboostLSS_fit <- function(formula, timeformula, data = list(), families = Gauss
   ### some models are CHANGED!
   attr(fit, "subset") <- function(i) {
     
-    i <- check(i, "mstop", names(families))
+    i <- gamboostLSS_intern(i, "mstop", names(families), fun = "check")
     
     msf <- mstop(fit)
     niter <- i - msf
@@ -542,7 +487,8 @@ FDboostLSS_fit <- function(formula, timeformula, data = list(), families = Gauss
 #' 
 #' @export
 ## wrapper for cvrisk of gamboostLSS, specifying folds on the level of curves
-cvrisk.FDboostLSS <- function(object, folds = cvLong(id=object[[1]]$id, weights=model.weights(object[[1]])),
+cvrisk.FDboostLSS <- function(object, folds = cvLong(id = object[[1]]$id, 
+                                                     weights = model.weights(object[[1]])),
                            grid = make.grid(mstop(object)),
                            papply = mclapply, trace = TRUE, 
                            fun = NULL, ...){

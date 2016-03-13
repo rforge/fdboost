@@ -91,7 +91,7 @@ m_boost <- FDboostLSS(list(mu = y ~ bols(z, df = 2) + bsignal(x, s, df = 2, knot
   grid <-  make.grid(c(mu = 500, sigma = 500), length.out = 10)
   ## takes some time, easy to parallelize on Linux
   set.seed(123)
-  cvr <- cvrisk(m_boost, folds = cv(model.weights(m_boost), B = 5),
+  cvr <- cvrisk(m_boost, folds = cv(model.weights(m_boost[[1]]), B = 5),
                 grid = grid, trace = FALSE)
   ## use model at optimal stopping iterations
   m_boost <- m_boost[mstop(cvr)] ## [c(172, 63)]

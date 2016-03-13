@@ -17,7 +17,7 @@ Depends:
     mboost (>= 2.6-0)
 Imports: 
     graphics, grDevices, utils, stats,
-    Matrix, gamboostLSS, 
+    Matrix, gamboostLSS (>= 1.2-1), 
     mgcv, refund, 
     MASS, zoo
 Suggests:
