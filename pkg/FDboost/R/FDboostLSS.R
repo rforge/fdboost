@@ -1,7 +1,15 @@
 ###########################################################################################
-### internal functions taken from gamboostLSS 1.2-0
 
-## helper function copied from mboost_2.2-3
+## internal function from mboost 2.6-0 
+## as mboost_intern(... , fun = "rescale_weights") gives error in R CMD check for R devel
+rescale_weights <- function(w) {
+  if (max(abs(w - floor(w))) < sqrt(.Machine$double.eps))
+    return(w)
+  return(w / sum(w) * sum(w > 0))
+}
+
+
+## helper function copied from gamboostLSS 1.2-0, adapted to functional response 
 ### check measurement scale of response for some losses
 check_y_family <- function(y, family){
   ## <SB> check the response is in long format, otherwise is.numeric()
@@ -102,13 +110,15 @@ check_y_family <- function(y, family){
 #' ## save data as list containing s as well 
 #' dat_list <- list(y = y, z = z, x = I(x), s = s)
 #' 
-#' ## model fit by boosting
-#' if(require(gamboostLSS)){
+#' ## do the model fit
 #' m_boost <- FDboostLSS(list(mu = y ~ bols(z, df = 2) + bsignal(x, s, df = 2, knots = 16), 
 #'                            sigma = y ~ bols(z, df = 2) + bsignal(x, s, df = 2, knots = 16)), 
 #'                            timeformula = NULL, data = dat_list)
-#' \dontrun{
-#'   ## find optimal number of boosting iterations on a grid in [1, 500]
+#' 
+#' ## do not forget to tune mSTOP
+#'  \dontrun{
+#' if(require(gamboostLSS)){
+#'   ## find optimal number of boosting iterations on a 2D grid in [1, 500]
 #'   ## using 5-fold bootstrap
 #'   grid <-  make.grid(c(mu = 500, sigma = 500), length.out = 10)
 #'   ## takes some time, easy to parallelize on Linux
@@ -116,7 +126,8 @@ check_y_family <- function(y, family){
 #'   cvr <- cvrisk(m_boost, folds = cv(model.weights(m_boost[[1]]), B = 5),
 #'                 grid = grid, trace = FALSE)
 #'   ## use model at optimal stopping iterations 
-#'   m_boost <- m_boost[mstop(cvr)] ## [c(172, 63)]
+#'   m_boost <- m_boost[mstop(cvr)] 
+#' }
 #' }
 #' 
 #' m_boost[c(172, 63)]
@@ -130,7 +141,6 @@ check_y_family <- function(y, family){
 #'   plot(m_boost$sigma, which = 2, ylim = c(-2.5,2.5))
 #'   lines(s, -cos(s*pi)*2, col = 3, lwd = 2)
 #' } 
-#' }
 #' @export
 ## function that calls FDboost for each distribution parameter
 FDboostLSS <- function(formula, timeformula, data = list(), families = GaussianLSS(),
@@ -239,7 +249,8 @@ FDboostLSS_fit <- function(formula, timeformula, data = list(), families = Gauss
     }
   } ## weights=rep(1, ncol(response[[j]])*nrow(response[[j]]) )
   
-  weights <- mboost_intern(weights, fun = "rescale_weights")
+  ## weights <- mboost_intern(w = weights, fun = "rescale_weights")
+  weights <- rescale_weights(w = weights)
   
   fit <- vector("list", length = length(families))
   names(fit) <- names(families)

@@ -80,12 +80,14 @@ y <- rnorm(mean = mu, sd = sigma, n = n) ## draw respone y_i ~ N(mu_i, sigma_i)
 ## save data as list containing s as well
 dat_list <- list(y = y, z = z, x = I(x), s = s)
 
-## model fit by boosting
-if(require(gamboostLSS)){
+## do the model fit
 m_boost <- FDboostLSS(list(mu = y ~ bols(z, df = 2) + bsignal(x, s, df = 2, knots = 16),
                            sigma = y ~ bols(z, df = 2) + bsignal(x, s, df = 2, knots = 16)),
                            timeformula = NULL, data = dat_list)
+                           
+## do not forget to tune mSTOP
 \dontrun{
+if(require(gamboostLSS)){
   ## find optimal number of boosting iterations on a grid in [1, 500]
   ## using 5-fold bootstrap
   grid <-  make.grid(c(mu = 500, sigma = 500), length.out = 10)
@@ -95,6 +97,7 @@ m_boost <- FDboostLSS(list(mu = y ~ bols(z, df = 2) + bsignal(x, s, df = 2, knot
                 grid = grid, trace = FALSE)
   ## use model at optimal stopping iterations
   m_boost <- m_boost[mstop(cvr)] ## [c(172, 63)]
+}
 }
 
 m_boost[c(172, 63)]
@@ -107,7 +110,6 @@ summary(m_boost)
   lines(s, sin(s*pi)*5, col = 3, lwd = 2)
   plot(m_boost$sigma, which = 2, ylim = c(-2.5,2.5))
   lines(s, -cos(s*pi)*2, col = 3, lwd = 2)
-}
 }
 }
 \author{
