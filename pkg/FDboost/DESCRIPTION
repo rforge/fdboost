@@ -15,7 +15,8 @@ Depends:
     R (>= 3.0.0), 
 	methods, stats, 
     mboost (>= 2.6-0)
-Imports:
+Imports: 
+    graphics, grDevices, utils, 
     Matrix,
 	gamboostLSS, 
     mgcv,

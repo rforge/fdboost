@@ -392,7 +392,10 @@
 #'                   
 #'                 
 #' @export
-#' @import methods stats mboost Matrix gamboostLSS
+#' @import methods stats mboost Matrix gamboostLSS 
+#' @importFrom grDevices heat.colors rgb
+#' @importFrom graphics abline barplot contour legend lines matplot par persp plot points
+#' @importFrom utils getS3method 
 #' @importFrom splines bs splineDesign
 #' @importFrom mgcv gam s
 #' @importFrom zoo na.locf
