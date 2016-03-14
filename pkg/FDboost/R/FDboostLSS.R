@@ -1,6 +1,63 @@
 ###########################################################################################
 ### internal functions taken from gamboostLSS 1.2-0
 
+## helper functions
+check <- function(what, what_char, names) {
+  
+  errormsg <- paste0(sQuote(what_char), " can be either a scalar, a (named) vector or a (named) list",
+                     " of ", what_char, " values with same names as ",  sQuote("families"), "in ",
+                     sQuote("boost_control"))
+  
+  if (is.list(what)) {
+    if (is.null(names(what)) && length(what) == length(names))
+      names(what) <- names
+    if (!all(names(what) %in% names) ||
+        length(unique(names(what))) != length(names))
+      stop(errormsg)
+    what <- what[names] ## sort in order of families
+    what <- unlist(what)
+  } else {
+    if(length(what) != 1 && length(what) != length(names))
+      stop(errormsg)
+    if (length(what) == 1) {
+      what <- rep(what, length(names))
+      names(what) <- names
+    } else {
+      if (is.null(names(what)))
+        names(what) <- names
+      if (!all(names(what) %in% names))
+        stop(errormsg)
+      what <- what[names] ## sort in order of families
+    }
+  }
+  
+  return(what)
+}
+
+
+## helper function in a modified version based on mboost_2.2-3
+## print trace of boosting iterations
+do_trace <- function(current, mstart, risk,
+                     linebreak = options("width")$width / 2, mstop = 1000) {
+  current <- current - mstart
+  if (current != mstop) {
+    if ((current - 1) %/% linebreak == (current - 1) / linebreak) {
+      mchr <- formatC(current + mstart, format = "d",
+                      width = nchar(mstop) + 1, big.mark = "'")
+      cat(paste("[", mchr, "] ",sep = ""))
+    } else {
+      if ((current %/% linebreak != current / linebreak)) {
+        cat(".")
+      } else {
+        cat(" -- risk:", risk[current + mstart], "\n")
+      }
+    }
+  } else {
+    cat("\nFinal risk:", risk[current + mstart], "\n")
+  }
+}
+
+
 ## helper function copied from mboost_2.2-3
 ### check measurement scale of response for some losses
 check_y_family <- function(y, family){
@@ -102,12 +159,14 @@ check_y_family <- function(y, family){
 #' ## save data as list containing s as well 
 #' dat_list <- list(y = y, z = z, x = I(x), s = s)
 #' 
-#' ## model fit by boosting
-#' if(require(gamboostLSS)){
+#' ## model fit assuming Gaussian location scale model 
 #' m_boost <- FDboostLSS(list(mu = y ~ bols(z, df = 2) + bsignal(x, s, df = 2, knots = 16), 
 #'                            sigma = y ~ bols(z, df = 2) + bsignal(x, s, df = 2, knots = 16)), 
 #'                            timeformula = NULL, data = dat_list)
+#' summary(m_boost)
+#' 
 #' \dontrun{
+#'  if(require(gamboostLSS)){
 #'   ## find optimal number of boosting iterations on a grid in [1, 500]
 #'   ## using 5-fold bootstrap
 #'   grid <-  make.grid(c(mu = 500, sigma = 500), length.out = 10)
@@ -117,19 +176,14 @@ check_y_family <- function(y, family){
 #'                 grid = grid, trace = FALSE)
 #'   ## use model at optimal stopping iterations 
 #'   m_boost <- m_boost[mstop(cvr)] ## [c(172, 63)]
-#' }
-#' 
-#' m_boost[c(172, 63)]
-#' summary(m_boost)
 #'    
-#' \dontrun{           
 #'   ## plot smooth effects of functional covariates
 #'   par(mfrow = c(1,2))
 #'   plot(m_boost$mu, which = 2, ylim = c(0,5))
 #'   lines(s, sin(s*pi)*5, col = 3, lwd = 2)
 #'   plot(m_boost$sigma, which = 2, ylim = c(-2.5,2.5))
 #'   lines(s, -cos(s*pi)*2, col = 3, lwd = 2)
-#' } 
+#'  }
 #' }
 #' @export
 ## function that calls FDboost for each distribution parameter
@@ -144,7 +198,7 @@ FDboostLSS <- function(formula, timeformula, data = list(), families = GaussianL
     message("No smooth offsets over time are used, just global scalar offsets.")
     message("No integration weights are used to compute the loss for the functional response.")
   }
-
+  
   fit <- FDboostLSS_fit(formula = formula, timeformula = timeformula, 
                         data = data, families = families,
                         control = control, weights = weights, ...,
@@ -157,8 +211,8 @@ FDboostLSS <- function(formula, timeformula, data = list(), families = GaussianL
 ### work horse for fitting FDboostLSS models
 ### based on code of mboostLSS_fit() from package gamboostLSS 1.2-0
 FDboostLSS_fit <- function(formula, timeformula, data = list(), families = GaussianLSS(),
-                          control = boost_control(), weights = NULL,
-                          fun = FDboost, funchar = "FDboost", call = NULL, ...){
+                           control = boost_control(), weights = NULL,
+                           fun = FDboost, funchar = "FDboost", call = NULL, ...){
   
   if (length(families) == 0)
     stop(sQuote("families"), " not specified")
@@ -170,7 +224,7 @@ FDboostLSS_fit <- function(formula, timeformula, data = list(), families = Gauss
   
   if (is.list(formula)){
     if (!all(names(formula) %in% names(families)) ||
-          length(unique(names(formula))) != length(names(families)))
+        length(unique(names(formula))) != length(names(families)))
       stop(sQuote("formula"), " can be either a formula or a named list",
            " of formulas with same names as ",  sQuote("families"), ".")
     ynames <- sapply(formula, function(fm) as.character(fm[[2]]))
@@ -190,7 +244,7 @@ FDboostLSS_fit <- function(formula, timeformula, data = list(), families = Gauss
       tmp[[i]] <- formula
     formula <- tmp
   }
-
+  
   if (is.list(timeformula)){
     if (!all(names(timeformula) %in% names(families)) ||
         length(unique(names(timeformula))) != length(names(families)))
@@ -205,10 +259,10 @@ FDboostLSS_fit <- function(formula, timeformula, data = list(), families = Gauss
   }
   mstop <- mstoparg <- control$mstop
   control$mstop <- 1
-  mstop <- gamboostLSS_intern(mstop, "mstop", names(families), fun = "check")
+  mstop <- check(mstop, "mstop", names(families))
   
   nu <- control$nu
-  nu <- gamboostLSS_intern(nu, "nu", names(families), fun = "check")
+  nu <- check(nu, "nu", names(families))
   
   if (is.list(control$risk) || is.list(control$center) || is.list(control$trace))
     stop(sQuote("risk"),", ", sQuote("center"), " and ", sQuote("trace") ,
@@ -245,7 +299,7 @@ FDboostLSS_fit <- function(formula, timeformula, data = list(), families = Gauss
   names(fit) <- names(families)
   
   mods <- 1:length(fit)
-
+  
   offset <- vector("list", length = length(mods))
   names(offset) <- names(families)
   for (j in mods){
@@ -256,8 +310,8 @@ FDboostLSS_fit <- function(formula, timeformula, data = list(), families = Gauss
       response[[j]] <- check_y_family(response[[j]], families[[j]])
       offset[[j]] <- families[[j]]@offset(y = c(response[[j]]), w = weights)
     }
-	
-	## SB: e.g. for Families 'GaussianLSS' the offsets of mu and sigma are
+    
+    ## SB: e.g. for Families 'GaussianLSS' the offsets of mu and sigma are
     ## both written into both environments of the Family for mu and sigma
     ## for the computation of ngradient()
     for (k in mods){ ## <FIXME> SB: to this double-loop outside of this j-loop?
@@ -292,10 +346,9 @@ FDboostLSS_fit <- function(formula, timeformula, data = list(), families = Gauss
                                   ...))    
   }
   if (trace)
-    gamboostLSS_intern(current = 1, mstart = 0,
-                       mstop = max(mstop),
-                       risk = fit[[length(fit)]]$risk(), 
-                       fun = "do_trace")
+    do_trace(current = 1, mstart = 0,
+             mstop = max(mstop),
+             risk = fit[[length(fit)]]$risk())
   
   ### set up a function for iterating boosting steps
   iBoost <- function(niter) {
@@ -332,11 +385,10 @@ FDboostLSS_fit <- function(formula, timeformula, data = list(), families = Gauss
         ## which is the current risk? rev() needed to get the last
         ## list element with maximum length
         whichRisk <- names(which.max(rev(lapply(lapply(fit, function(x) x$risk()), length))))
-        gamboostLSS_intern(current = max(sapply(mvals, function(x) x[i])),
-                           mstart = ifelse(firstRun, 0, max(start)),
-                           mstop = ifelse(firstRun, max(niter) + 1, max(niter)),
-                           risk = fit[[whichRisk]]$risk(), 
-                           fun = "do_trace")
+        do_trace(current = max(sapply(mvals, function(x) x[i])),
+                 mstart = ifelse(firstRun, 0, max(start)),
+                 mstop = ifelse(firstRun, max(niter) + 1, max(niter)),
+                 risk = fit[[whichRisk]]$risk())
       }
     }
     return(TRUE)
@@ -359,7 +411,7 @@ FDboostLSS_fit <- function(formula, timeformula, data = list(), families = Gauss
   ### some models are CHANGED!
   attr(fit, "subset") <- function(i) {
     
-    i <- gamboostLSS_intern(i, "mstop", names(families), fun = "check")
+    i <- check(i, "mstop", names(families))
     
     msf <- mstop(fit)
     niter <- i - msf
@@ -388,10 +440,10 @@ FDboostLSS_fit <- function(formula, timeformula, data = list(), families = Gauss
       ## remove additional boosting iterations from environments
       lapply(fit[msf > minStart], function(obj){
         evalq({xselect <- xselect[1:mstop];
-               mrisk <- mrisk[1:mstop];
-               ens <- ens[1:mstop];
-               nuisance <- nuisance[1:mstop]},
-              environment(obj$subset))
+        mrisk <- mrisk[1:mstop];
+        ens <- ens[1:mstop];
+        nuisance <- nuisance[1:mstop]},
+        environment(obj$subset))
       })
       
       class(fit) <- cf
@@ -439,10 +491,10 @@ FDboostLSS_fit <- function(formula, timeformula, data = list(), families = Gauss
     ## (since it depends on weights otherwise)
     ## this is achieved via a re-evaluation of the families argument
     FDboostLSS_fit(formula = formula, timeformula = timeformula, 
-                  data = data,
-                  families = eval(call[["families"]]), weights = weights,
-                  control = control, fun = fun, funchar = funchar,
-                  call = call, oobweights = oobweights)
+                   data = data,
+                   families = eval(call[["families"]]), weights = weights,
+                   control = control, fun = fun, funchar = funchar,
+                   call = call, oobweights = oobweights)
   }
   attr(fit, "control") <- control
   attr(fit, "call") <- call
@@ -489,9 +541,9 @@ FDboostLSS_fit <- function(formula, timeformula, data = list(), families = Gauss
 ## wrapper for cvrisk of gamboostLSS, specifying folds on the level of curves
 cvrisk.FDboostLSS <- function(object, folds = cvLong(id = object[[1]]$id, 
                                                      weights = model.weights(object[[1]])),
-                           grid = make.grid(mstop(object)),
-                           papply = mclapply, trace = TRUE, 
-                           fun = NULL, ...){
+                              grid = make.grid(mstop(object)),
+                              papply = mclapply, trace = TRUE, 
+                              fun = NULL, ...){
   
   ## message not necessary as currently only a scalar offset is possible for FDboostLSS-models
   ## if(!length(unique(object$offset)) == 1) message("The smooth offset is fixed over all folds.")
@@ -520,4 +572,3 @@ cvrisk.FDboostLSS <- function(object, folds = cvLong(id = object[[1]]$id,
 # #' @export
 # selected.FDboost <- function(object, ...)
 #   object$xselect()
-
