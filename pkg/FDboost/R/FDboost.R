@@ -397,7 +397,7 @@
 #' @importFrom graphics abline barplot contour legend lines matplot par persp plot points
 #' @importFrom utils getS3method 
 #' @importFrom stats approx as.formula coef complete.cases fitted formula lm median model.matrix model.weights na.omit predict quantile sd terms.formula variable.names 
-#' @importFrom gamboostLSS GaussianLSS GaussianMu GaussianSigma gamboostLSS_intern make.grid cvrisk.mboostLSS
+#' @importFrom gamboostLSS GaussianLSS GaussianMu GaussianSigma make.grid cvrisk.mboostLSS
 #' @importFrom splines bs splineDesign
 #' @importFrom mgcv gam s
 #' @importFrom zoo na.locf

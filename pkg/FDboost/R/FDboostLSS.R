@@ -1,6 +1,6 @@
 ###########################################################################################
-### internal functions taken from gamboostLSS 1.2-0
 
+### internal functions taken from gamboostLSS 1.2-0
 ## helper functions
 check <- function(what, what_char, names) {
   
@@ -55,6 +55,15 @@ do_trace <- function(current, mstart, risk,
   } else {
     cat("\nFinal risk:", risk[current + mstart], "\n")
   }
+}
+
+
+## helper function from mboost 2.6-0
+## mboost_intern(..., fun = "mboost_intern") gives error with one check
+rescale_weights <- function(w) {
+  if (max(abs(w - floor(w))) < sqrt(.Machine$double.eps))
+    return(w)
+  return(w / sum(w) * sum(w > 0))
 }
 
 
@@ -293,7 +302,8 @@ FDboostLSS_fit <- function(formula, timeformula, data = list(), families = Gauss
     }
   } ## weights=rep(1, ncol(response[[j]])*nrow(response[[j]]) )
   
-  weights <- mboost_intern(weights, fun = "rescale_weights")
+  ## weights <- mboost_intern(weights, fun = "rescale_weights")
+  weights <- rescale_weights(weights)
   
   fit <- vector("list", length = length(families))
   names(fit) <- names(families)
