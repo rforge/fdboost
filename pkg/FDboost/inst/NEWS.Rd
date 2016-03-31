@@ -2,6 +2,16 @@
 \title{News for Package 'FDboost'}
 
 
+\section{Changes in FDboost version 0.1-1 (2016-03-31)}{
+  \subsection{Bug-fixes}{
+    \itemize{
+	    \item fix oobpred in validateFDboost() for irregular response and resampling on the level of curves 
+	    and thus plot.validateFDboost() works for that case 
+    }
+  }
+}
+
+
 \section{Changes in FDboost version 0.1-0 (2016-03-10)}{
   \subsection{User-visible changes}{
     \itemize{

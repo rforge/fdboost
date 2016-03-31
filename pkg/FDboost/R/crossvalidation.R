@@ -168,12 +168,12 @@
 #' @aliases cvMa cvLong
 #' 
 #' @export
-validateFDboost <- function(object, response=NULL,  
+validateFDboost <- function(object, response = NULL,  
                             #folds=cvMa(ydim=object$ydim, weights=model.weights(object), type="bootstrap"),
-                            folds=cv(rep(1, length(unique(object$id))), type="bootstrap"),
-                            grid=1:mstop(object), getCoefCV=TRUE, riskopt=c("mean","median"), 
-                            mrdDelete=0, refitSmoothOffset=TRUE, 
-                            showProgress=TRUE, ...){
+                            folds = cv(rep(1, length(unique(object$id))), type = "bootstrap"),
+                            grid = 1:mstop(object), getCoefCV = TRUE, riskopt = c("mean","median"), 
+                            mrdDelete = 0, refitSmoothOffset = TRUE, 
+                            showProgress = TRUE, ...){
   
   #   if(is.null(folds)){
   #     warning("is.null(folds), per default folds=cvMa(ydim=object$ydim, weights=model.weights(object), type=\"bootstrap\")")
@@ -190,7 +190,7 @@ validateFDboost <- function(object, response=NULL,
     stop("The folds-matrix must have one row per observed trajectory.")
   }
   
-  if(any(class(object)=="FDboostLong")){ # irregular response
+  if(any(class(object) == "FDboostLong")){ # irregular response
     nObs <- length(unique(object$id)) # number of curves
     Gy <- NULL # number of time-points per curve
   }else{ # regular response
@@ -214,10 +214,10 @@ validateFDboost <- function(object, response=NULL,
   
   # save integration weights of original model
   ### intWeights <- model.weights(object) # weights are rescaled in mboost, see mboost:::rescale_weights  
-  if(!is.null(object$callEval$numInt) && object$callEval$numInt=="Riemann"){
-    if(!any(class(object)=="FDboostLong")){
-      intWeights <- as.vector(integrationWeights(X1=matrix(object$response, 
-                              ncol=object$ydim[2]), object$yind))
+  if(!is.null(object$callEval$numInt) && object$callEval$numInt == "Riemann"){
+    if(!any(class(object) == "FDboostLong")){
+      intWeights <- as.vector(integrationWeights(X1 = matrix(object$response, 
+                              ncol = object$ydim[2]), object$yind))
     }else{
       intWeights <- integrationWeights(X1=object$response, object$yind, id)
     }
@@ -226,7 +226,7 @@ validateFDboost <- function(object, response=NULL,
   }
   
   # out-of-bag-weights: i.e. the left out curve/ the left out observations
-  OOBweights <- matrix(1, ncol = ncol(folds), nrow=nrow(folds))
+  OOBweights <- matrix(1, ncol = ncol(folds), nrow = nrow(folds))
   OOBweights[folds > 0] <- 0 
   
   #   # matrix of measured responses for regular observations
@@ -252,12 +252,12 @@ validateFDboost <- function(object, response=NULL,
   }
   ### compute ("length of each trajectory")^-1 in the response
   ### more precisely ("sum of integration weights")^-1 is used
-  if(length(object$yind)>1){
+  if(length(object$yind) > 1){
     # lengthTi1 <- 1/tapply(yindLong[!is.na(response)], id[!is.na(response)], function(x) max(x) - min(x))
     lengthTi1 <- 1/tapply(intWeights, id, function(x) sum(x))
     if(any(is.infinite(lengthTi1))) lengthTi1[is.infinite(lengthTi1)] <- max(lengthTi1[!is.infinite(lengthTi1)])
   }else{
-    lengthTi1 <- rep(1, l=length(response))
+    lengthTi1 <- rep(1, l = length(response))
   }
   
   ###### Function to fit the model
@@ -268,7 +268,7 @@ validateFDboost <- function(object, response=NULL,
     dathelp <- object$data
     dathelp[[attr(object$yind, "nameyind")]] <- object$yind
     
-    if(!any(class(object)=="FDboostLong")){
+    if(!any(class(object) == "FDboostLong")){
       dathelp[[object$yname]] <- matrix(object$response, ncol=object$ydim[2])
     }else{
       dathelp[[object$yname]] <- object$response
@@ -285,9 +285,9 @@ validateFDboost <- function(object, response=NULL,
     # Using the offset of object with the following settings 
     # call$control <- boost_control(risk="oobag")
     # call$oobweights <- oobweights[id]
-    if(refitSmoothOffset==FALSE && is.null(call$offset) ){
-      if(!any(class(object)=="FDboostLong")){
-        call$offset <- matrix(object$offset, ncol=object$ydim[2])[1,]
+    if(refitSmoothOffset == FALSE && is.null(call$offset) ){
+      if(!any(class(object) == "FDboostLong")){
+        call$offset <- matrix(object$offset, ncol=object$ydim[2])[1, ]
       }else{
         call$offset <- object$offset
       }
@@ -313,10 +313,10 @@ validateFDboost <- function(object, response=NULL,
     ####################
     ### compute risk and mse without integration weights, like in cvrisk
     risk0 <- sapply(grid, function(g){riskfct(response, mod[g]$fitted(), 
-                                               w=oobweights[id])}) / sum(oobweights[id])
+                                               w = oobweights[id])}) / sum(oobweights[id])
     
     mse0 <- simplify2array(mclapply(grid, function(g){
-      sum( ((response - mod[g]$fitted())^2*oobweights[id]), na.rm=TRUE )
+      sum( ((response - mod[g]$fitted())^2*oobweights[id]), na.rm = TRUE )
     }, mc.cores=1) ) /sum(oobweights[id])
     ####################
     
@@ -325,7 +325,7 @@ validateFDboost <- function(object, response=NULL,
     
     ### mse (mean squared error) equals risk in the case of familiy=Gaussian()
     mse <- simplify2array(mclapply(grid, function(g){
-      sum( ((response - mod[g]$fitted())^2*oobwstand), na.rm=TRUE )
+      sum( ((response - mod[g]$fitted())^2*oobwstand), na.rm = TRUE )
     }, mc.cores=1) )
     
     #     ### mse2 equals mse in the case of equal grids without missings at the ends
@@ -334,26 +334,26 @@ validateFDboost <- function(object, response=NULL,
     #     }, mc.cores=1) ) / (sum(oobweights)* (max(mod$yind)-min(mod$yind) ) )
     
     ### compute overall mean of response in learning sample
-    meanResp <- sum(response*intWeights*lengthTi1[id]*weights[id], na.rm=TRUE) / sum(weights)
+    meanResp <- sum(response*intWeights*lengthTi1[id]*weights[id], na.rm = TRUE) / sum(weights)
     
     # # compute overall mean of response in whole sample
     # meanResp <- sum(response*intWeights*lengthTi1[id], na.rm=TRUE) / nObs
     
     ### compute relative mse
     relMSE <- simplify2array(mclapply(grid, function(g){
-      sum( ((response - mod[g]$fitted())^2*oobwstand), na.rm=TRUE ) /
-        sum( ((response - meanResp)^2*oobwstand), na.rm=TRUE )
+      sum( ((response - mod[g]$fitted())^2*oobwstand), na.rm = TRUE ) /
+        sum( ((response - meanResp)^2*oobwstand), na.rm = TRUE )
     }, mc.cores=1) )
     
     ### mean relative deviation
     resp0 <- response
     resp0[abs(resp0) <= mrdDelete | round(resp0, 1) == 0] <- NA
     mrd <- simplify2array(mclapply(grid, function(g){
-      sum( abs(resp0 - mod[g]$fitted())/abs(resp0)*oobwstand, na.rm=TRUE )
+      sum( abs(resp0 - mod[g]$fitted())/abs(resp0)*oobwstand, na.rm = TRUE )
     }, mc.cores=1) )
 
     mrd0 <- simplify2array(mclapply(grid, function(g){
-              sum( abs(resp0 - mod[g]$fitted())/abs(resp0)*oobweights[id], na.rm=TRUE )
+              sum( abs(resp0 - mod[g]$fitted())/abs(resp0)*oobweights[id], na.rm = TRUE)
                  }, mc.cores=1) ) / sum(oobweights[id])
 
     
@@ -361,12 +361,12 @@ validateFDboost <- function(object, response=NULL,
     
     ####### prediction for all observations, not only oob! 
     # the predictions are in a long vector for all model types (regular, irregular, scalar)
-    predGrid <- predict(mod, aggregate="cumsum", toFDboost=FALSE)
+    predGrid <- predict(mod, aggregate = "cumsum", toFDboost = FALSE)
     predGrid <- predGrid[,grid] # save vectors of predictions for grid in matrix
     
     # -> oob-predictions have to be merged out of predGrid
     predOOB <- predGrid
-    keepidOOB <- (oobweights!=0)[mod$id]
+    keepidOOB <- (oobweights != 0)[mod$id]
     if(any(keepidOOB)){
       predOOB <- predOOB[keepidOOB,]
       respOOB <- mod$response[keepidOOB]
@@ -378,8 +378,8 @@ validateFDboost <- function(object, response=NULL,
 
     if(showProgress) cat(".")
 
-    return(list(risk=risk, predGrid=predGrid, predOOB=predOOB, respOOB=respOOB, 
-                mse=mse, relMSE=relMSE, mrd=mrd, risk0=risk0, mse0=mse0, mrd0=mrd0, mod=mod))  
+    return(list(risk = risk, predGrid = predGrid, predOOB = predOOB, respOOB = respOOB, 
+                mse = mse, relMSE = relMSE, mrd = mrd, risk0 = risk0, mse0 = mse0, mrd0 = mrd0, mod = mod))  
   } 
   
   ### computation of models on partitions of data
@@ -390,7 +390,7 @@ validateFDboost <- function(object, response=NULL,
   }else{
     modRisk <- mclapply(1:ncol(folds),
                         function(i) dummyfct(weights = folds[, i], 
-                                             oobweights = OOBweights[, i]), mc.cores=1)
+                                             oobweights = OOBweights[, i]), mc.cores = 1)
   }
   
   # str(modRisk, max.level=2)
@@ -411,7 +411,7 @@ validateFDboost <- function(object, response=NULL,
     # stop() or warning()?
     if(sum(!modFitted) > sum(modFitted)) warning("More than half of the models could not be fitted.")
     
-    warning("Model fit did not work in fold ", paste(which(!modFitted), collapse=", "))
+    warning("Model fit did not work in fold ", paste(which(!modFitted), collapse = ", "))
     modRisk <- modRisk[modFitted]
     OOBweights <- OOBweights[,modFitted]   
     folds <- folds[,modFitted]
@@ -449,29 +449,28 @@ validateFDboost <- function(object, response=NULL,
   
   # fold equals curve if type="curves"
   if(any(riskOptimal>bound)){
-    message("Fold with high values in oobrisk (median is ", round(median(riskOptimal),2), "):")
-    message(paste("In fold ", which(riskOptimal>bound), ": " ,
-                  round(riskOptimal[which(riskOptimal>bound)], 2), collapse=",  ", sep="" )  )  
+    message("Fold with high values in oobrisk (median is ", round(median(riskOptimal), 2), "):")
+    message(paste("In fold ", which(riskOptimal > bound), ": " ,
+                  round(riskOptimal[which(riskOptimal > bound)], 2), collapse = ",  ", sep = "" )  )  
   }
   
   ## only makes sense for type="curves" with leaving-out one curve per fold!!
   if(grepl( "curves", type)){
     ## predict response for all mstops in grid out of bag
     # predictions for each response are in a vector!
-    # <FIXME> only works for regular response! implement depending on id!
     oobpreds0 <- lapply(modRisk, function(x) x$predGrid)
-    if(any(class(object)=="FDboostLong")){
-      oobpreds <- vector(length(oobpreds0), mode="list")
-      for(j in 1:length(oobpreds0)){
-        oobpreds[[which(folds[,j]==0)]] <- oobpreds0[[j]][id==which(folds[,j]==0),] 
+    oobpreds <- matrix(nrow = nrow(oobpreds0[[1]]), ncol = ncol(oobpreds0[[1]]))
+    
+    if(any(class(object) == "FDboostLong")){
+      for(i in 1:length(oobpreds0)){ # i runs over observed trajectories, i.e. over id 
+        oobpreds[id == i, ]  <- oobpreds0[[i]][id == i, ] 
       }
     }else{
-      oobpreds <- matrix(nrow=nrow(oobpreds0[[1]]), ncol=ncol(oobpreds0[[1]]))
       for(j in 1:length(oobpreds0)){
-        oobpreds[folds[,j]==0] <- oobpreds0[[j]][folds[,j]==0] 
+        oobpreds[folds[ , j] == 0] <- oobpreds0[[j]][folds[ , j] == 0] 
       }
-      colnames(oobpreds) <- grid
     }
+    colnames(oobpreds) <- grid
     rm(oobpreds0)
     
   }else{
@@ -498,7 +497,7 @@ validateFDboost <- function(object, response=NULL,
 
   if(getCoefCV){
     
-    if(riskopt=="median"){
+    if(riskopt == "median"){
       #print("median")
       optimalMstop <- grid[which.min(apply(oobrisk, 2, median))]
     }else{
@@ -509,7 +508,7 @@ validateFDboost <- function(object, response=NULL,
     attr(coefCV, "risk") <- paste("minimize", riskopt, "risk")
     
     ### estimates of coefficients
-    timeHelp <- seq(min(modRisk[[1]]$mod$yind), max(modRisk[[1]]$mod$yind), l=40)
+    timeHelp <- seq(min(modRisk[[1]]$mod$yind), max(modRisk[[1]]$mod$yind), l = 40)
     for(l in 1:length(modRisk[[1]]$mod$baselearner)){
       # estimate the coefficients for the model of the first fold
       coefCV[[l]] <- coef(modRisk[[1]]$mod[optimalMstop], 
@@ -526,7 +525,7 @@ validateFDboost <- function(object, response=NULL,
         # add estimates for the models of the other folds
         coefCV[[l]]$value <- lapply(1:length(modRisk), function(g){
           ret <- coef(modRisk[[g]]$mod[optimalMstop], 
-                      which=l, n1 = 40, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]$value
+                      which = l, n1 = 40, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]$value
           #         if(l==1){
           #           coefCV[[l]]$offset[g,] <- modRisk[[g]]$mod$predictOffset(time=timeHelp)
           #         }
@@ -539,7 +538,7 @@ validateFDboost <- function(object, response=NULL,
         for(j in 1:coefCV[[l]]$numberLevels){
           coefCV[[l]][[j]]$value <- lapply(1:length(modRisk), function(g){
             ret <- coef(modRisk[[g]]$mod[optimalMstop], 
-                        which=l, n1 = 40, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]][[j]]$value
+                        which = l, n1 = 40, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]][[j]]$value
             attr(ret, "offset") <- NULL # as offset is the same within one model
             return(ret)
           })
@@ -551,8 +550,8 @@ validateFDboost <- function(object, response=NULL,
     ## predict offset
     offset <- sapply(1:length(modRisk), function(g){
       # offset is vector of length yind or numeric of length 1 for constant offset
-      ret <- modRisk[[g]]$mod$predictOffset(time=timeHelp)
-      if( length(ret)==1 & length(object$yind) > 1 ) ret <- rep(ret, length(timeHelp))
+      ret <- modRisk[[g]]$mod$predictOffset(time = timeHelp)
+      if( length(ret) == 1 & length(object$yind) > 1 ) ret <- rep(ret, length(timeHelp))
       return(ret)
     })
     
@@ -563,32 +562,32 @@ validateFDboost <- function(object, response=NULL,
     ### predictions of terms based on the coefficients for each model
     # only makes sense for type="curves" with leaving-out one curve per fold!!
     #browser() 
-    if(grepl( "curves", type)){
+    if(grepl("curves", type)){
       for(l in 1:(length(modRisk[[1]]$mod$baselearner)+1)){
         predCV[[l]] <- t(sapply(1:length(modRisk), function(g){
-          if(l==1){ # save offset of model
+          if(l == 1){ # save offset of model
             # offset is vector of length yind or numeric of length 1 for constant offset
             ret <- modRisk[[g]]$mod[optimalMstop]$predictOffset(object$yind) 
             # regular data or scalar response
-            if(!any(class(object)=="FDboostLong")){
-              if( length(ret)==1 ) ret <- rep(ret, modRisk[[1]]$mod$ydim[2])
+            if(!any(class(object) == "FDboostLong")){
+              if( length(ret) == 1 ) ret <- rep(ret, modRisk[[1]]$mod$ydim[2])
             # irregular data
             }else{ 
-              if( length(ret)==1 ){ ret <- rep(ret, sum(object$id==g)) }else{ ret <- ret[object$id==g] }
+              if( length(ret) == 1 ){ ret <- rep(ret, sum(object$id == g)) }else{ ret <- ret[object$id == g] }
             }
           }else{ # other effects
-            ret <- predict(modRisk[[g]]$mod[optimalMstop], which=l-1) # model g
+            ret <- predict(modRisk[[g]]$mod[optimalMstop], which = l-1) # model g
             if(!(l-1) %in% selected(modRisk[[g]]$mod[optimalMstop]) ){ # effect was never chosen
-              if(!any(class(object)=="FDboostLong")){
+              if(!any(class(object) == "FDboostLong")){
                 ret <- matrix(0, ncol=modRisk[[1]]$mod$ydim[2], nrow=modRisk[[1]]$mod$ydim[1])
               }else{
-                ret <- matrix(0, nrow=length(object$id), ncol=1)
+                ret <- matrix(0, nrow = length(object$id), ncol=1)
               } 
             }
-            if(!any(class(object)=="FDboostLong")){
+            if(!any(class(object) == "FDboostLong")){
               ret <- ret[g,] # save g-th row = preds for g-th observations
             }else{
-              ret <- ret[object$id==g] # save preds of g-th observations
+              ret <- ret[object$id == g] # save preds of g-th observations
             } 
           }
           return(ret)
@@ -603,21 +602,21 @@ validateFDboost <- function(object, response=NULL,
   
   rm(modRisk)
   
-  ret <- list(response=response, yind=object$yind, id=object$id,
-              folds=folds, grid=grid,
-              coefCV=coefCV,
-              predCV=predCV,
-              oobpreds=oobpreds, 
-              #predOOB=predOOB, respOOB=respOOB,
-              oobrisk=oobrisk, 
-              oobriskMean=colMeans(oobrisk),
-              oobmse=oobmse,
-              oobrelMSE=oobrelMSE,
-              oobmrd=oobmrd,
-              oobrisk0=oobrisk0, 
-              oobmse0=oobmse0,
-              oobmrd0=oobmrd0, 
-              format=if(any(class(object)=="FDboostLong")) "FDboostLong" else "FDboost")  
+  ret <- list(response = response, yind = object$yind, id = object$id,
+              folds = folds, grid=grid,
+              coefCV = coefCV,
+              predCV = predCV,
+              oobpreds = oobpreds, 
+              #predOOB = predOOB, respOOB = respOOB,
+              oobrisk = oobrisk, 
+              oobriskMean = colMeans(oobrisk),
+              oobmse = oobmse,
+              oobrelMSE = oobrelMSE,
+              oobmrd = oobmrd,
+              oobrisk0 = oobrisk0, 
+              oobmse0 = oobmse0,
+              oobmrd0 = oobmrd0, 
+              format = if(any(class(object) == "FDboostLong")) "FDboostLong" else "FDboost")  
 
   attr(ret, "risk") <- object$family@name
   attr(ret,  "call") <- deparse(object$call)
@@ -773,35 +772,41 @@ plot.validateFDboost <- function(x, riskopt=c("mean", "median"),
   }
     
   # Plot the predictions for the optimal mstop
-  if(!is.null(x$oobpreds[,mpos])){
-    response <- x$response
-    pred <- x$oobpreds[,mpos]
-    if(!predictNA){
-      pred[is.na(response)] <- NA
+  if(4 %in% which | 5 %in% which){
+    
+    if(!is.null(x$oobpreds)){
+      response <- x$response
+      pred <- x$oobpreds[,mpos]
+
+      if(!predictNA){
+        pred[is.na(response)] <- NA
+      }
+      
+      predMat <- pred
+      responseMat <- response
+      
+      if(x$format == "FDboost") predMat <- matrix(pred, ncol=length(x$yind))
+      if(x$format == "FDboost") responseMat <- matrix(response, ncol=length(x$yind))
+      
+      if(4 %in% which){
+        ylim <- range(response, pred, na.rm = TRUE)
+        funplot(x$yind, responseMat, id=x$id, lwd = 1, pch = 1, ylim = ylim,  
+                ylab = "", xlab = attr(x$yind, "nameyind"), 
+                main="Observed and Predicted Values", ...)
+        funplot(x$yind, predMat, id=x$id, lwd = 2, pch = 2, add = TRUE, ...)
+        posLegend <- "topleft"
+        legend(posLegend, legend=c("observed","predicted"), col=1, pch=1:2)  
+      }
+      
+      if(5 %in% which){
+        # Plot residuals for the optimal mstop
+        funplot(x$yind, responseMat-predMat, id=x$id, ylab = "", xlab = attr(x$yind, "nameyind"), 
+                main="Residuals", ...)
+        abline(h=0, lty=2, col="grey")
+      }
     }
     
-    predMat <- pred
-    responseMat <- response
     
-    if(x$format=="FDboos") predMat <- matrix(pred, ncol=length(x$yind))
-    if(x$format=="FDboos") responseMat <- matrix(response, ncol=length(x$yind))
-    
-    if(4 %in% which){
-      ylim <- range(response, pred, na.rm = TRUE)
-      funplot(x$yind, responseMat, id=x$id, lwd = 1, pch = 1, ylim = ylim,  
-              ylab = "", xlab = attr(x$yind, "nameyind"), 
-              main="Observed and Predicted Values", ...)
-      funplot(x$yind, predMat, id=x$id, lwd = 2, pch = 2, add = TRUE, ...)
-      posLegend <- "topleft"
-      legend(posLegend, legend=c("observed","predicted"), col=1, pch=1:2)  
-    }
-    
-    if(5 %in% which){
-      # Plot residuals for the optimal mstop
-      funplot(x$yind, responseMat-predMat, id=x$id, ylab = "", xlab = attr(x$yind, "nameyind"), 
-              main="Residuals", ...)
-      abline(h=0, lty=2, col="grey")
-    }
   }
   
   # Plot coefficients
@@ -1040,7 +1045,6 @@ plotPredCoef <- function(x, which=NULL, pers=TRUE,
               myCol <- sapply(temp$value, function(x) x[, quanty[j]==temp$y]) # first column
               
               if(showQuantiles){ 
-                #browser()
                 plotWithArgs(matplot, args=argsMatplot, 
                              myargs=list(x=temp$y, y=myCol, type="l", xlab=temp$ylab,
                                          main=paste(temp$main, " at ", probs[j]*100, "% of ", temp$xlab, sep=""), 
