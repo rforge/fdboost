@@ -539,7 +539,9 @@ FDboost <- function(formula,          ### response ~ xvars
   if(length(allCovs) > 1){
     data <- data[allCovs[!allCovs %in% c(yname, nameyind)] ]
     if( any(is.na(names(data))) ) data <- data[ !is.na(names(data)) ]
-  }else data <- list(NULL)  # <SB> intercept-model without covariates
+  }else{
+    data <- list(NULL)  # <SB> intercept-model without covariates
+  } 
         
   ### get covariates that are modeled constant over time
   # code of function pffr() of package refund
@@ -702,11 +704,28 @@ FDboost <- function(formula,          ### response ~ xvars
   xpart <- paste(as.vector(tmp), collapse = " + ")
   fm <- as.formula(paste("dresponse ~ ", xpart))
   
-  ## FIXME use the environment of the formula in the model call as environmnet for fm
-  ## make sure that this environment contains correctly all other arguments of FDboost
-  ## and variables created within FDboost(), e.g. ONEx and ONEtime
-  ## environment(fm) <- environment(formula)
-   
+  ## find variables that are defined in environment(formula) but not in environment(fm) or in data 
+  fm_vars <- all.vars(fm) # all variables of fm 
+  ## vars_envir_formula <- fm_vars[ ! fm_vars %in% c(names(data), "dresponse" , "ONEx", "ONEtime", yind) ]
+  # variables that exist in environment(fm) 
+  vars1 <- sapply(fm_vars, exists, envir = environment(fm), inherits = FALSE)   
+  if(!is.null(names(data))){
+    vars2 <- sapply(fm_vars, function(x){ x %in% names(data)} ) # variables that exist in data
+  }else{
+    vars2 <- FALSE 
+  }
+  
+  # variables that exist neither in environment(fm) nor in data 
+  vars_envir_formula <- fm_vars[ !(vars1 | vars2) ]
+  
+  for(i in seq_along(vars_envir_formula)){
+    tmp <- get(vars_envir_formula[i], environment(formula))
+    assign(x = vars_envir_formula[i], value = tmp,  envir = environment(fm))
+  }
+  rm(tmp)
+  
+  # environment(fm)
+  
   ### expand weights for observations
   if (is.null(weights)) weights <- rep(1, nr)
   w <- weights
@@ -910,9 +929,9 @@ FDboost <- function(formula,          ### response ~ xvars
   }
     
   offsetMboost <- offset
-  
-  if (length(data) > 0) {
-    ### mboost isn't happy with nrow(data) == 0
+
+  if (length(data) > 0 && !(is.list(data) && length(data) == 1 && is.null(data[[1]]))) {
+    ### mboost isn't happy with nrow(data) == 0 / list(NULL)
     ret <- mboost(fm, data = data, weights = w, offset = offset, ...) 
   } else {
     ret <- mboost(fm, weights = w, offset = offset, ...)

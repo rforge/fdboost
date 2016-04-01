@@ -7,6 +7,7 @@
     \itemize{
 	    \item fix oobpred in validateFDboost() for irregular response and resampling on the level of curves 
 	    and thus plot.validateFDboost() works for that case 
+	    \item fix scope of formula in FDboost(): now the formula given to mboost() within FDboost() uses the variables in the environment of the formula specified in FDboost() 
     }
   }
 }
