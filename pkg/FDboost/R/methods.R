@@ -145,7 +145,11 @@ predict.FDboost <- function(object, newdata = NULL, which = NULL, toFDboost = TR
     ## response observed on common grid / scalar response 
     if(!is.null(object$ydim)){
       # get the number of trajectories you want to predict
-      n <- NROW(newdata[[1]])  ## FIXME check that this is not the time-variable
+      n <- NROW(newdata[[1]])  
+      ## use the second variable if the first is the time variable 
+      if(is.list(newdata) && length(newdata) > 1){
+        if(names(newdata[1]) == nameyind) n <- NROW(newdata[[2]])
+      } 
       
       lengthYind <- length(newdata[[nameyind]])
       #assign(nameyind, newdata[[nameyind]])

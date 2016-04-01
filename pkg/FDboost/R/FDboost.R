@@ -461,7 +461,7 @@ FDboost <- function(formula,          ### response ~ xvars
   
   ### save formula of FDboost
   formulaFDboost <- formula
-  
+
   stopifnot(class(formula) == "formula")
   if(!is.null(timeformula)) stopifnot(class(timeformula) == "formula")
   
@@ -702,6 +702,11 @@ FDboost <- function(formula,          ### response ~ xvars
   xpart <- paste(as.vector(tmp), collapse = " + ")
   fm <- as.formula(paste("dresponse ~ ", xpart))
   
+  ## FIXME use the environment of the formula in the model call as environmnet for fm
+  ## make sure that this environment contains correctly all other arguments of FDboost
+  ## and variables created within FDboost(), e.g. ONEx and ONEtime
+  ## environment(fm) <- environment(formula)
+   
   ### expand weights for observations
   if (is.null(weights)) weights <- rep(1, nr)
   w <- weights
