@@ -206,7 +206,7 @@ res$logCondDsFinite[!is.finite(res$logCondDs)] <- 1
 round(with(res, prop.table(table(typek, logCondDsFinite), margin=1))*100, 2)
 
 res$logCondDs[!is.finite(res$logCondDs)] <- 25
-res$logCondDs_grouped <- cut(res$logCondDs, breaks = c(0, log10(10^6), Inf), right=FALSE) # log10(10^25),
+res$logCondDs_grouped <- cut(res$logCondDs, breaks = c(0, log10(10^6), Inf), right=FALSE) 
 summary(res$logCondDs_grouped)
 plot(res$logCondDs, col=res$type)
 abline(h=log10(10^6))
@@ -236,19 +236,14 @@ for(i in 1:length(namescondNrt)){
 # lines-1       0.00 100.00
 # lines-2       3.75  96.25
 
-#par(mfrow=c(3,2))
 
 pdf("logCondTime.pdf")
 par(mfrow=c(1,1), mar=c(2, 3, 1, 1), cex=2)
 for(i in c(1:4,09 )){
   temp <- res[res$typek==levels_typek[i], namescondNrt]
-  ## set infinite values to 25
-  ##temp[!is.finite(as.matrix(temp))] <- 25
   matplot(tused, t(temp), type="l", xlab="t", main=levels_typek[i],  
           ylab=expression(kappa[j](t)), col=1)
   abline(h=6, col=2)
-  #abline(v=2, col=2)
-  #abline(v=5, col=2)
   rug(tused, 0.01)
 }
 dev.off()
@@ -329,7 +324,8 @@ ddply(res, .(mod), summarize, cor.y.beta = cor(relmsey, relmsefx1b, method="spea
 ddply(res, .(mod), summarize, cor.y.beta = cor(relmsey, relmsefx2b, method="spearman"))
 
 # compute rank correlation between reliMSE beta and reliMSE Y for each combination
-tab <- ddply(res, .(type, k, M, penaltyS, diffPen, model), summarize, cor.y.beta = cor(relmsey, relmsefx1b, method="spearman")) 
+tab <- ddply(res, .(type, k, M, penaltyS, diffPen, model), summarize, 
+             cor.y.beta = cor(relmsey, relmsefx1b, method="spearman")) 
 tab
 #sort(tab$cor.y.beta)
 
@@ -424,18 +420,16 @@ print(p1 <- ggplot(subset(help, condNr == "[0,6)" & !is.na(overMaxSuc10Nice) & M
              aes(y=relmsefx1b, fill=typek, colour=typek, x=overMaxSuc10Nice)) + # & k>3
         geom_hline(aes(yintercept=0.1)) +
         geom_boxplot(outlier.size=.6) +
-        facet_grid(~penAll) + # "label_both"
+        facet_grid(~penAll) + 
         scale_y_log10() +  
         coord_cartesian(ylim = rangefx1) +                      
         scale_fill_manual(name = "", 
                           values=c(brewer.pal(8, "Paired")[c(1:4, 7:8)], brewer.pal(8, "PRGn")[1:3] )) +              
         scale_colour_manual(name = "", values=c(rep(c("black", "grey60"), 3), rep("grey30", 3)) ) +
-        #labs(title=bquote(kappa(D[1]^{T}~D)<10^6) ) +
         labs(title=bquote(kappa[1]<10^6) ) +
         ylab(bquote(reliMSE(beta[1]))) +  
         xlab("kernel overlap") +
         scale_x_discrete(labels=c("<1")) + 
-        # scale_x_discrete(labels=c("<1", expression("">=1))) +
         theme(text=element_text(size = 25, colour=1), plot.title=element_text(size = 25), 
               axis.text=element_text(size = 20, colour=1)) + 
         theme(legend.position = "none") # no legend 
@@ -444,24 +438,22 @@ dev.off()
 
 pdf("condNrOverlap1.pdf", width=11, height=6) # 
 print(p2 <- ggplot(subset(help, condNr == "[6,Inf)" & !is.na(overMaxSuc10Nice) & M==30 & 
-                      mod=="FDboost" & a=="pen1coef4" & penaltyS=="ps"), 
+                      mod == "FDboost" & a =="pen1coef4" & penaltyS=="ps"), 
              aes(y=relmsefx1b, fill=typek, colour=typek, x=overMaxSuc10Nice)) + # & k>3
         geom_hline(aes(yintercept=0.1)) + 
         geom_boxplot(outlier.size=.6) +
-        facet_grid(~penAll) + # "label_both"
+        facet_grid(~penAll) + 
         scale_y_log10() +  
         coord_cartesian(ylim = rangefx1) +                     
         scale_fill_manual(name = "", 
                           values=c(brewer.pal(8, "Paired")[c(1:4, 7:8)], brewer.pal(8, "PRGn")[1:3] )) +              
         scale_colour_manual(name = "", values=c(rep(c("black", "grey60"), 3), rep("grey30", 3)) ) +
-        #labs(title=bquote(kappa[1], "">=1, 10^6) ) +
         labs(title=expression(kappa[1]~"">=10^6)) +
         ylab("") + 
         xlab("kernel overlap") +
         scale_x_discrete(labels=c("<1", expression("">=1))) +
         theme(text=element_text(size = 25, colour=1), plot.title=element_text(size = 25), 
               axis.text=element_text(size = 20, colour=1), axis.text.y = element_blank()) +  
-              #panel.background = element_rect(fill = 'white', colour = 'black')) +
         theme(legend.title=element_blank() ) # no legend title
 )
 dev.off()
@@ -491,37 +483,29 @@ with(res, table(typek, condNr, overMaxSuc10))
 pdf("penalties.pdf", width=10, height=5)
 par(mfrow=c(1,1))
 ## order of penalty
-print(ggplot(subset(res, !is.na(relmsefx1b) & M==30 & mod=="FDboost"), #& a=="pen1coef4"
-             aes(y=relmsefx1b, fill=typek, color=typek, x=dbeta)) + # & k>3
+print(ggplot(subset(res, !is.na(relmsefx1b) & M==30 & mod=="FDboost"), 
+             aes(y=relmsefx1b, fill=typek, color=typek, x=dbeta)) + 
         geom_boxplot(outlier.size=.6) +
-        #facet_grid(  ~ typek, labeller="label_both") + # + a
         facet_wrap(  ~ penAll, ncol=2) +
         scale_y_log10() + 
         scale_fill_manual(name = "", 
                           values=c(brewer.pal(8, "Paired")[c(1:4, 7:8)], brewer.pal(8, "PRGn")[1:3] )) +              
         scale_colour_manual(name = "", values=c(rep(c("black", "grey60"), 3), rep("grey30", 3)) ) +
-        #scale_colour_manual(values=c("red", "darkgreen", "blue")) + 
-        #labs(title=bquote(reliMSE(beta[1]))) +
         ylab(bquote(reliMSE(beta[1]))) + 
-        #xlab("order of penalty for random coefficients") +
         xlab(bquote(d[beta])) + 
         theme(text=element_text(size = 25, colour=1), plot.title=element_text(size = 25), 
               axis.text=element_text(size = 20, colour=1)) +
         geom_hline(aes(yintercept=0.1)))
 
 ## order of penalty
-print(ggplot(subset(res, !is.na(relmsefx1b) & M==30 & mod=="FDboost"), #& a=="pen1coef4"
-             aes(y=relmsefx1b, fill=penAll, color=penAll, x=dbeta)) + # & k>3
+print(ggplot(subset(res, !is.na(relmsefx1b) & M==30 & mod=="FDboost"), 
+             aes(y=relmsefx1b, fill=penAll, color=penAll, x=dbeta)) + 
         geom_boxplot(outlier.size=.6) +
-        #facet_grid(  ~ typek, labeller="label_both") + # + a
         facet_wrap(  ~ typek, ncol=3) +
         scale_y_log10() + 
         scale_fill_manual(name="penalty", values=c("blue", "lightblue", "darkgreen", "lightgreen")) +                    
         scale_colour_manual(name="penalty", values=c("black", "grey40", "black", "grey40")) + 
-        #scale_colour_manual(values=c("red", "darkgreen", "blue")) + 
-        #labs(title=bquote(reliMSE(beta[1]))) +
         ylab(bquote(reliMSE(beta[1]))) + 
-        #xlab("order of penalty for random coefficients") +
         xlab(bquote(d[beta])) + 
         theme(text=element_text(size = 25, colour=1), plot.title=element_text(size = 25), 
               axis.text=element_text(size = 20, colour=1)) +
@@ -530,23 +514,20 @@ dev.off()
 
 
 ############################################################################
-### d a plot comparing FDboost and pffr without nuisance variables
+### do a plot comparing FDboost and pffr without nuisance variables
 
 ### focusing on "best" settings
 pdf("reliMSEfx1fbest.pdf", width=10, height=5)
-print(ggplot(subset(res, !is.na(relmsefx1b) & !is.na(relmsefx1b & M==30) & penaltyS=="ps" & diffPen==1), #& a=="pen1coef4"
+print(ggplot(subset(res, !is.na(relmsefx1b) & !is.na(relmsefx1b & M==30) & penaltyS=="ps" & diffPen==1), 
              aes(y=relmsefx1b, fill=typek, color=typek, x=dbeta)) + # & k>3
         geom_boxplot(outlier.size=.6) +
-        #facet_grid(  ~ typek, labeller="label_both") + # + a
         facet_wrap(  ~ mod, ncol=2) +  ## nuisance
         scale_y_log10() + 
         scale_fill_manual(name = "", 
                           values=c(brewer.pal(8, "Paired")[c(1:4, 7:8)], brewer.pal(8, "PRGn")[1:3] )) +              
         scale_colour_manual(name = "", values=c(rep(c("black", "grey60"), 3), rep("grey30", 3)) ) +
-        #scale_colour_manual(values=c("red", "darkgreen", "blue")) + 
         ylab(bquote(reliMSE(beta[1]))) + 
         xlab(bquote(d[beta])) + 
-        #xlab(bquote(d[beta])) + 
         theme(text=element_text(size = 25, colour=1), plot.title=element_text(size = 25), 
               axis.text=element_text(size = 20, colour=1)) +
         geom_hline(aes(yintercept=0.1)))
@@ -560,19 +541,16 @@ dev.off()
 ### focusing on "best" settings
 pdf("reliMSEfx1fbestNuisance.pdf", width=10, height=6)
 
-print(ggplot(subset(resNu, !is.na(relmsefx1b) & !is.na(relmsefx1b & M==30) & penaltyS=="ps" & diffPen==1), #& a=="pen1coef4"
+print(ggplot(subset(resNu, !is.na(relmsefx1b) & !is.na(relmsefx1b & M==30) & penaltyS=="ps" & diffPen==1), 
              aes(y=relmsefx1b, fill=typek, color=typek, x=dbeta)) + # & k>3
-        geom_boxplot(outlier.size=.6) +
-        #facet_grid(  ~ mod, labeller="label_both") + # + a
+        geom_boxplot(outlier.size=.6) + 
         facet_wrap( nuis ~ mod, ncol=2, nrow=2, drop=FALSE) +  ## nuisance
         scale_y_log10() + 
         scale_fill_manual(name = "", 
                           values=c(brewer.pal(8, "Paired")[c(1:4, 7:8)], brewer.pal(8, "PRGn")[1:3] )) +              
         scale_colour_manual(name = "", values=c(rep(c("black", "grey60"), 3), rep("grey30", 3)) ) +
-        #scale_colour_manual(values=c("red", "darkgreen", "blue")) + 
         ylab(bquote(reliMSE(beta[1]))) + 
         xlab(bquote(d[beta])) + 
-        #xlab(bquote(d[beta])) + 
         theme(text=element_text(size = 25, colour=1), plot.title=element_text(size = 25), 
               axis.text=element_text(size = 20, colour=1)) +
         geom_hline(aes(yintercept=0.1)))
@@ -592,4 +570,62 @@ table(res123n$X7>0, useNA="ifany")/nrow(res123n)
 table(res123n$X8>0, useNA="ifany")/nrow(res123n)
 table(res123n$X9>0, useNA="ifany")/nrow(res123n)
 table(res123n$X10>0, useNA="ifany")/nrow(res123n)
+
+
+
+
+################ look at computation time
+
+# ## use the data containing boosting with and without stability selection 
+temp123 <- res123[ , c("time.elapsed", "M", "type", "k", "a", "nuisance", "model", "stabsel")]
+temp_pffr123 <- pffr123[ , c("time.elapsed", "M", "type", "k", "a", "nuisance", "model", "stabsel")]
+temp_pffr123$stabsel <- "no"
+temp123n <- res123n[ , c("time.elapsed", "M", "type", "k", "a", "nuisance", "model", "stabsel")]
+temp123nu <- res123nu[ , c("time.elapsed", "M", "type", "k", "a", "nuisance", "model", "stabsel")]
+
+resTime <- rbind(temp123, temp_pffr123, temp123n, temp123nu)
+
+resTime$mod <- resTime$model
+resTime$mod <- factor(resTime$mod, levels=1:2, labels = c("FAMM", "FDboost") )
+
+resTime$typek <- paste(resTime$type, resTime$k, sep="-")
+
+levels_typek <- c("local-5","local-10", 
+                  "bsplines-5","bsplines-10",
+                  "end-5","end-10",
+                  #"start-5","start-10",
+                  #"fourier-5", "fourier-10",
+                  #"fourierLin-5", "fourierLin-10",
+                  "lines-0","lines-1","lines-2")
+
+resTime$typek <- factor(resTime$typek, levels=levels_typek)
+
+resTime$dbeta <- 1
+resTime$dbeta[resTime$a=="pen2coef4"] <- 2
+resTime$dbeta <- factor(resTime$dbeta)
+
+resTime$N <- factor(resTime$M)
+resTime$nuis <- paste( resTime$nuisance, "nuisance")
+resTime$stabsel_plot <- paste0("stability selection: ", resTime$stabsel)
+
+pdf("computation_time.pdf", width=12, height=5)
+print(pt <- ggplot(resTime, 
+                   aes(y=time.elapsed, fill=mod, colour=mod, x=mod)) + # & k>3
+        geom_boxplot(outlier.size=.6) +
+        facet_grid(~ nuis + stabsel_plot) + 
+        scale_y_continuous(breaks=c(1, 2, 5, 10, 20, 60, 120, 300, 600, 1200, 2700, 
+                                    5400, 10800, 21600, 43200), 
+                           trans="log10",
+                           labels=c("1s", "2s", "5s", "10s", "20s", "1 min", "2 min", "5 min", 
+                                    "10 min", "20 min", "45 min", "90 min", "3h", "6h", "12h")) + 
+        scale_fill_manual(name = "",  values=c("white", "grey80")) +              
+        scale_colour_manual(name = "", values=c("grey40", "black")) +
+        ylab("computation time") + 
+        xlab("estimation algorithm") +
+        theme(text=element_text(size = 25, colour=1), plot.title=element_text(size = 25), 
+              axis.text=element_text(size = 20, colour=1)) +  
+        theme(legend.title=element_blank() ) # no legend title
+)
+dev.off() 
+
 
