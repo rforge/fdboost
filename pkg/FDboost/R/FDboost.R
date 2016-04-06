@@ -636,7 +636,14 @@ FDboost <- function(formula,          ### response ~ xvars
   if(any(grepl("bhistx", trmstrings))){
     for(j in 1:length(trmstrings)){
       if(any(grepl("bhistx", trmstrings[j]))){
-        temp_name <- all.vars(formula(paste("~", trmstrings[[j]])[1]))[1]
+        if(grepl("%X", trmstrings[j]) ){
+          temp <- strsplit(trmstrings[[j]], "%X%")[[1]]
+          temp <- temp[ grepl("bhistx", temp) ]
+          ## pryr::standardise_call(quote(bhistx(X1h, df=3))) 
+          temp_name <- all.vars(formula(paste("~", temp)))[1]
+        }else{
+          temp_name <- all.vars(formula(paste("~", trmstrings[[j]])[1]))[1]
+        }
         if(getTimeLab(data[[temp_name]]) != nameyind){
           stop("The timeLab of the hmatrix-object in bhistx(), '", getTimeLab(data[[temp_name]]),
                "', must be euqal to the name of the time-variable in timeformula, '", nameyind, "'.")
@@ -760,6 +767,8 @@ FDboost <- function(formula,          ### response ~ xvars
     #warning(paste("The response contains", sum(is.na(dresponse)) ,"missing values. The corresponding weights are set to 0."))
     w[which(is.na(dresponse))] <- 0
   }
+  
+  if(all(w == 0)) stop("All weights are zero!")
   
   ### offset == "scalar", or offset = numeric of length 1, or scalar response
   ### -> use one scalar/user-specified offset like in mboost
