@@ -612,6 +612,7 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
       makeDataGrid <- function(trm){
         
         myargsHist <- NULL
+        x <- y <- z <- NULL
         
         # variable for number of levels in bl2 for an effect bl1 %X% bl2
         numberLevels <- 1  
@@ -791,7 +792,7 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
           d <- list(xg)  # data.fame
           names(d) <- varnms
           attr(d, "xm") <- xg
-          attr(d, "xname") <- varnms
+          attr(d, "varnms") <- varnms
           # For effect constant over index of response: add dummy-index so that length in clear
           if(attr(object$yind, "nameyind") != varnms){
             d[[attr(object$yind, "nameyind")]] <- seq(min(object$yind), max(object$yind), length=ng) 
@@ -817,72 +818,89 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
           
           if(trm$dim == 2){
             
-            ## not bhist 
-            if( ! grepl("bhist", trm$get_call()) ){
-              
-              ## y (time variable, usually second variable)
-              ## important in case of by-variables, then yind is third variable 
-              position_time <- which(varnms == attr(object$yind, "nameyind"))
-              y <- trm$model.frame()[[position_time]]
-              yg <- seq(min(y), max(y), length = ng)
-              
-              #if(!is.null(attr(trm$model.frame()[[2]], "signalIndex"))){ # functional covariate
-              #  y <- attr(trm$model.frame()[[2]], "signalIndex")
-              #  yg <- seq(min(y), max(y), length = ng) 
-              #  varnms[2] <- attr(trm$model.frame()[[2]], "indname") 
-              #}else{ # scalar covariate
-              #  y <- trm$model.frame()[[2]]
-              #  yg <- if(is.factor(y)) {
-              #    sort(unique(y))
-              #  } else seq(min(y), max(y),length = ng)
-              #}
-              
-              if(length(varnms) > 2){
-                
-                ## by-variable in base-learner
-                position_z <- (1:3)[!(1:3) %in% c(1, position_time)]
-                z <- trm$model.frame()[[position_z]]
+            if("FDboostScalar" %in% class(object)){ ### scalar response 
+              position_time <- 2
+              y <- yg <- 1
+              varnms <- c(varnms[1], "ONEtime", varnms[2])
+              if(!is.null(attr(trm$model.frame()[[2]], "signalIndex"))){ # functional covariate
+                z <- attr(trm$model.frame()[[2]], "signalIndex")
+                zg <- seq(min(z), max(z), length = ng) 
+                varnms[2] <- attr(trm$model.frame()[[2]], "indname") 
+              }else{ # scalar covariate
+                z <- trm$model.frame()[[2]]
                 zg <- if(is.factor(z)) {
-                  sort(unique(z))[1]
+                  sort(unique(z))
+                } else seq(min(z), max(z), length = ng)
+              }
+
+              d <- list(xg, yg, zg)  # data.frame
+              attr(d, "xm") <- xg
+              attr(d, "ym") <- yg
+              attr(d, "zg") <- zg
+              attr(d, "varnms") <- varnms
+              
+            }else{ ### functional response 
+              
+              ## not bhist 
+              if( ! grepl("bhist", trm$get_call()) ){
+                
+                ## y (time variable, usually second variable)
+                ## important in case of by-variables, then yind is third variable 
+                position_time <- which(varnms == attr(object$yind, "nameyind"))
+                y <- trm$model.frame()[[position_time]]
+                yg <- seq(min(y), max(y), length = ng) 
+                
+                
+                if(length(varnms) > 2){
+                  
+                  ## by-variable in base-learner
+                  position_z <- (1:3)[!(1:3) %in% c(1, position_time)]
+                  z <- trm$model.frame()[[position_z]]
+                  zg <- if(is.factor(z)) {
+                    sort(unique(z))[1]
+                  }else{
+                    1 
+                    # if(grepl("by", trm$get_call())){ 1 }else{ seq(min(z), max(z), length = n4) }
+                  } 
+                  varnms <- varnms[c(1, position_time, position_z)]
+                  
+                  d <- list(xg, yg, zg)  # data.frame
+                  attr(d, "xm") <- xg
+                  attr(d, "ym") <- yg
+                  attr(d, "zm") <- zg
+                  
                 }else{
-                  1 
-                  # if(grepl("by", trm$get_call())){ 1 }else{ seq(min(z), max(z), length = n4) }
-                } 
-                varnms <- varnms[c(1, position_time, position_z)]
+                  varnms <- varnms[c(1, position_time)]
+                  
+                  d <- list(xg, yg)  # data.frame
+                  attr(d, "xm") <- xg
+                  attr(d, "ym") <- yg
+                }
                 
-                d <- list(xg, yg, zg)  # data.frame
-                attr(d, "xm") <- xg
-                attr(d, "ym") <- yg
-                attr(d, "zm") <- zg
+              }else{ ## special case: bhist in base-learner
                 
-              }else{
-                varnms <- varnms[c(1, position_time)]
+                y <- object$yind  ## attr(trm$model.frame()[[1]], "indexY")
+                yg <- seq(min(y), max(y), length = ng)
+                # varnms[2] <- attr(object$yind, "nameyind") ## attr(trm$model.frame()[[1]], "indnameY")
+                # if(varnms[1]==varnms[2]) varnms[1] <- paste(varnms[2], "_cov", sep="")
+                if(attr(object$yind, "nameyind") != attr(trm$model.frame()[[1]], "indnameY")){
+                  stop("coef.FDboost works for bhist only if time variable is the same in timeformula and bhist.")
+                }
+                
+                varnms <- c(varnms[1], attr(object$yind, "nameyind"))
                 
                 d <- list(xg, yg)  # data.frame
                 attr(d, "xm") <- xg
                 attr(d, "ym") <- yg
-              }
-
-            }else{ ## special case: bhist in base-learner
-              
-              y <- object$yind  ## attr(trm$model.frame()[[1]], "indexY")
-              yg <- seq(min(y), max(y), length = ng)
-              # varnms[2] <- attr(object$yind, "nameyind") ## attr(trm$model.frame()[[1]], "indnameY")
-              # if(varnms[1]==varnms[2]) varnms[1] <- paste(varnms[2], "_cov", sep="")
-              if(attr(object$yind, "nameyind") != attr(trm$model.frame()[[1]], "indnameY")){
-                stop("coef.FDboost works for bhist only if time variable is the same in timeformula and bhist.")
+                
+                myargsHist <- environment(trm$dpp)$args
+                attr(d, "myargsHist") <- myargsHist
+                
               }
               
-              varnms <- c(varnms[1], attr(object$yind, "nameyind"))
-              
-              d <- list(xg, yg)  # data.frame
-              attr(d, "xm") <- xg
-              attr(d, "ym") <- yg
-              
-              myargsHist <- environment(trm$dpp)$args
-              attr(d, "myargsHist") <- myargsHist
-
             }
+            
+
             
           }else{ # else for if(trm$dim == 2)
             
@@ -966,7 +984,7 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
         
         # set time-variable to 1, if response is a scalar
         if(length(object$yind) == 1){
-          if( all(attr(d, "zm") == d[[attr(object$yind, "nameyind")]]) ){
+          if( !is.null(attr(d, "zm")) && all(attr(d, "zm") == d[[attr(object$yind, "nameyind")]]) ){
             attr(d, "zm") <- 1
           }
           d[[attr(object$yind, "nameyind")]] <- 1 
@@ -1033,8 +1051,8 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
                 }
               } 
             }
-            
           }
+          
           if(!is.null(dlist)) d <- dlist
           attr(d, "numberLevels") <- numberLevels
         }  ## end if(grepl("%X", trm$get_call()))
@@ -1056,7 +1074,7 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
               predHelp[1,] # smooth intercept/ concurrent effect                
             }            
           } 
-          P <- list(x=attr(d, "xm"), xlab=attr(d, "xname"), xlim=safeRange(attr(d, "xm")))
+          P <- list(x=attr(d, "xm"), xlab=attr(d, "varnms")[1], xlim=safeRange(attr(d, "xm")))
           ## trm$dim > 1
         }else{
           varnms <- attr(d, "varnms")
