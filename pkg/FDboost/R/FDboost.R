@@ -417,6 +417,9 @@ FDboost <- function(formula,          ### response ~ xvars
                     ...)              ### goes directly to mboost
 {
   dots <- list(...)
+  
+  ### save formula of FDboost before it is changed
+  formulaFDboost <- formula
 
   ## insert the id variable into the formula, to treat it like the other variables
   if(!is.null(id)){
@@ -440,9 +443,9 @@ FDboost <- function(formula,          ### response ~ xvars
         } 
         ## do not add index to base-learners bhistx()
         if( grepl("bhistx", trmstrings[i]) ) trmstrings2[i] <- trmstrings[i] 
+        ##  do not add an index if an index is already part of the formula
+        if( grepl("index[[:blank:]]*=", trmstrings[i]) ) trmstrings2[i] <- trmstrings[i]
       }
-      ### <FIXME> do not add an index if an index is already part of the formula
-      #trmstrings2[grepl("index", trmstrings)] <- trmstrings[grepl("index", trmstrings)]
       trmstrings <- trmstrings2
     } 
     xpart <- paste(as.vector(trmstrings), collapse = " + ")
@@ -458,9 +461,6 @@ FDboost <- function(formula,          ### response ~ xvars
   }else{
     nameid <- NULL
   }
-  
-  ### save formula of FDboost
-  formulaFDboost <- formula
 
   stopifnot(class(formula) == "formula")
   if(!is.null(timeformula)) stopifnot(class(timeformula) == "formula")
@@ -722,11 +722,13 @@ FDboost <- function(formula,          ### response ~ xvars
     vars2 <- FALSE 
   }
   
-  # variables that exist neither in environment(fm) nor in data 
+  # variables that exist neither in environment(fm) nor in data... 
   vars_envir_formula <- fm_vars[ !(vars1 | vars2) ]
-  
+  # ... take those from the environment of the formula with which FDboost was called 
   for(i in seq_along(vars_envir_formula)){
-    tmp <- get(vars_envir_formula[i], environment(formula))
+    if(! exists(vars_envir_formula[i], envir = environment(formulaFDboost)))
+      stop("Variable <", vars_envir_formula[i], "> does not exist.")
+    tmp <- get(vars_envir_formula[i], envir = environment(formulaFDboost))
     assign(x = vars_envir_formula[i], value = tmp,  envir = environment(fm))
   }
   rm(tmp)
