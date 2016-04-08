@@ -384,7 +384,7 @@ newd <- list(T_A = factor(c(1,1,2,2), levels = 1:2,
                         labels = c("low", "high"))[rep(1:4, length(viscosity$time))],
              time = rep(viscosity$time, 4))
 
-## pred <- predict(mod4, newdata = newd)
+pred <- predict(mod4, newdata = newd)
 ## funplot(x = rep(viscosity$time, 4), y = pred, id = rep(1:4, length(viscosity$time)))
 }
 \author{

@@ -690,7 +690,37 @@ bsignal <- function(x, s, index = NULL, inS=c("smooth", "linear", "constant"), #
   # ret$dpp <- bl_lin(ret, Xfun = X_bsignal, args = temp$args)
   ret$dpp <- mboost_intern(ret, Xfun = X_bsignal, args = temp$args, fun = "bl_lin")
   
-  rm(temp)
+  ## function that comoutes a design matrix such that new_des %*% hat{theta} = beta(s)
+  ## use ng equally spaced observation points 
+  ret$get_des <- function(ng = 40){
+
+    ## use a new grid of s-values with ng grid points 
+    s_grid <- seq(min(s), max(s), l = ng)
+    ## matrix with inverse integraion weights
+    dummyX <- I(diag(length(s_grid)) /  integrationWeights(diag(length(s_grid)), s_grid ))
+
+    ## setup for X_signal 
+    attr(dummyX, "signalIndex") <- s_grid
+    attr(dummyX, "xname") <- xname
+    attr(dummyX, "indname") <- indname
+    
+    new_mf <- data.frame("z" = I(dummyX))
+    names(new_mf) <- xname
+     
+    ## use vary and args like in bl  
+    new_des <- X_bsignal(mf = new_mf, vary = vary, args = temp$args)$X
+    
+    ## give arguments to new_des for easier use in the plot-function 
+    attr(new_des, "x") <- s_grid
+    attr(new_des, "xlab") <- indname
+    attr(new_des, "varname") <- xname
+    
+    return(new_des)
+  }
+
+  # rm(temp)
+  temp$X <- NULL
+  temp$K <- NULL
   
   return(ret)
 }
@@ -1476,6 +1506,41 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
   ### X_hist is for data in wide format with regular response
   # ret$dpp <- bl_lin(ret, Xfun = X_hist, args = temp$args) 
   ret$dpp <- mboost_intern(ret, Xfun = X_hist, args = temp$args, fun = "bl_lin")
+  
+  #   ## function that comoutes a design matrix such that new_des %*% hat{theta} = beta(s)
+  #   ## use ng equally spaced observation points 
+  #   ret$get_des <- function(ng = 40){
+  #     
+  #     ## use a new grid of s-values with ng grid points 
+  #     s_grid <- seq(min(s), max(s), l = ng)
+  #     time_grid <- seq(min(time), max(time), l = ng)
+  #     ## matrix with inverse integraion weights
+  #     dummyX <- I( diag(length(s_grid)) /  intFun(diag(length(s_grid)), s_grid ) )
+  #     
+  #     ## setup for X_signal 
+  #     attr(dummyX, "signalIndex") <- s_grid
+  #     attr(dummyX, "xname") <- xname
+  #     attr(dummyX, "indname") <- indname
+  #     attr(x, "indexY") <- time_grid
+  #     attr(x, "indnameY") <- indnameY
+  #     attr(x, "id") <- index
+  #     
+  #     new_mf <- data.frame("z" = I(dummyX))
+  #     names(new_mf) <- xname
+  #     
+  #     ## use vary and args like in bl  
+  #     new_des <- X_hist(mf = new_mf, vary = vary, args = temp$args)$X
+  #     
+  #     ## give arguments to new_des for easier use in the plot-function 
+  #     attr(new_des, "x") <- s_grid
+  #     attr(new_des, "xlab") <- indname
+  #     attr(new_des, "y") <- time_grid
+  #     attr(new_des, "ylab") <- indnameY
+  #     attr(new_des, "varname") <- xname
+  #     
+  #     return(new_des)
+  #   }
+  
   return(ret)
 }
 
@@ -2098,6 +2163,29 @@ bbsc <- function(..., by = NULL, index = NULL, knots = 10, boundary.knots = NULL
   
   # ret$dpp <- bl_lin(ret, Xfun = X_bbsc, args = temp$args)
   ret$dpp <- mboost_intern(ret, Xfun = X_bbsc, args = temp$args, fun = "bl_lin")
+  
+  #   ## function that comoutes a design matrix such that new_des %*% hat{theta} = beta(s)
+  #   ## use ng equally spaced observation points 
+  #   ret$get_des <- function(ng = 40){
+  #     
+  #     if(ncol(mf) > 1) stop("get_des() in bbsc() is only implemented for one variable.")
+  #     
+  #     ## use a new grid of x-values with ng grid points 
+  #     x_grid <- seq(min(mf[ , 1]), max(mf[ , 1]), l = ng)
+  # 
+  #     new_mf <- data.frame("z" = I(x_grid))
+  #     names(new_mf) <- names(mf)[1]
+  #     
+  #     ## use vary and args like in bl  
+  #     new_des <- X_bbsc(mf = new_mf, vary = vary, args = temp$args)$X
+  #     
+  #     ## give arguments to new_des for easier use in the plot-function 
+  #     attr(new_des, "x") <- new_mf[ , 1]
+  #     attr(new_des, "xlab") <- names(new_mf)[1]
+  # 
+  #     return(new_des)
+  #   }
+  
   return(ret)
 }
 
