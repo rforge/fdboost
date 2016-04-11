@@ -721,7 +721,7 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
             }
             
             ## make a list of data-frames with all combinations
-            if(numberLevels > 1){
+            if(numberLevels > 1){ 
               
               dlist <- vector("list", numberLevels)
               zlevels <- sort(unique(z))  ##  sort(unique(z1))
@@ -1010,7 +1010,7 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
                 attr(d, "xm") <- d[[1]]
                 attr(d, "zm") <- d[[3]]
                 attr(d, "add_main") <- paste0(names(d)[1], "=", xlevels[j], ", ",  
-                                              names(d)[3], "=", zlevels[j])
+                                              names(d)[3], "=", zlevels[k])
                 dlist[[temp_d]] <- d 
                 temp_d <- temp_d + 1
               }
@@ -1555,27 +1555,41 @@ plot.FDboost <- function(x, raw = FALSE, rug = TRUE, which = NULL,
             }
             
             
-            if(pers){
-              plotWithArgs(persp, args=argsPersp,
-                           myargs=list(x=trm$x, y=trm$y, z=trm$value, xlab=paste("\n", trm$xlab), 
-                                       ylab=paste("\n", trm$ylab), zlab=paste("\n", "coef"), 
-                                       theta=30, phi=30, ticktype="detailed", 
-                                       zlim=range(trm$value), col=getColPersp(trm$value), 
-                                       main=trm$main))  
-              
-            }else{
-              plotWithArgs(image, args=argsImage,
-                           myargs=list(x=trm$y, y=trm$x, z=t(trm$value), xlab=trm$ylab, ylab=trm$xlab, 
-                                       main=trm$main, col = heat.colors(length(trm$x)^2)))          
-              plotWithArgs(contour, args=argsContour,
-                           myargs=list(trm$y, trm$x, z=t(trm$value), add = TRUE))
-              
+            # effect of two factor variables
+            if(is.factor(trm$x) && is.factor(trm$z)){
+              plotWithArgs(matplot, args=argsMatplot, 
+                           myargs=list(x=trm$y, y=t(trm$value), xlab=trm$ylab, main=trm$main, 
+                                       ylab="coef", type="l", sub=trm$add_main))
               if(rug){
-                rug(bl_data[[i]][[trm$xlab]], ticksize = 0.02)
-                if(is.null(bl_data[[i]][[trm$xlab]])) rug(attr(bl_data[[i]][[1]], "signalIndex"), ticksize = 0.02)
-                rug(bl_data[[i]][[trm$ylab]], ticksize = 0.02, side=2)
+                rug(x$yind, ticksize = 0.02)
               }
+            }else{
+              
+              if(pers){
+                plotWithArgs(persp, args=argsPersp,
+                             myargs=list(x=trm$x, y=trm$y, z=trm$value, xlab=paste("\n", trm$xlab), 
+                                         ylab=paste("\n", trm$ylab), zlab=paste("\n", "coef"), 
+                                         theta=30, phi=30, ticktype="detailed", 
+                                         zlim=range(trm$value), col=getColPersp(trm$value), 
+                                         main=trm$main))  
+                
+              }else{
+                plotWithArgs(image, args=argsImage,
+                             myargs=list(x=trm$y, y=trm$x, z=t(trm$value), xlab=trm$ylab, ylab=trm$xlab, 
+                                         main=trm$main, col = heat.colors(length(trm$x)^2), 
+                                         sub=trm$add_main))          
+                plotWithArgs(contour, args=argsContour,
+                             myargs=list(trm$y, trm$x, z=t(trm$value), add = TRUE))
+                
+                if(rug){
+                  rug(bl_data[[i]][[trm$xlab]], ticksize = 0.02)
+                  if(is.null(bl_data[[i]][[trm$xlab]])) rug(attr(bl_data[[i]][[1]], "signalIndex"), ticksize = 0.02)
+                  rug(bl_data[[i]][[trm$ylab]], ticksize = 0.02, side=2)
+                }
+              }
+              
             }
+            
           }else{
             
             if(is.factor(trm$y)){ # effect with by-variable (by-variable is factor)
