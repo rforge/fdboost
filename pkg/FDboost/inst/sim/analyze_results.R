@@ -86,7 +86,7 @@ dim(res)
 # total number of trajectories
 res$N <- res$M*res$ni
 # estimation methos
-res$mod <- factor(res$model, labels = c("PFFR", "FLAM") )
+res$mod <- factor(res$model, labels = c("FAMM", "FLAM") )
 res$M <- factor(res$M) # , labels = paste("M:", names(table(res$M)))
 res$G <- factor(res$Gy) #, labels = paste("G:", names(table(res$Gy)))
 res$snrEps <- factor(res$snrEps)
@@ -120,7 +120,7 @@ ggplot(subset(res, !is.na(time.elapsed)), aes(y=time.elapsed, x=snrEps, fill=mod
   #theme_clear(base_size=14)   + 
   theme(legend.position="top", legend.direction="horizontal", text=element_text(size = 25)) +
   scale_fill_manual(name = "", values=c("white", "grey80")) +                    
-  scale_colour_manual(name = "", values=c("PFFR"= "grey40", "FLAM"="black")) +
+  scale_colour_manual(name = "", values=c("FAMM"= "grey40", "FLAM"="black")) +
   labs(x="snrEps", y="time") +
   scale_y_continuous(breaks=c(1, 2, 5, 10, 20, 60, 120, 300, 600, 1200, 2700, 
                               5400, 10800, 21600, 43200), 

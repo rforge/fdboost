@@ -220,3 +220,6 @@ M500N1G100FDboost <- try(doSimFDboost(settings=settingsM500N1G100, oneRepFDboost
 save(M500N1G100FDboost, file=paste(pathResults, "M500N1G100FDboost.Rdata", sep=""))
 
 
+######################################
+
+print(sessionInfo())

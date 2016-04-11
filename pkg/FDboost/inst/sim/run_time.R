@@ -82,3 +82,7 @@ p + geom_boxplot(aes(colour = mod), outlier.size=.6) +
   theme(text=element_text(size = 20)) #+ theme_bw()
 dev.off()
 
+
+######################################
+
+print(sessionInfo())

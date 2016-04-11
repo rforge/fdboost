@@ -218,3 +218,7 @@ M500N1G100 <- try(doSimPffr(settings=settingsM500N1G100, cores=usecores))
 
 save(M500N1G100, file=paste(pathResults, "M500N1G100pffr.Rdata", sep=""))
 
+
+######################################
+
+print(sessionInfo())

@@ -245,7 +245,7 @@ sel1 <- stabsel(modAll, q=5, PFER=2, folds=folds, grid=1:100,
 sel1
 # selects effects T_C, T_A, T_C_T_A
 @
-The effects $T_A$, $T_B$ and their interaction are selected into the model. 
+The effects $T_A$, $T_C$ and their interaction are selected into the model. 
 
 
 % <<stabsel2, echo = TRUE>>=

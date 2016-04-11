@@ -49,3 +49,6 @@ M100N1G30 <- try(doSim(settings=settings, cores=usecores))
 save(M100N1G30, file=paste(pathResults, "plotModelsM100N1G30.Rdata", sep=""))
 
 
+######################################
+
+print(sessionInfo())
