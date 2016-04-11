@@ -729,6 +729,8 @@ FDboost <- function(formula,          ### response ~ xvars
     if(! exists(vars_envir_formula[i], envir = environment(formulaFDboost)))
       stop("Variable <", vars_envir_formula[i], "> does not exist.")
     tmp <- get(vars_envir_formula[i], envir = environment(formulaFDboost))
+    ## a <- try(get(vars_envir_formula[i], envir = environment(formula))) 
+    # if(class(a) == "try-error") get(vars_envir_formula[i], envir = parent.frame())
     assign(x = vars_envir_formula[i], value = tmp,  envir = environment(fm))
   }
   rm(tmp)

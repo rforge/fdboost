@@ -1529,12 +1529,10 @@ plot.FDboost <- function(x, raw = FALSE, rug = TRUE, which = NULL,
                                      ylab="coef", type="l"))          
           }
           
-          if(rug & !is.factor(x=trm$x)){
+          if(rug & !is.factor(x = trm$x)){
             if(grepl("bconcurrent", trm$main) | grepl("bsignal", trm$main) | grepl("bfpc", trm$main) ){
               rug(attr(bl_data[[i]][[1]], "signalIndex"), ticksize = 0.02)
-            }else ifelse(length(unique(bl_data[[i]][[1]]))!=1,
-                         rug(bl_data[[i]][[1]], ticksize = 0.02),
-                         rug(bl_data[[i]][[2]], ticksize = 0.02))
+            }else rug(attr(bl_data[[i]][[trm$xlab]], "signalIndex"), ticksize = 0.02)
           } 
         } 
         
