@@ -9,8 +9,8 @@
 \usage{
 validateFDboost(object, response = NULL, folds = cv(rep(1,
   length(unique(object$id))), type = "bootstrap"), grid = 1:mstop(object),
-  getCoefCV = TRUE, riskopt = c("mean", "median"), mrdDelete = 0,
-  refitSmoothOffset = TRUE, showProgress = TRUE, ...)
+  fun = NULL, getCoefCV = TRUE, riskopt = c("mean", "median"),
+  mrdDelete = 0, refitSmoothOffset = TRUE, showProgress = TRUE, ...)
 
 \method{cvrisk}{FDboost}(object, folds = cvLong(id = object$id, weights =
   model.weights(object)), grid = 1:mstop(object), papply = mclapply,
@@ -34,6 +34,10 @@ Defaults to \code{NULL} which means that the response of the fitted model is use
 
 \item{grid}{the grid over which the optimal number of boosting iterations (mstop) is searched.}
 
+\item{fun}{if \code{fun} is \code{NULL}, the out-of-sample risk is returned.
+\code{fun}, as a function of \code{object},
+may extract any other characteristic of the cross-validated models. These are returned as is.}
+
 \item{getCoefCV}{logical, defaults to \code{TRUE}. Should the coefficients and predictions
 be computed for all the models on the sampled data?}
 
@@ -54,10 +58,6 @@ Defaults to \code{TRUE}. In \code{\link[mboost]{cvrisk}} the offset of the origi
 
 \item{papply}{(parallel) apply function, defaults to \code{\link[parallel]{mclapply}},
 see \code{\link[mboost]{cvrisk}} for details.}
-
-\item{fun}{if \code{fun} is \code{NULL}, the out-of-sample risk is returned.
-\code{fun}, as a function of \code{object},
-may extract any other characteristic of the cross-validated models. These are returned as is.}
 
 \item{corrected}{see \code{\link[mboost]{cvrisk}}.}
 
@@ -99,6 +99,8 @@ The function \code{validateFDboost} returns a validateFDboost-object, which is a
 \item{oobrisk0}{the out-of-bag risk without consideration of integration weights}
 \item{oobmse0}{the out-of-bag mean squared error (MSE) without consideration of integration weights}
 \item{oobmrd0}{the out-of-bag mean relative deviation (MRD) without consideration of integration weights}
+\item{format}{one of "FDboostLong" or "FDboost" depending on the class of the object}
+\item{fun_ret}{list of what fun returns if fun was specified}
 }
 \description{
 Function \code{validateFDboost()} is experimental.

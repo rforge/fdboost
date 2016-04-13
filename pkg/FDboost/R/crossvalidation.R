@@ -104,6 +104,8 @@
 #' \item{oobrisk0}{the out-of-bag risk without consideration of integration weights}
 #' \item{oobmse0}{the out-of-bag mean squared error (MSE) without consideration of integration weights}
 #' \item{oobmrd0}{the out-of-bag mean relative deviation (MRD) without consideration of integration weights}
+#' \item{format}{one of "FDboostLong" or "FDboost" depending on the class of the object}
+#' \item{fun_ret}{list of what fun returns if fun was specified}
 #' 
 #' @examples
 #' Ytest <- matrix(rnorm(15), ncol = 3) # 5 trajectories, each with 3 observations 
@@ -171,7 +173,9 @@
 validateFDboost <- function(object, response = NULL,  
                             #folds=cvMa(ydim=object$ydim, weights=model.weights(object), type="bootstrap"),
                             folds = cv(rep(1, length(unique(object$id))), type = "bootstrap"),
-                            grid = 1:mstop(object), getCoefCV = TRUE, riskopt = c("mean","median"), 
+                            grid = 1:mstop(object), 
+                            fun = NULL, 
+                            getCoefCV = TRUE, riskopt = c("mean","median"), 
                             mrdDelete = 0, refitSmoothOffset = TRUE, 
                             showProgress = TRUE, ...){
   
@@ -377,9 +381,17 @@ validateFDboost <- function(object, response = NULL,
     } 
 
     if(showProgress) cat(".")
+    
+    ## user-specified function to use on FDboost-object 
+    if(! is.null(fun)){
+      fun_ret <- fun(mod)
+    }else{
+      fun_ret <- NULL
+    }
 
     return(list(risk = risk, predGrid = predGrid, predOOB = predOOB, respOOB = respOOB, 
-                mse = mse, relMSE = relMSE, mrd = mrd, risk0 = risk0, mse0 = mse0, mrd0 = mrd0, mod = mod))  
+                mse = mse, relMSE = relMSE, mrd = mrd, risk0 = risk0, mse0 = mse0, mrd0 = mrd0, 
+                mod = mod, fun_ret = fun_ret))  
   } 
   
   ### computation of models on partitions of data
@@ -405,7 +417,7 @@ validateFDboost <- function(object, response = NULL,
   }
   
   # check whether model fit worked in all iterations
-  modFitted <- sapply(modRisk, function(x) class(x)=="list")
+  modFitted <- sapply(modRisk, function(x) class(x) == "list")
   if(any(!modFitted)){
     
     # stop() or warning()?
@@ -600,8 +612,6 @@ validateFDboost <- function(object, response = NULL,
     
   } # end of if(getCoefCV)
   
-  rm(modRisk)
-  
   ret <- list(response = response, yind = object$yind, id = object$id,
               folds = folds, grid=grid,
               coefCV = coefCV,
@@ -616,7 +626,10 @@ validateFDboost <- function(object, response = NULL,
               oobrisk0 = oobrisk0, 
               oobmse0 = oobmse0,
               oobmrd0 = oobmrd0, 
-              format = if(any(class(object) == "FDboostLong")) "FDboostLong" else "FDboost")  
+              format = if(any(class(object) == "FDboostLong")) "FDboostLong" else "FDboost", 
+              fun_ret = lapply(modRisk, function(x) x$fun_ret) )
+  
+  rm(modRisk)
 
   attr(ret, "risk") <- object$family@name
   attr(ret,  "call") <- deparse(object$call)

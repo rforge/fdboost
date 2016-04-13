@@ -2,6 +2,16 @@
 \title{News for Package 'FDboost'}
 
 
+\section{Changes in FDboost version 0.1-2 (2016-04-12)}{
+    \subsection{User-visible changes}{
+    \itemize{
+	  \item add the function stabsel.FDboost() that refits the smooth offset in each fold  
+	  \item add arugment 'fun' to validateFDboost() 
+    }
+  }
+}
+
+
 \section{Changes in FDboost version 0.1-1 (2016-04-06)}{
   \subsection{Bug-fixes}{
     \itemize{
