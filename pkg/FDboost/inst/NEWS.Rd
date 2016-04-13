@@ -6,7 +6,8 @@
     \subsection{User-visible changes}{
     \itemize{
 	  \item add the function stabsel.FDboost() that refits the smooth offset in each fold  
-	  \item add arugment 'fun' to validateFDboost() 
+	  \item add argument 'fun' to validateFDboost() 
+	  \item add update.FDboost() that overwrites update.mboost()
     }
   }
 }

@@ -1769,6 +1769,103 @@ plot.FDboost <- function(x, raw = FALSE, rug = TRUE, which = NULL,
     }       
 }
 
+#' Function to update FDboost objects
+#' 
+#' @param object fitted FDboost-object
+#' @param weights,oobweights,risk,trace see \code{?FDboost}
+#' @param ... Additional arguments to the call, or arguments with changed values. 
+#' @param evaluate If true evaluate the new call else return the call.	
+#' 
+#' @return Returns the call of (\code{evaluate = FALSE}) or the updated (\code{evaluate = TRUE}) FDboost model
+#' @author David Ruegamer
+#' @examples 
+#' ######## Example from \code{?FDboost}
+#' data("viscosity", package = "FDboost") 
+#' ## set time-interval that should be modeled
+#' interval <- "101"
+#' 
+#' ## model time until "interval" and take log() of viscosity
+#' end <- which(viscosity$timeAll == as.numeric(interval))
+#' viscosity$vis <- log(viscosity$visAll[,1:end])
+#' viscosity$time <- viscosity$timeAll[1:end]
+#' # with(viscosity, funplot(time, vis, pch = 16, cex = 0.2))
+#' 
+#' mod1 <- FDboost(vis ~ 1 + bolsc(T_C, df = 2) + bolsc(T_A, df = 2),
+#'                timeformula = ~ bbs(time, df = 4),
+#'                numInt = "equal", family = QuantReg(),
+#'                offset = NULL, offset_control = o_control(k_min = 9),
+#'                data = viscosity, control=boost_control(mstop = 10, nu = 0.4))
+#'                
+#' # update nu
+#' mod2 <- update(mod1, control=boost_control(nu = 1)) # mstop will stay the same
+#' # update mstop
+#' mod3 <- update(mod2, control=boost_control(mstop = 100)) # nu=1 does not get changed
+#' mod4 <- update(mod1, formula = vis ~ 1 + bolsc(T_C, df = 2)) # drop one term
+#' @method update FDboost
+#' @export
+update.FDboost <- function(object, weights = NULL, oobweights = NULL, risk = NULL, 
+                           trace = NULL, ..., evaluate = TRUE) 
+{
+  
+  stopifnot(inherits(object,"FDboost"))
+  
+  call <- object$call
+  
+  extras <- match.call(expand.dots = FALSE)$...
+  
+  if (!is.null(risk) | !is.null(trace) | !is.null(extras$control)) {
+    
+    cc <- as.list(call$control)
+    if(!is.null(risk)) cc$risk <- risk
+    if(!is.null(trace)) cc$trace <- trace
+    if(!is.null(extras$control)) cc[names(as.list(extras$control))[-1]] <- as.list(extras$control)[-1]
+    
+    extras$control <- as.call(cc)
+    
+  } 
+  
+  if(!is.null(weights)) extras$weights <- weights
+  if(!is.null(oobweights)) extras$oobweights <- oobweights
+  
+  
+  if (length(extras) > 0) {
+    
+    existing <- !is.na(match(names(extras), names(call)))
+    
+    for (a in names(extras)[existing]) call[[a]] <- extras[[a]]
+    
+    if (any(!existing)) {
+      call <- c(as.list(call), extras[!existing])
+      call <- as.call(call)
+    }
+    
+  }
+  
+  if(is.null(extras$data)){
+    
+    data <- as.list(object$data)
+    yind <- all.vars(as.formula(object$timeformula))[[1]]
+    data[[yind]] <- object$yind
+    yname <- all.vars(as.formula(object$formulaFDboost))[1]
+    data[[yname]] <- object$response
+    
+    if(length(object$response)!=length(object$yind)){
+      # format long to wide
+      stopifnot(!is.null(object$id))
+      data[[yname]] <- matrix(data[[yname]], ncol=length(object$yind), byrow=F)
+      
+    }
+    call$data <- data
+    
+    #    
+    #     if(!is.null(object$id)) call$id <- ~id
+    
+  }
+  
+  
+  if (evaluate) eval(call, parent.frame()) else call
+  
+}
 
 
 ########################################################################################
