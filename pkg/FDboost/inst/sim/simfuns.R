@@ -770,7 +770,7 @@ plotModel <- function(err, errB=NULL, data, theseSettings, subset=sample(1:these
     plot(data$true_g0, main=bquote(g[0](t)), xlab="", ylab="", xaxt="n", ylim=range, type="l")
     if(!is.null(err)){
       plot(est$est_g0, xlab="", ylab="", xaxt="n", ylim=range, type="l", 
-           main=bquote(paste("PFFR: ", hat(g[0])(t), ": reliMSE", phantom(x)%~~% .(round(err$relmseg0, 4)))))      
+           main=bquote(paste("FAMM: ", hat(g[0])(t), ": reliMSE", phantom(x)%~~% .(round(err$relmseg0, 4)))))      
     }
     if(!is.null(errB)){
       plot(estB$est_g0, xlab="", ylab="", xaxt="n", ylim=range, type="l",
