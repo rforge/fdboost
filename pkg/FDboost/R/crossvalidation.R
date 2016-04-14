@@ -627,7 +627,7 @@ validateFDboost <- function(object, response = NULL,
               oobmse0 = oobmse0,
               oobmrd0 = oobmrd0, 
               format = if(any(class(object) == "FDboostLong")) "FDboostLong" else "FDboost", 
-              fun_ret = lapply(modRisk, function(x) x$fun_ret) )
+              fun_ret = if(is.null(fun)) NULL else lapply(modRisk, function(x) x$fun_ret) )
   
   rm(modRisk)
 
