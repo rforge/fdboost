@@ -2118,16 +2118,19 @@ bbsc <- function(..., by = NULL, index = NULL, knots = 10, boundary.knots = NULL
             "missing values are excluded per base-learner, ",
             "i.e., base-learners may depend on different",
             " numbers of observations.")
-  ### option
-  DOINDEX <- (nrow(mf) > options("mboost_indexmin")[[1]])
-  if (is.null(index)) {
-    if (!CC || DOINDEX) {
-      # index <- get_index(mf)
-      index <- mboost_intern(mf, fun = "get_index")
-      mf <- mf[index[[1]],,drop = FALSE]
-      index <- index[[2]]
-    }
-  }
+  
+  ################# do not use the index option as then Z is always computed as for balanced data
+  ################# TODO: make an option available for this? as this means centering per group
+  #   ### option
+  #   DOINDEX <- (nrow(mf) > options("mboost_indexmin")[[1]])
+  #   if (is.null(index)) {
+  #     if (!CC || DOINDEX) {
+  #       # index <- get_index(mf)
+  #       index <- mboost_intern(mf, fun = "get_index")
+  #       mf <- mf[index[[1]],,drop = FALSE]
+  #       index <- index[[2]]
+  #     }
+  #   }
   
   ## call X_bbsc in oder to compute the transformation matrix Z
   temp <- X_bbsc(mf, vary, 
@@ -2290,7 +2293,7 @@ X_olsc <- function(mf, vary, args) {
   
   #----------------------------------
   ### <SB> Calculate constraints
-  
+
   # If the argument Z is not NULL use the given Z (important for prediction!)
   if(is.null(args$Z)){
     C <- t(X) %*% rep(1, nrow(X))
@@ -2302,6 +2305,7 @@ X_olsc <- function(mf, vary, args) {
   X <- X %*% args$Z
   K <- t(args$Z) %*% K %*% args$Z
   #print(args$Z)
+  #print(colSums(X))
   #----------------------------------
   
   ### </FIXME>
@@ -2366,21 +2370,24 @@ bolsc <- function(..., by = NULL, index = NULL, intercept = TRUE, df = NULL,
             "missing values are excluded per base-learner, ",
             "i.e., base-learners may depend on different",
             " numbers of observations.")
-  ### option
-  DOINDEX <- is.data.frame(mf) &&
-    (nrow(mf) > options("mboost_indexmin")[[1]] || is.factor(mf[[1]]))
-  if (is.null(index)) {
-    ### try to remove duplicated observations or
-    ### observations with missings
-    if (!CC || DOINDEX) {
-      # index <- get_index(mf)
-      index <- mboost_intern(mf, fun = "get_index")
-      mf <- mf[index[[1]],,drop = FALSE]
-      index <- index[[2]]
-    }
-  }
+  
+  ################# do not use the index option as then Z is always computed as for balanced data
+  ################# TODO: make an option available for this? as this means centering per group 
+  #   ### option
+  #   DOINDEX <- is.data.frame(mf) &&
+  #     (nrow(mf) > options("mboost_indexmin")[[1]] || is.factor(mf[[1]]))
+  #   if (is.null(index)) {
+  #     ### try to remove duplicated observations or
+  #     ### observations with missings
+  #     if (!CC || DOINDEX) {
+  #       # index <- get_index(mf)
+  #       index <- mboost_intern(mf, fun = "get_index")
+  #       mf <- mf[index[[1]],,drop = FALSE]
+  #       index <- index[[2]]
+  #     }
+  #   }
 
-  ## call X_bbsc in oder to compute the transformation matrix Z, 
+  ## call X_olsc in oder to compute the transformation matrix Z, 
   ## Z is saved in args$Z and is used after the model fit
   temp <- X_olsc(mf, vary, 
                  args = hyper_olsc(df = df, lambda = lambda, 

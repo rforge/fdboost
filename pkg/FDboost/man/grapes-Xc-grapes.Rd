@@ -46,8 +46,8 @@ viscosity$time <- viscosity$timeAll[1:end]
 ## fit model with interaction that is centered around the intercept
 ## and the two main effects
 mod1 <- FDboost(vis ~ 1 + bolsc(T_C, df=1) + bolsc(T_A, df=1) +
-                bols(T_C, df=2) \%Xc\% bols(T_A, df=1),
-                timeformula = ~bbs(time, df=3),
+                bols(T_C, df=1) \%Xc\% bols(T_A, df=1),
+                timeformula = ~bbs(time, df=6),
                 numInt = "equal", family = QuantReg(),
                 offset = NULL, offset_control = o_control(k_min = 9),
                 data = viscosity, control=boost_control(mstop = 100, nu = 0.4))

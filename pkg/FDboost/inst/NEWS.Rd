@@ -3,6 +3,11 @@
 
 
 \section{Changes in FDboost version 0.1-2 (2016-04-12)}{
+    \subsection{Bug-fixes}{
+    \item bugfix in bolsc(): do not use index in bolsc() / bbsc(), 
+          as factors with unbalanced groups are then 
+          for the computation of Z treated like factors with balanced groups
+    }
     \subsection{User-visible changes}{
     \itemize{
 	  \item add the function stabsel.FDboost() that refits the smooth offset in each fold  
