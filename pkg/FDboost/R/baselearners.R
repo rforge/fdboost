@@ -2121,24 +2121,34 @@ bbsc <- function(..., by = NULL, index = NULL, knots = 10, boundary.knots = NULL
   
   ################# do not use the index option as then Z is always computed as for balanced data
   ################# TODO: make an option available for this? as this means centering per group
-  #   ### option
-  #   DOINDEX <- (nrow(mf) > options("mboost_indexmin")[[1]])
-  #   if (is.null(index)) {
-  #     if (!CC || DOINDEX) {
-  #       # index <- get_index(mf)
-  #       index <- mboost_intern(mf, fun = "get_index")
-  #       mf <- mf[index[[1]],,drop = FALSE]
-  #       index <- index[[2]]
-  #     }
-  #   }
+  ### option
+  DOINDEX <- (nrow(mf) > options("mboost_indexmin")[[1]])
+  if (is.null(index)) {
+    if (!CC || DOINDEX) {
+      # index <- get_index(mf)
+      index <- mboost_intern(mf, fun = "get_index")
+      mf <- mf[index[[1]],,drop = FALSE]
+      index <- index[[2]]
+    }
+  }
   
   ## call X_bbsc in oder to compute the transformation matrix Z
-  temp <- X_bbsc(mf, vary, 
-                    args = hyper_bbsc(mf, vary, knots = knots, boundary.knots =
-                                        boundary.knots, degree = degree, differences = differences,
-                                      df = df, lambda = lambda, center = center, cyclic = cyclic, 
-                                      constraint = constraint, deriv = deriv, 
-                                      Z = NULL))
+  if(is.null(index)){
+    temp <- X_bbsc(mf, vary, 
+                   args = hyper_bbsc(mf, vary, knots = knots, boundary.knots =
+                                       boundary.knots, degree = degree, differences = differences,
+                                     df = df, lambda = lambda, center = center, cyclic = cyclic, 
+                                     constraint = constraint, deriv = deriv, 
+                                     Z = NULL))
+  }else{
+    temp <- X_bbsc(mf, vary, 
+                   args = hyper_bbsc(mf[index,,drop = FALSE], vary, knots = knots, boundary.knots =
+                                       boundary.knots, degree = degree, differences = differences,
+                                     df = df, lambda = lambda, center = center, cyclic = cyclic, 
+                                     constraint = constraint, deriv = deriv, 
+                                     Z = NULL))
+  }
+
   Z <- temp$args$Z
   
   ret <- list(model.frame = function()
@@ -2294,7 +2304,8 @@ X_olsc <- function(mf, vary, args) {
   #----------------------------------
   ### <SB> Calculate constraints
 
-  # If the argument Z is not NULL use the given Z (important for prediction!)
+  # Only compute Z in model fit, not in model prediction  
+  #if(!args$prediction){ ## computes Z 3 times during model fit
   if(is.null(args$Z)){
     C <- t(X) %*% rep(1, nrow(X))
     Q <- qr.Q(qr(C), complete=TRUE) # orthonormal matrix of QR decomposition
@@ -2304,8 +2315,11 @@ X_olsc <- function(mf, vary, args) {
   ### Transform design and penalty matrix
   X <- X %*% args$Z
   K <- t(args$Z) %*% K %*% args$Z
-  #print(args$Z)
-  #print(colSums(X))
+  
+  print("##################")
+  print(args$Z)
+  print(colMeans(X))
+  print(dim(X))
   #----------------------------------
   
   ### </FIXME>
@@ -2370,29 +2384,37 @@ bolsc <- function(..., by = NULL, index = NULL, intercept = TRUE, df = NULL,
             "missing values are excluded per base-learner, ",
             "i.e., base-learners may depend on different",
             " numbers of observations.")
-  
-  ################# do not use the index option as then Z is always computed as for balanced data
-  ################# TODO: make an option available for this? as this means centering per group 
-  #   ### option
-  #   DOINDEX <- is.data.frame(mf) &&
-  #     (nrow(mf) > options("mboost_indexmin")[[1]] || is.factor(mf[[1]]))
-  #   if (is.null(index)) {
-  #     ### try to remove duplicated observations or
-  #     ### observations with missings
-  #     if (!CC || DOINDEX) {
-  #       # index <- get_index(mf)
-  #       index <- mboost_intern(mf, fun = "get_index")
-  #       mf <- mf[index[[1]],,drop = FALSE]
-  #       index <- index[[2]]
-  #     }
-  #   }
+
+  ### option
+  DOINDEX <- is.data.frame(mf) &&
+    (nrow(mf) > options("mboost_indexmin")[[1]] || is.factor(mf[[1]]))
+  if (is.null(index)) {
+    ### try to remove duplicated observations or
+    ### observations with missings
+    if (!CC || DOINDEX) {
+      # index <- get_index(mf)
+      index <- mboost_intern(mf, fun = "get_index")
+      mf <- mf[index[[1]],,drop = FALSE]
+      index <- index[[2]]
+    }
+  }
 
   ## call X_olsc in oder to compute the transformation matrix Z, 
-  ## Z is saved in args$Z and is used after the model fit
-  temp <- X_olsc(mf, vary, 
-                 args = hyper_olsc(df = df, lambda = lambda, 
-                                   intercept = intercept, contrasts.arg = contrasts.arg,
-                                   K = K, Z = NULL)) # use penalty matrix as argument
+  ## Z is saved in args$Z and is used after the model fit.  
+  ## use index, as otherwise Z is computed as for one observation per factor level/ per unique observation
+  ## this is equivalent to the same number of observations in each factor level 
+  if(is.null(index)){
+    temp <- X_olsc(mf, vary, 
+                   args = hyper_olsc(df = df, lambda = lambda, 
+                                     intercept = intercept, contrasts.arg = contrasts.arg,
+                                     K = K, Z = NULL)) 
+  }else{
+    temp <- X_olsc(mf[index,,drop = FALSE], vary, 
+                   args = hyper_olsc(df = df, lambda = lambda, 
+                                     intercept = intercept, contrasts.arg = contrasts.arg,
+                                     K = K, Z = NULL))  
+  }
+
   
   ret <- list(model.frame = function()
     if (is.null(index)) return(mf) else return(mf[index,,drop = FALSE]),
