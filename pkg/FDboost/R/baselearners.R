@@ -2316,10 +2316,10 @@ X_olsc <- function(mf, vary, args) {
   X <- X %*% args$Z
   K <- t(args$Z) %*% K %*% args$Z
   
-  print("##################")
-  print(args$Z)
-  print(colMeans(X))
-  print(dim(X))
+  #print("##################")
+  #print(args$Z)
+  #print(colMeans(X))
+  #print(dim(X))
   #----------------------------------
   
   ### </FIXME>
