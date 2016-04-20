@@ -5,9 +5,8 @@
 \section{Changes in FDboost version 0.1-2 (2016-04-12)}{
     \subsection{Bug-fixes}{
     \itemize{
-    \item bugfix in bolsc(): do not use index in bolsc() / bbsc(), 
-          as factors with unbalanced groups are then 
-          for the computation of Z treated like factors with balanced groups
+    \item bugfix in bolsc(): correctly use index in bolsc() / bbsc(), 
+          before: for the computation of Z each observation was used only once 
     }
     }
     \subsection{User-visible changes}{

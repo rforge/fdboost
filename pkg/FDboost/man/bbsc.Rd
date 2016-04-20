@@ -11,7 +11,8 @@ bbsc(..., by = NULL, index = NULL, knots = 10, boundary.knots = NULL,
   cyclic = FALSE)
 
 bolsc(..., by = NULL, index = NULL, intercept = TRUE, df = NULL,
-  lambda = 0, K = NULL, contrasts.arg = "contr.treatment")
+  lambda = 0, K = NULL, weights = NULL,
+  contrasts.arg = "contr.treatment")
 
 brandomc(..., contrasts.arg = "contr.dummy", df = 4)
 }
@@ -44,7 +45,7 @@ large amount of smoothing and thus to "weaker" base-learners.}
 \item{lambda}{smoothing parameter of the penalty, computed from \code{df} when
 \code{df} is specified.}
 
-\item{center}{experimental implementation! See \code{\link[mboost]{bbs}}.}
+\item{center}{experimental! See \code{\link[mboost]{bbs}}.}
 
 \item{cyclic}{if \code{cyclic = TRUE} the fitted values coincide at
 the boundaries (useful for cyclic covariates such as day time etc.).}
@@ -54,6 +55,8 @@ of a linear base-learner.}
 
 \item{K}{in \code{bolsc} it is possible to specify the penalty matrix K}
 
+\item{weights}{experiemtnal! weights that are used for the computation of the transformation matrix Z.}
+
 \item{contrasts.arg}{Note that a special \code{contrasts.arg} exists in
 package \code{mboost}, namely "contr.dummy". This contrast is used per default
 in \code{brandomc}. It leads to a
@@ -62,10 +65,10 @@ intercept is implicitly included but each factor level gets a
 separate effect estimate (for more details see \code{\link[mboost]{brandom}}).}
 }
 \value{
-Equally to the base-learners of package mboost:
+Equally to the base-learners of package \code{mboost}:
 
 An object of class \code{blg} (base-learner generator) with a
-\code{dpp} function.
+\code{dpp} function and other functions.
 
 The call of \code{dpp} returns an object of class
 \code{bl} (base-learner) with a \code{fit} function. The call to
@@ -88,7 +91,7 @@ response \eqn{t} constraints that enforce
 effects varying over \eqn{t} can be interpreted as deviations
 from the global functional intercept, see Web Appendix A of
 Scheipl et al. (2015) and Web Appendix A of Brockhaus et al. (2015) for details on how to enforce the
-constraints.
+constraints by using a transormation matrix \eqn{Z} on the design and the penalty matrix.
 
 Cannot deal with any missing values in the covariates.
 }
@@ -105,7 +108,7 @@ Functional Additive Mixed Models, Journal of Computational and Graphical Statist
 \seealso{
 \code{\link{FDboost}} for the model fit.
 \code{\link[mboost]{bbs}}, \code{\link[mboost]{bols}} and \code{\link[mboost]{brandom}} for the
-corresponding base-learners in mboost.
+corresponding base-learners in \code{mboost}.
 }
 \keyword{models}
 

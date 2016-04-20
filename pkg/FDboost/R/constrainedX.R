@@ -199,8 +199,10 @@
     ## compute QR-decompotition only once
     if(is.null(args$Z)){
       ## put all effects of the two main effects + intercept into the constraints 
-      C <- t(X) %*% cbind(rep(1, nrow(X)), X1[ , -1], X2[ , -1])
-      qr_C <- qr(C)
+      # C <- t(X) %*% cbind(rep(1, nrow(X)), X1[ , -1], X2[ , -1])
+      ## use whole matrices of marginal effects for constraints as Almond suggested  
+      C <- t(X) %*% cbind(rep(1, nrow(X)), X1, X2)    
+      qr_C <- qr(C)  ## , tol = 1e-10 ## time?
       if( any(class(qr_C) == "sparseQR") ){
         rank_C <- qr_C@Dim[2]
       }else{
@@ -222,6 +224,8 @@
   ## compute the transformation matrix Z
   temp <- Xfun(mf = mf, vary = vary, args = args)
   args$Z <- temp$args$Z
+  #print(head(args$Z))
+  #image(t(as.matrix(args$Z)))
   rm(temp)
   
   # ret$dpp <- bl_lin(ret, Xfun = Xfun, args = args)
@@ -350,7 +354,7 @@ bl_lin_matrix_a <- function(blg, Xfun, args) {
               ## <FIXME>
               
             }else{
-              warning("Set all weights = 1 for computation of lambda1 and lambda2.")
+              warning("Set all weights = 1 for computation of lambda1 and lambda2 in %A%.")
               w1 <- w2 <- 1 
             } 
             
