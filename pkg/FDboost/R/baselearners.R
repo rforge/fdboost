@@ -2016,7 +2016,8 @@ hyper_bbsc <- function(Z, ...){
 #' @param lambda smoothing parameter of the penalty, computed from \code{df} when 
 #' \code{df} is specified. 
 #' @param K in \code{bolsc} it is possible to specify the penalty matrix K
-#' @param center experimental implementation! See \code{\link[mboost]{bbs}}. 
+#' @param weights experiemtnal! weights that are used for the computation of the transformation matrix Z.
+#' @param center experimental! See \code{\link[mboost]{bbs}}. 
 #' @param cyclic  if \code{cyclic = TRUE} the fitted values coincide at 
 #' the boundaries (useful for cyclic covariates such as day time etc.).
 #' @param contrasts.arg Note that a special \code{contrasts.arg} exists in 
@@ -2040,14 +2041,14 @@ hyper_bbsc <- function(Z, ...){
 #' effects varying over \eqn{t} can be interpreted as deviations 
 #' from the global functional intercept, see Web Appendix A of 
 #' Scheipl et al. (2015) and Web Appendix A of Brockhaus et al. (2015) for details on how to enforce the 
-#' constraints. 
+#' constraints by using a transormation matrix \eqn{Z} on the design and the penalty matrix.  
 #' 
 #' Cannot deal with any missing values in the covariates.
 #' 
-#' @return Equally to the base-learners of package mboost: 
+#' @return Equally to the base-learners of package \code{mboost}: 
 #' 
 #' An object of class \code{blg} (base-learner generator) with a 
-#' \code{dpp} function. 
+#' \code{dpp} function and other functions. 
 #' 
 #' The call of \code{dpp} returns an object of class 
 #' \code{bl} (base-learner) with a \code{fit} function. The call to 
@@ -2055,7 +2056,7 @@ hyper_bbsc <- function(Z, ...){
 #' 
 #' @seealso \code{\link{FDboost}} for the model fit. 
 #' \code{\link[mboost]{bbs}}, \code{\link[mboost]{bols}} and \code{\link[mboost]{brandom}} for the 
-#' corresponding base-learners in mboost.
+#' corresponding base-learners in \code{mboost}. 
 #' 
 #' @references 
 #' Brockhaus, S., Scheipl, F., Hothorn, T. and Greven, S. (2015): 
@@ -2309,7 +2310,7 @@ X_olsc <- function(mf, vary, args) {
   if(is.null(args$Z)){
     C <- t(X) %*% rep(1, nrow(X))
     Q <- qr.Q(qr(C), complete=TRUE) # orthonormal matrix of QR decomposition
-    args$Z <- Q[  , 2:ncol(Q)] # only keep last columns    
+    args$Z <- Q[  , 2:ncol(Q)] # only keep last columns
   }
   
   ### Transform design and penalty matrix
@@ -2318,7 +2319,6 @@ X_olsc <- function(mf, vary, args) {
   
   #print("##################")
   #print(args$Z)
-  #print(colMeans(X))
   #print(dim(X))
   #----------------------------------
   
@@ -2337,7 +2337,7 @@ X_olsc <- function(mf, vary, args) {
 ### one can specify the penalty matrix K
 ### with sum-to-zero constraint over index of response
 bolsc <- function(..., by = NULL, index = NULL, intercept = TRUE, df = NULL,
-                  lambda = 0, K=NULL, contrasts.arg = "contr.treatment") {
+                  lambda = 0, K = NULL, weights = NULL, contrasts.arg = "contr.treatment") {
   
   if (!is.null(df)) lambda <- NULL
   
@@ -2399,17 +2399,33 @@ bolsc <- function(..., by = NULL, index = NULL, intercept = TRUE, df = NULL,
     }
   }
 
-  ## call X_olsc in oder to compute the transformation matrix Z, 
+  ### call X_olsc in order to compute the transformation matrix Z, 
   ## Z is saved in args$Z and is used after the model fit.  
-  ## use index, as otherwise Z is computed as for one observation per factor level/ per unique observation
+  ### use index, as otherwise Z is computed as for one observation per factor level/ per unique observation
   ## this is equivalent to the same number of observations in each factor level 
+  ### use weights, as otherwise the weights are not used for the computation of Z, 
+  ## but weights here are NOT the weights in model call as they are an argument to bolsc()
   if(is.null(index)){
-    temp <- X_olsc(mf, vary, 
+    
+    if(is.null(weights)){ ## use weights 
+      w <- 1:nrow(mf)
+    }else{
+      w <- rep(1:nrow(mf), weights)
+    }
+    
+    temp <- X_olsc(mf[w, , drop = FALSE], vary, 
                    args = hyper_olsc(df = df, lambda = lambda, 
                                      intercept = intercept, contrasts.arg = contrasts.arg,
                                      K = K, Z = NULL)) 
   }else{
-    temp <- X_olsc(mf[index,,drop = FALSE], vary, 
+    
+    if(is.null(weights)){  ## use weights
+      w <- 1:nrow(mf[index, , drop = FALSE])
+    }else{
+      w <- rep(1:nrow(mf[index, , drop = FALSE]), weights)
+    }
+    
+    temp <- X_olsc(mf = (mf[index, , drop = FALSE])[w, , drop = FALSE], vary = vary, 
                    args = hyper_olsc(df = df, lambda = lambda, 
                                      intercept = intercept, contrasts.arg = contrasts.arg,
                                      K = K, Z = NULL))  

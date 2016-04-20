@@ -270,13 +270,116 @@ validateFDboost <- function(object, response = NULL,
     
     # create data frame for model fit and use the weights vector for the CV
     dathelp <- object$data
-    dathelp[[attr(object$yind, "nameyind")]] <- object$yind
+    nameyind <- attr(object$yind, "nameyind")
+    dathelp[[nameyind]] <- object$yind
     
     if(!any(class(object) == "FDboostLong")){
       dathelp[[object$yname]] <- matrix(object$response, ncol=object$ydim[2])
     }else{
       dathelp[[object$yname]] <- object$response
     }
+    
+    ########################################################################
+    browser()
+    
+    ### in this version the data are generated explicitely -> Z is computed differently 
+    if(FALSE){
+      
+      ## get the names of all variables x_i, i = 1, ... , N
+      names_variables <- unlist(lapply(object$baselearner, function(x) x$get_names() ))
+      names(names_variables) <- NULL
+      names_variables <- names_variables[names_variables != nameyind]
+      names_variables <- names_variables[names_variables != "ONEx"]
+      names_variables <- names_variables[names_variables != "ONEtime"]
+      names_variables <- c(object$yname, names_variables)
+      
+      ## get data according to weights
+      dat_weights <- reweightData(data = dathelp, covariates = names_variables, 
+                                  weights = weights)
+      
+      ## get data according to oobweights
+      dat_oobweights <- reweightData(data = dathelp, covariates = names_variables, 
+                                     weights = oobweights)
+      
+      call <- object$callEval
+      call$data <- dat_weights
+      if(! is.null(call$weights)) warning("Argument weights of original model is not considered.")
+      call$weights <- NULL 
+      
+      ## fit the model for dat_weights  
+      mod <- withCallingHandlers(suppressMessages(eval(call)), warning = h) # suppress the warning of missing responses    
+      mod <- mod[max(grid)]
+      
+      pred_oobweights <- lapply(1:length(grid), function(g) predict(mod[g], newdata = dat_oobweights, toFDboost = FALSE))
+      response_oobweights <- response[ oobweights[id] == 1 ] ## FIXME for more general oobweights that are not only 0,1 
+      
+      ### use update.FDboost() ?? 
+      # mod <- do.call(update.FDboost, args = list of arguments in call)
+      
+      # compute weights for standardizing risk, mse, ...
+      oobwstand <- lengthTi1[id]*oobweights[id]*intWeights*(1/sum(oobweights))
+      
+      ############# compute risk, mse, relMSE and mrd
+      # get risk function of the family
+      riskfct <- get("family", environment(mod$update))@risk
+      
+      ####################
+      ### compute risk and mse without integration weights, like in cvrisk
+      risk0 <- sapply(grid, function(g){riskfct(response_oobweights, 
+                                                pred_oobweights[[grid[g]]], 
+                                                # predict(mod[g], newdata = dat_oobweights, toFDboost = FALSE), 
+                                                w = 1)} ) / sum(oobweights[id])
+      
+      mse0 <- simplify2array(mclapply(grid, function(g){
+        sum( ((response_oobweights - pred_oobweights[[grid[g]]])^2 * 1), 
+             na.rm = TRUE )
+      }, mc.cores=1) ) / sum(oobweights[id])
+      ####################
+      
+      # oobweights using riskfct() like in mboost, but with different weights!
+      risk <- sapply(grid, function(g){riskfct( response_oobweights, 
+                                                pred_oobweights[[grid[g]]], 
+                                                w = oobwstand[oobweights != 0 ])})
+      
+      ### mse (mean squared error) equals risk in the case of familiy=Gaussian()
+      mse <- simplify2array(mclapply(grid, function(g){
+        sum( ((response_oobweights - pred_oobweights[[grid[g]]])^2 * oobwstand[oobweights != 0 ]), 
+             na.rm = TRUE )
+      }, mc.cores=1) )
+      
+      ### compute overall mean of response in learning sample
+      meanResp <- sum(response*intWeights*lengthTi1[id]*weights[id], na.rm = TRUE) / sum(weights)
+      
+      # # compute overall mean of response in whole sample
+      # meanResp <- sum(response*intWeights*lengthTi1[id], na.rm=TRUE) / nObs
+      
+      ### compute relative mse
+      relMSE <- simplify2array(mclapply(grid, function(g){
+        sum( ((response_oobweights - pred_oobweights[[grid[g]]])^2*oobwstand[oobweights != 0 ]), na.rm = TRUE ) /
+          sum( ((response_oobweights - meanResp)^2*oobwstand[oobweights != 0 ]), na.rm = TRUE )
+      }, mc.cores=1) )
+      
+      ### mean relative deviation
+      resp0 <- response_oobweights
+      resp0[abs(resp0) <= mrdDelete | round(resp0, 1) == 0] <- NA
+      
+      mrd <- simplify2array(mclapply(grid, function(g){
+        sum( abs(resp0 - pred_oobweights[[grid[g]]])/abs(resp0)*oobwstand[oobweights != 0 ], na.rm = TRUE )
+      }, mc.cores=1) )
+      
+      mrd0 <- simplify2array(mclapply(grid, function(g){
+        sum( abs(resp0 - pred_oobweights[[grid[g]]])/abs(resp0)*1, na.rm = TRUE)
+      }, mc.cores=1) ) / sum(oobweights[id])
+      
+      
+      ####### prediction for all observations, not only oob! 
+      # the predictions are in a long vector for all model types (regular, irregular, scalar)
+      predGrid <- predict(mod, aggregate = "cumsum", toFDboost = FALSE, newdata = dathelp)
+      predGrid <- predGrid[ , grid] # save vectors of predictions for grid in matrix
+      
+    }
+    
+    ########################################################################
     
     call <- object$callEval
     call$data <- dathelp
@@ -307,7 +410,7 @@ validateFDboost <- function(object, response = NULL,
     mod <- withCallingHandlers(suppressMessages(eval(call)), warning = h) # suppress the warning of missing responses    
     mod <- mod[max(grid)]
         
-    # compute weights for stanardizing risk, mse, ...
+    # compute weights for standardizing risk, mse, ...
     oobwstand <- lengthTi1[id]*oobweights[id]*intWeights*(1/sum(oobweights))
     
     ############# compute risk, mse, relMSE and mrd
@@ -366,30 +469,32 @@ validateFDboost <- function(object, response = NULL,
     ####### prediction for all observations, not only oob! 
     # the predictions are in a long vector for all model types (regular, irregular, scalar)
     predGrid <- predict(mod, aggregate = "cumsum", toFDboost = FALSE)
-    predGrid <- predGrid[,grid] # save vectors of predictions for grid in matrix
+    predGrid <- predGrid[ , grid] # save vectors of predictions for grid in matrix
     
-    # -> oob-predictions have to be merged out of predGrid
-    predOOB <- predGrid
-    keepidOOB <- (oobweights != 0)[mod$id]
-    if(any(keepidOOB)){
-      predOOB <- predOOB[keepidOOB,]
-      respOOB <- mod$response[keepidOOB]
-      attr(respOOB, "curves") <- unique(mod$id[keepidOOB])
-    }else{
-      predOOB <- NULL
-      respOOB <- NULL
-    } 
+    
+    #### predOOB/respOOB are no longer used 
+    #     # -> oob-predictions have to be merged out of predGrid
+    #     predOOB <- predGrid
+    #     keepidOOB <- (oobweights != 0)[mod$id]
+    #     if(any(keepidOOB)){
+    #       predOOB <- predOOB[keepidOOB,]
+    #       respOOB <- mod$response[keepidOOB]
+    #       attr(respOOB, "curves") <- unique(mod$id[keepidOOB])
+    #     }else{
+    #       predOOB <- NULL
+    #       respOOB <- NULL
+    #     } 
 
     if(showProgress) cat(".")
     
     ## user-specified function to use on FDboost-object 
-    if(! is.null(fun)){
+    if(! is.null(fun) ){
       fun_ret <- fun(mod)
     }else{
       fun_ret <- NULL
     }
 
-    return(list(risk = risk, predGrid = predGrid, predOOB = predOOB, respOOB = respOOB, 
+    return(list(risk = risk, predGrid = predGrid, # predOOB = predOOB, respOOB = respOOB, 
                 mse = mse, relMSE = relMSE, mrd = mrd, risk0 = risk0, mse0 = mse0, mrd0 = mrd0, 
                 mod = mod, fun_ret = fun_ret))  
   } 
@@ -1195,6 +1300,10 @@ cvrisk.FDboost <- function(object, folds = cvLong(id=object$id, weights=model.we
                            fun = NULL, corrected = TRUE, ...){
   
   if(!length(unique(object$offset)) == 1) message("The smooth offset is fixed over all folds.")
+  
+  names_bl <- names(mod1$baselearner)
+  if(any(grepl("bolsc", names_bl))) message("For bolsc, the transformation matrix Z is fixed over all folds.")
+  if(any(grepl("bbsc", names_bl))) message("For bbsc, the transformation matrix Z is fixed over all folds.")
   
   class(object) <- "mboost"
   
