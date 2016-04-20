@@ -1301,7 +1301,8 @@ cvrisk.FDboost <- function(object, folds = cvLong(id=object$id, weights=model.we
   
   if(!length(unique(object$offset)) == 1) message("The smooth offset is fixed over all folds.")
   
-  names_bl <- names(mod1$baselearner)
+  names_bl <- names(object$baselearner)
+  if(any(grepl("brandomc", names_bl))) message("For brandomc, the transformation matrix Z is fixed over all folds.")
   if(any(grepl("bolsc", names_bl))) message("For bolsc, the transformation matrix Z is fixed over all folds.")
   if(any(grepl("bbsc", names_bl))) message("For bbsc, the transformation matrix Z is fixed over all folds.")
   
