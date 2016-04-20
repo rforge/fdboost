@@ -1849,10 +1849,10 @@ update.FDboost <- function(object, weights = NULL, oobweights = NULL, risk = NUL
     yname <- all.vars(as.formula(object$formulaFDboost))[1]
     data[[yname]] <- object$response
     
-    if(length(object$response)!=length(object$yind)){
+    if(length(object$response) != length(object$yind)){
       # format long to wide
       stopifnot(!is.null(object$id))
-      data[[yname]] <- matrix(data[[yname]], ncol=length(object$yind), byrow=F)
+      data[[yname]] <- matrix(data[[yname]], ncol = length(object$yind), byrow = FALSE)
       
     }
     call$data <- data
