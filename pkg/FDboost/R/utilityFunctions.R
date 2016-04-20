@@ -936,16 +936,16 @@ penalty_pss <- function(K, difference, shrink){
 #' ## do some reweighting
 #' # correct weights
 #' str(reweightData(viscosity, covariates=c("vis", "T_C", "T_A", "rspeed", "mflow"), 
-#'     argvals = "time", weights = c(0, 32, 32, rep(0,61))))
+#'     argvals = "time", weights = c(0, 32, 32, rep(0, 61))))
 #' 
 #' str(visNew <- reweightData(viscosity, covariates=c("vis", "T_C", "T_A", "rspeed", "mflow"), 
-#'     argvals = "time", weights = c(0, 32, 32, rep(0,61))))
+#'     argvals = "time", weights = c(0, 32, 32, rep(0, 61))))
 #' # check the result
 #' # visNew$vis[1:5, 1:5] ## image(visNew$vis)
 #' 
 #' # incorrect weights
 #' str(reweightData(viscosity, covariates=c("vis", "T_C", "T_A", "rspeed", "mflow"), 
-#'     argvals = "time", weights = sample(1:64, replace = T)), 1)
+#'     argvals = "time", weights = sample(1:64, replace = TRUE)), 1)
 #' 
 #' # supply meaningful index
 #' str(visNew <- reweightData(viscosity, covariates = c("vis", "T_C", "T_A", "rspeed", "mflow"), 
