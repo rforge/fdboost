@@ -1061,7 +1061,8 @@ reweightData <- function(data, argvals, variables, weights, index, indForRep)
     
     for(ifr in indForRep){
       
-      data[[ifr]] <- c(matrix(data[[ifr]], nrow=n)[index,])
+      tempId <- c(matrix(data[[ifr]], nrow=n)[index,])
+      data[[ifr]] <- (1:length(unique(tempId)))[factor(tempId)]
       
     } 
     
