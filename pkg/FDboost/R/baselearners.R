@@ -545,7 +545,7 @@ X_bsignal <- function(mf, vary, args) {
 #' 
 #' Brockhaus, S., Melcher, M., Leisch, F. and Greven, S. (2016): 
 #' Boosting flexible functional regression models with a high number of functional historical effects, 
-#' under revision. 
+#' Statistics and Computing, accepted.  
 #' 
 #' Marra, G. and Wood, S.N. (2011): Practical variable selection for generalized additive models. 
 #' Computational Statistics & Data Analysis, 55, 2372-2387.

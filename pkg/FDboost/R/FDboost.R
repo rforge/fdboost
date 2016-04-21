@@ -211,7 +211,7 @@
 #' 
 #' Brockhaus, S., Melcher, M., Leisch, F. and Greven, S. (2016): 
 #' Boosting flexible functional regression models with a high number of functional historical effects,  
-#' under revision.  
+#' Statistics and Computing, accepted.  
 #' 
 #' Currie, I.D., Durban, M. and Eilers P.H.C. (2006):  
 #' Generalized linear array models with applications to multidimensional smoothing. 
