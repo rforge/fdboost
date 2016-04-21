@@ -905,8 +905,8 @@ penalty_pss <- function(K, difference, shrink){
 #' 
 #' @param data a named list or data.frame.
 #' @param argvals character (vector); name(s) for entries in data giving 
-#' the index for observed grid points; must be supplied if \code{covariates} is not supplied.
-#' @param covariates character (vector); name(s) for entries in data, which
+#' the index for observed grid points; must be supplied if \code{actualVars} is not supplied.
+#' @param actualVars character (vector); name(s) for entries in data, which
 #' are subsetted according to weights or index. Must be supplied if \code{argvals} is not supplied.
 #' @param weights vector of weights for observations. Must be supplied if \code{index} is not supplied.
 #' @param index vector of indices for observations. Must be supplied if \code{weights} is not supplied.
@@ -915,8 +915,8 @@ penalty_pss <- function(K, difference, shrink){
 #' either the \code{index} or the \code{weights}-argument. To prevent the function from indexing
 #' the list entry / entries, which serve as time index for observed grid points of each trajectory of
 #' functional observations, the \code{argvals} argument (vector of character names for these list entries) 
-#' can be supplied. If \code{argvals} is not supplied, \code{covariates} must be supplied and it is assumed that 
-#' \code{argvals} is equal to \code{names(data)[!names(data) \%in\% covariates]}.
+#' can be supplied. If \code{argvals} is not supplied, \code{actualVars} must be supplied and it is assumed that 
+#' \code{argvals} is equal to \code{names(data)[!names(data) \%in\% actualVars]}.
 #' 
 #' When using \code{weights}, a weight vector of length n must be supplied, where n is the number of observations.
 #' When using \code{index}, the vector must contain the index of each row as many times as it shall be included in the
@@ -935,20 +935,20 @@ penalty_pss <- function(K, difference, shrink){
 #' 
 #' ## do some reweighting
 #' # correct weights
-#' str(reweightData(viscosity, covariates=c("vis", "T_C", "T_A", "rspeed", "mflow"), 
+#' str(reweightData(viscosity, actualVars=c("vis", "T_C", "T_A", "rspeed", "mflow"), 
 #'     argvals = "time", weights = c(0, 32, 32, rep(0, 61))))
 #' 
-#' str(visNew <- reweightData(viscosity, covariates=c("vis", "T_C", "T_A", "rspeed", "mflow"), 
+#' str(visNew <- reweightData(viscosity, actualVars=c("vis", "T_C", "T_A", "rspeed", "mflow"), 
 #'     argvals = "time", weights = c(0, 32, 32, rep(0, 61))))
 #' # check the result
 #' # visNew$vis[1:5, 1:5] ## image(visNew$vis)
 #' 
 #' # incorrect weights
-#' str(reweightData(viscosity, covariates=c("vis", "T_C", "T_A", "rspeed", "mflow"), 
+#' str(reweightData(viscosity, actualVars=c("vis", "T_C", "T_A", "rspeed", "mflow"), 
 #'     argvals = "time", weights = sample(1:64, replace = TRUE)), 1)
 #' 
 #' # supply meaningful index
-#' str(visNew <- reweightData(viscosity, covariates = c("vis", "T_C", "T_A", "rspeed", "mflow"), 
+#' str(visNew <- reweightData(viscosity, actualVars = c("vis", "T_C", "T_A", "rspeed", "mflow"), 
 #'               argvals = "time", index = rep(1:32, each = 2)))
 #' # check the result
 #' # visNew$vis[1:5, 1:5]
@@ -962,46 +962,53 @@ penalty_pss <- function(K, difference, shrink){
 #' @author David Ruegamer, Sarah Brockhaus
 #' 
 #' @export 
-reweightData <- function(data, argvals, covariates, weights, index)
+reweightData <- function(data, argvals, actualVars, weights, index)
 {
   
-  if(missing(argvals) & missing(covariates)) 
-    stop("Either argvals or covariates must be supplied.")
+  if(missing(argvals) & missing(actualVars)) 
+    stop("Either argvals or actualVars must be supplied.")
   if(missing(weights) & missing(index)) 
     stop("Either weights or index must be supplied.")
   
   # get names of data
   nd <- names(data)
   
-  # drop not used entries if both argvals and covariates are given
-  if(!missing(argvals) & !missing(covariates)){
+  # drop not used entries if both argvals and actualVars are given
+  if(!missing(argvals) & !missing(actualVars)){
     
-    data[nd[!nd %in% c(argvals, covariates)]] <- NULL
+    data[nd[!nd %in% c(argvals, actualVars)]] <- NULL
     nd <- names(data) # reset names
     
   }
   
-  # define argvals or covariates if missing exclusively
-  if(missing(argvals)) argvals <- nd[!nd %in% covariates]
-  if(missing(covariates)) covariates <- nd[!nd %in% argvals]
+  # define argvals or actualVars if missing exclusively
+  if(missing(argvals)) argvals <- nd[!nd %in% actualVars]
+  if(missing(actualVars)) actualVars <- nd[!nd %in% argvals]
   
-  whichNot <- which(!c(argvals, covariates) %in% nd)
+  whichNot <- which(!c(argvals, actualVars) %in% nd)
   
   # check names
   if(length(whichNot)!=0) 
     stop(paste0("Could not find ", 
-                paste(c(argvals, covariates)[whichNot], collapse = ", "),
+                paste(c(argvals, actualVars)[whichNot], collapse = ", "),
                 " in data."))
   
-
-  
+  # check for hmatrix and delete in argvals or actualVars if present
+  whichHmat <- sapply(data[actualVars],function(x)"hmatrix"%in%class(x))
+ 
   # get dimensions of data
   dimd <- lapply(data,dim)
   isVec <- sapply(dimd,is.null)
-  n <- NROW(data[[covariates[1]]])
   
-  n_covariates <- sapply(data[covariates], function(x) NROW(x) )
-  if(any(n_covariates[1] != n_covariates)) stop("Covariates imply different number of rows.")
+  if(length(actualVars)==1 & sum(whichHmat)==1) 
+    n <- nrow(attr(data[[actualVars]],"x")) else{
+      
+      n <- NROW(data[[actualVars[!whichHmat][1]]])
+  
+      n_actualVars <- sapply(data[actualVars][!whichHmat], function(x) NROW(x) )
+      if(any(n_actualVars[1] != n_actualVars)) stop("actualVars imply different number of rows.")
+    
+  }
   
   if(!missing(weights) && length(weights) != n) 
     stop("Length of weights and number of observations do not match!")
@@ -1017,13 +1024,46 @@ reweightData <- function(data, argvals, covariates, weights, index)
   if(!missing(weights) && any(!is.wholenumber(weights))) stop("weights can only contain integers.")
   if(any(!is.wholenumber(index))) stop("index can only contain integers.")
   
+  if(any(whichHmat)){
+    
+    nhm <- actualVars[whichHmat]
+    newHatmats <- vector("list",length(nhm))
+    remV <- !nd%in%nhm
+    nd <- nd[remV]
+    isVec <- isVec[remV]
+    for(j in 1:length(nhm)){
+      
+      tempHmat <- data[[nhm[j]]]
+      attrTemp <- attributes(tempHmat)
+      tempMat <- cbind(tempHmat[,1],tempHmat[,2])
+      idTemp <- unique(tempHmat[,2])[index]
+      tempMat <- tempMat[tempMat[,2]%in%idTemp,]
+      newHatmats[[j]] <- hmatrix(time=tempMat[,1], id=tempMat[,2], 
+                                 x=attrTemp$x[index, , drop=FALSE], 
+                                 argvals = attrTemp$argvals, 
+                                 timeLab = attrTemp$timeLab, 
+                                 idLab = attrTemp$idLab, 
+                                 xLab = attrTemp$xLab, 
+                                 argvalsLab = attrTemp$argvalsLab)
+      
+    }
+    names(newHatmats) <- nhm
+    
+  }else{
+    
+    newHatmats <- NULL
+    nhm <- NULL
+    
+  }
+    
   inAVs <- nd %in% argvals
   
   # recycle data
   data <- c(lapply(nd[!isVec & !inAVs], function(nameWithDim) data[[nameWithDim]][index, , drop=FALSE]),
             lapply(nd[isVec & !inAVs], function(nameWithoutDim) data[[nameWithoutDim]][index]), 
+            newHatmats,
             data[argvals])
-  names(data) <- c(nd[!isVec & !inAVs], nd[isVec & !inAVs], argvals)
+  names(data) <- c(nd[!isVec & !inAVs], nd[isVec & !inAVs], nhm, argvals)
   
   return(drop(data))
   
