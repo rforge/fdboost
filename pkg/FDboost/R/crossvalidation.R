@@ -280,7 +280,7 @@ validateFDboost <- function(object, response = NULL,
     }
     
     ########################################################################
-    browser()
+    #browser()
     
     ### in this version the data are generated explicitely -> Z is computed differently 
     if(FALSE){
