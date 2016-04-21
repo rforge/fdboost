@@ -4,20 +4,22 @@
 \alias{reweightData}
 \title{Function to reweight the data}
 \usage{
-reweightData(data, argvals, covariates, weights, index)
+reweightData(data, argvals, variables, weights, index, indForRep)
 }
 \arguments{
 \item{data}{a named list or data.frame.}
 
 \item{argvals}{character (vector); name(s) for entries in data giving
-the index for observed grid points; must be supplied if \code{covariates} is not supplied.}
+the index for observed grid points; must be supplied if \code{variables} is not supplied.}
 
-\item{covariates}{character (vector); name(s) for entries in data, which
+\item{variables}{character (vector); name(s) for entries in data, which
 are subsetted according to weights or index. Must be supplied if \code{argvals} is not supplied.}
 
 \item{weights}{vector of weights for observations. Must be supplied if \code{index} is not supplied.}
 
 \item{index}{vector of indices for observations. Must be supplied if \code{weights} is not supplied.}
+
+\item{indForRep}{character (vector); index for replications needed for bhistx-baselearner.}
 }
 \value{
 A list with the reweighted or subsetted data
@@ -30,8 +32,8 @@ Function to reweight the data
 either the \code{index} or the \code{weights}-argument. To prevent the function from indexing
 the list entry / entries, which serve as time index for observed grid points of each trajectory of
 functional observations, the \code{argvals} argument (vector of character names for these list entries)
-can be supplied. If \code{argvals} is not supplied, \code{covariates} must be supplied and it is assumed that
-\code{argvals} is equal to \code{names(data)[!names(data) \%in\% covariates]}.
+can be supplied. If \code{argvals} is not supplied, \code{variables} must be supplied and it is assumed that
+\code{argvals} is equal to \code{names(data)[!names(data) \%in\% variables]}.
 
 When using \code{weights}, a weight vector of length n must be supplied, where n is the number of observations.
 When using \code{index}, the vector must contain the index of each row as many times as it shall be included in the
@@ -50,20 +52,20 @@ str(viscosity)
 
 ## do some reweighting
 # correct weights
-str(reweightData(viscosity, covariates=c("vis", "T_C", "T_A", "rspeed", "mflow"),
+str(reweightData(viscosity, variables=c("vis", "T_C", "T_A", "rspeed", "mflow"),
     argvals = "time", weights = c(0, 32, 32, rep(0, 61))))
 
-str(visNew <- reweightData(viscosity, covariates=c("vis", "T_C", "T_A", "rspeed", "mflow"),
+str(visNew <- reweightData(viscosity, variables=c("vis", "T_C", "T_A", "rspeed", "mflow"),
     argvals = "time", weights = c(0, 32, 32, rep(0, 61))))
 # check the result
 # visNew$vis[1:5, 1:5] ## image(visNew$vis)
 
 # incorrect weights
-str(reweightData(viscosity, covariates=c("vis", "T_C", "T_A", "rspeed", "mflow"),
+str(reweightData(viscosity, variables=c("vis", "T_C", "T_A", "rspeed", "mflow"),
     argvals = "time", weights = sample(1:64, replace = TRUE)), 1)
 
 # supply meaningful index
-str(visNew <- reweightData(viscosity, covariates = c("vis", "T_C", "T_A", "rspeed", "mflow"),
+str(visNew <- reweightData(viscosity, variables = c("vis", "T_C", "T_A", "rspeed", "mflow"),
               argvals = "time", index = rep(1:32, each = 2)))
 # check the result
 # visNew$vis[1:5, 1:5]

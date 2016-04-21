@@ -143,7 +143,7 @@ funplot <- function(x, y, id=NULL, rug=TRUE, ...){
                  myargs=list(x=time, y=t(yint), type="l", lty=3, add=TRUE) )
     
     if(rug) rug(time, 0.01)
-  
+    
   }else{
     
     stopifnot(length(x)==length(y) & length(y)==length(id))
@@ -208,9 +208,9 @@ funplot <- function(x, y, id=NULL, rug=TRUE, ...){
     
   }
   
-#   matplot(time, t(y), xlab=xlabel, ylab="", type="p", pch=3)
-#   matplot(time, t(y), type="l", pch=1, lty=1, add=TRUE)
-#   matplot(time, t(yint), type="l", pch=1, lty=3, add=TRUE)  
+  #   matplot(time, t(y), xlab=xlabel, ylab="", type="p", pch=3)
+  #   matplot(time, t(y), type="l", pch=1, lty=1, add=TRUE)
+  #   matplot(time, t(yint), type="l", pch=1, lty=3, add=TRUE)  
 }
 
 
@@ -240,7 +240,7 @@ plotPredicted <- function(x, subset=NULL, posLegend="topleft", lwdObs=1, lwdPred
     yind <- x$yind[x$id %in% subset] 
     id <- x$id[x$id %in% subset]
   }
-
+  
   ylim <- range(response, pred, na.rm = TRUE)
   
   if(length(x$yind)>1){
@@ -290,7 +290,7 @@ plotResiduals <- function(x, subset=NULL, posLegend="topleft", ...){
     plot(response, response-pred, ylab="residuals", xlab="observed", ...)
     #abline(h=0)
   }
-
+  
 }
 
 
@@ -405,7 +405,7 @@ funRsquared <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,
     attr(ret, "name") <- "global R-squared"
     return(ret)
   }
-    
+  
   ### for each time-point t 
   if(overTime){ 
     # Mean function over time (matrix containing the mean in each t in the whole column)
@@ -598,7 +598,7 @@ funMRD <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,  ...
     yhat <- temp$yhat
     time <- temp$time
   }
-
+  
   # You cannot use observations that are 0, so set them to NA
   y1 <- y
   y1[ round(y1, 1) == 0 ] <- NA
@@ -685,7 +685,7 @@ check_ident <- function(X1, L, Bs, K, xname, penalty,
   
   ### compute condition number of Ds^t Ds for subsections of Ds accoring to limits
   logCondDs_hist <- NULL
-
+  
   # look at condition number of Ds for all values of yind for historical effect
   # use X1des, as this is the marginal design matrix using the limits
   if(!is.null(limits)){ 
@@ -757,7 +757,7 @@ check_ident <- function(X1, L, Bs, K, xname, penalty,
               "Effect in this region identifiable only through penalty.")
     }
   } ## end of computation of logCondDs_hist for historical effects
-
+  
   
   ## measure degree of overlap between the spans of ker(t(X1)) and W%*%Bs%*%ker(K)
   ## overlap after Larsson and Villani 2001, Scheipl and Greven, 2014
@@ -817,7 +817,7 @@ check_ident <- function(X1, L, Bs, K, xname, penalty,
   
   ## sequential overlap for historical model with general integraion limits
   if(!is.null(limits)){  
-
+    
     subs <- list()
     for(k in 1:length(t_unique)){
       subs[[k]] <- which(limits(s=xind, t=t_unique[k]))
@@ -898,25 +898,26 @@ penalty_pss <- function(K, difference, shrink){
   
   return(K)
 }
-  
+
 
 
 #' Function to reweight the data
 #' 
 #' @param data a named list or data.frame.
 #' @param argvals character (vector); name(s) for entries in data giving 
-#' the index for observed grid points; must be supplied if \code{actualVars} is not supplied.
-#' @param actualVars character (vector); name(s) for entries in data, which
+#' the index for observed grid points; must be supplied if \code{variables} is not supplied.
+#' @param variables character (vector); name(s) for entries in data, which
 #' are subsetted according to weights or index. Must be supplied if \code{argvals} is not supplied.
 #' @param weights vector of weights for observations. Must be supplied if \code{index} is not supplied.
 #' @param index vector of indices for observations. Must be supplied if \code{weights} is not supplied.
+#' @param indForRep character (vector); index for replications needed for bhistx-baselearner.
 #' @return A list with the reweighted or subsetted data 
 #' @details \code{reweightData} indexes the rows of matrices and / or positions of vectors by using
 #' either the \code{index} or the \code{weights}-argument. To prevent the function from indexing
 #' the list entry / entries, which serve as time index for observed grid points of each trajectory of
 #' functional observations, the \code{argvals} argument (vector of character names for these list entries) 
-#' can be supplied. If \code{argvals} is not supplied, \code{actualVars} must be supplied and it is assumed that 
-#' \code{argvals} is equal to \code{names(data)[!names(data) \%in\% actualVars]}.
+#' can be supplied. If \code{argvals} is not supplied, \code{variables} must be supplied and it is assumed that 
+#' \code{argvals} is equal to \code{names(data)[!names(data) \%in\% variables]}.
 #' 
 #' When using \code{weights}, a weight vector of length n must be supplied, where n is the number of observations.
 #' When using \code{index}, the vector must contain the index of each row as many times as it shall be included in the
@@ -935,20 +936,20 @@ penalty_pss <- function(K, difference, shrink){
 #' 
 #' ## do some reweighting
 #' # correct weights
-#' str(reweightData(viscosity, actualVars=c("vis", "T_C", "T_A", "rspeed", "mflow"), 
+#' str(reweightData(viscosity, variables=c("vis", "T_C", "T_A", "rspeed", "mflow"), 
 #'     argvals = "time", weights = c(0, 32, 32, rep(0, 61))))
 #' 
-#' str(visNew <- reweightData(viscosity, actualVars=c("vis", "T_C", "T_A", "rspeed", "mflow"), 
+#' str(visNew <- reweightData(viscosity, variables=c("vis", "T_C", "T_A", "rspeed", "mflow"), 
 #'     argvals = "time", weights = c(0, 32, 32, rep(0, 61))))
 #' # check the result
 #' # visNew$vis[1:5, 1:5] ## image(visNew$vis)
 #' 
 #' # incorrect weights
-#' str(reweightData(viscosity, actualVars=c("vis", "T_C", "T_A", "rspeed", "mflow"), 
+#' str(reweightData(viscosity, variables=c("vis", "T_C", "T_A", "rspeed", "mflow"), 
 #'     argvals = "time", weights = sample(1:64, replace = TRUE)), 1)
 #' 
 #' # supply meaningful index
-#' str(visNew <- reweightData(viscosity, actualVars = c("vis", "T_C", "T_A", "rspeed", "mflow"), 
+#' str(visNew <- reweightData(viscosity, variables = c("vis", "T_C", "T_A", "rspeed", "mflow"), 
 #'               argvals = "time", index = rep(1:32, each = 2)))
 #' # check the result
 #' # visNew$vis[1:5, 1:5]
@@ -962,53 +963,55 @@ penalty_pss <- function(K, difference, shrink){
 #' @author David Ruegamer, Sarah Brockhaus
 #' 
 #' @export 
-reweightData <- function(data, argvals, actualVars, weights, index)
+reweightData <- function(data, argvals, variables, weights, index, indForRep)
 {
   
-  if(missing(argvals) & missing(actualVars)) 
-    stop("Either argvals or actualVars must be supplied.")
+  if(missing(argvals) & missing(variables)) 
+    stop("Either argvals or variables must be supplied.")
   if(missing(weights) & missing(index)) 
     stop("Either weights or index must be supplied.")
   
   # get names of data
   nd <- names(data)
   
-  # drop not used entries if both argvals and actualVars are given
-  if(!missing(argvals) & !missing(actualVars)){
+  if(missing(indForRep)) indForRep <- NULL
+  
+  # drop not used entries if both argvals and variables are given
+  if(!missing(argvals) & !missing(variables)){
     
-    data[nd[!nd %in% c(argvals, actualVars)]] <- NULL
+    data[nd[!nd %in% c(argvals, variables, indForRep)]] <- NULL
     nd <- names(data) # reset names
     
   }
   
-  # define argvals or actualVars if missing exclusively
-  if(missing(argvals)) argvals <- nd[!nd %in% actualVars]
-  if(missing(actualVars)) actualVars <- nd[!nd %in% argvals]
+  # define argvals or variables if missing exclusively
+  if(missing(argvals)) argvals <- nd[!nd %in% c(variables,indForRep)]
+  if(missing(variables)) variables <- nd[!nd %in% c(argvals,indForRep)]
   
-  whichNot <- which(!c(argvals, actualVars) %in% nd)
+  whichNot <- which(!c(argvals, variables, indForRep) %in% nd)
   
   # check names
   if(length(whichNot)!=0) 
     stop(paste0("Could not find ", 
-                paste(c(argvals, actualVars)[whichNot], collapse = ", "),
+                paste(c(argvals, variables, indForRep)[whichNot], collapse = ", "),
                 " in data."))
   
-  # check for hmatrix and delete in argvals or actualVars if present
-  whichHmat <- sapply(data[actualVars],function(x)"hmatrix"%in%class(x))
- 
+  # check for hmatrix and delete in argvals or variables if present
+  whichHmat <- sapply(data[variables],function(x)"hmatrix"%in%class(x))
+  
   # get dimensions of data
   dimd <- lapply(data,dim)
   isVec <- sapply(dimd,is.null)
   
-  if(length(actualVars)==1 & sum(whichHmat)==1) 
-    n <- nrow(attr(data[[actualVars]],"x")) else{
+  if(length(variables)==1 & sum(whichHmat)==1) 
+    n <- nrow(attr(data[[variables]],"x")) else{
       
-      n <- NROW(data[[actualVars[!whichHmat][1]]])
-  
-      n_actualVars <- sapply(data[actualVars][!whichHmat], function(x) NROW(x) )
-      if(any(n_actualVars[1] != n_actualVars)) stop("actualVars imply different number of rows.")
-    
-  }
+      n <- NROW(data[[variables[!whichHmat][1]]])
+      
+      n_variables <- sapply(data[variables][!whichHmat], function(x) NROW(x) )
+      if(any(n_variables[1] != n_variables)) stop("variables imply different number of rows.")
+      
+    }
   
   if(!missing(weights) && length(weights) != n) 
     stop("Length of weights and number of observations do not match!")
@@ -1026,9 +1029,9 @@ reweightData <- function(data, argvals, actualVars, weights, index)
   
   if(any(whichHmat)){
     
-    nhm <- actualVars[whichHmat]
+    nhm <- variables[whichHmat]
     newHatmats <- vector("list",length(nhm))
-    remV <- !nd%in%nhm
+    remV <- !nd%in%c(nhm,indForRep)
     nd <- nd[remV]
     isVec <- isVec[remV]
     for(j in 1:length(nhm)){
@@ -1038,8 +1041,15 @@ reweightData <- function(data, argvals, actualVars, weights, index)
       tempMat <- cbind(tempHmat[,1],tempHmat[,2])
       idTemp <- unique(tempHmat[,2])[index]
       tempMat <- tempMat[tempMat[,2]%in%idTemp,]
-      newHatmats[[j]] <- hmatrix(time=tempMat[,1], id=tempMat[,2], 
-                                 x=attrTemp$x[index, , drop=FALSE], 
+      rle <- rle(sort(idTemp))
+      rleId <- rle(tempMat[,2])
+      mu <- merge(data.frame(a=rle$lengths,b=rle$values),
+                  data.frame(c=rleId$lengths,d=rleId$values),
+                  by.x = "b", by.y  = "d")[,"a"]
+      tempMat <- tempMat[rep(1:nrow(tempMat),mu),]
+      tempId <- (1:length(unique(tempMat[,2])))[factor(tempMat[,2])]
+      newHatmats[[j]] <- hmatrix(time=tempMat[,1], id=tempId, 
+                                 x=attrTemp$x[unique(index), , drop=FALSE], 
                                  argvals = attrTemp$argvals, 
                                  timeLab = attrTemp$timeLab, 
                                  idLab = attrTemp$idLab, 
@@ -1049,13 +1059,21 @@ reweightData <- function(data, argvals, actualVars, weights, index)
     }
     names(newHatmats) <- nhm
     
+    for(ifr in indForRep){
+      
+      data[[ifr]] <- c(matrix(data[[ifr]], nrow=n)[index,])
+      
+    } 
+    
+    argvals <- c(argvals,indForRep)
+    
   }else{
     
     newHatmats <- NULL
     nhm <- NULL
     
   }
-    
+  
   inAVs <- nd %in% argvals
   
   # recycle data
