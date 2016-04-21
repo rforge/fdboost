@@ -910,7 +910,8 @@ penalty_pss <- function(K, difference, shrink){
 #' are subsetted according to weights or index. Must be supplied if \code{argvals} is not supplied.
 #' @param weights vector of weights for observations. Must be supplied if \code{index} is not supplied.
 #' @param index vector of indices for observations. Must be supplied if \code{weights} is not supplied.
-#' @param indForRep character (vector); index for replications needed for bhistx-baselearner.
+#' @param indForRep character (vector); index for replications needed for \code{hmatrix}-object 
+#' of bhistx-baselearner.
 #' @return A list with the reweighted or subsetted data 
 #' @details \code{reweightData} indexes the rows of matrices and / or positions of vectors by using
 #' either the \code{index} or the \code{weights}-argument. To prevent the function from indexing
@@ -985,8 +986,8 @@ reweightData <- function(data, argvals, variables, weights, index, indForRep)
   }
   
   # define argvals or variables if missing exclusively
-  if(missing(argvals)) argvals <- nd[!nd %in% c(variables,indForRep)]
-  if(missing(variables)) variables <- nd[!nd %in% c(argvals,indForRep)]
+  if(missing(argvals)) argvals <- nd[!nd %in% c(variables, indForRep)]
+  if(missing(variables)) variables <- nd[!nd %in% c(argvals, indForRep)]
   
   whichNot <- which(!c(argvals, variables, indForRep) %in% nd)
   
@@ -997,13 +998,13 @@ reweightData <- function(data, argvals, variables, weights, index, indForRep)
                 " in data."))
   
   # check for hmatrix and delete in argvals or variables if present
-  whichHmat <- sapply(data[variables],function(x)"hmatrix"%in%class(x))
+  whichHmat <- sapply(data[variables], function(x) "hmatrix" %in% class(x))
   
   # get dimensions of data
-  dimd <- lapply(data,dim)
-  isVec <- sapply(dimd,is.null)
+  dimd <- lapply(data, dim)
+  isVec <- sapply(dimd, is.null)
   
-  if(length(variables)==1 & sum(whichHmat)==1) 
+  if(length(variables) == 1 & sum(whichHmat) == 1) 
     n <- nrow(attr(data[[variables]],"x")) else{
       
       n <- NROW(data[[variables[!whichHmat][1]]])
@@ -1030,21 +1031,21 @@ reweightData <- function(data, argvals, variables, weights, index, indForRep)
   if(any(whichHmat)){
     
     nhm <- variables[whichHmat]
-    newHatmats <- vector("list",length(nhm))
-    remV <- !nd%in%c(nhm,indForRep)
+    newHatmats <- vector("list", length(nhm))
+    remV <- !nd %in% c(nhm, indForRep)
     nd <- nd[remV]
     isVec <- isVec[remV]
     for(j in 1:length(nhm)){
       
       tempHmat <- data[[nhm[j]]]
       attrTemp <- attributes(tempHmat)
-      tempMat <- cbind(tempHmat[,1],tempHmat[,2])
+      tempMat <- cbind(tempHmat[,1], tempHmat[,2])
       idTemp <- unique(tempHmat[,2])[index]
-      tempMat <- tempMat[tempMat[,2]%in%idTemp,]
+      tempMat <- tempMat[tempMat[,2] %in% idTemp, ]
       rle <- rle(sort(idTemp))
       rleId <- rle(tempMat[,2])
-      mu <- merge(data.frame(a=rle$lengths,b=rle$values),
-                  data.frame(c=rleId$lengths,d=rleId$values),
+      mu <- merge(data.frame(a = rle$lengths, b = rle$values),
+                  data.frame(c = rleId$lengths, d = rleId$values),
                   by.x = "b", by.y  = "d")[,"a"]
       tempMat <- tempMat[rep(1:nrow(tempMat),mu),]
       tempId <- (1:length(unique(tempMat[,2])))[factor(tempMat[,2])]
@@ -1061,12 +1062,12 @@ reweightData <- function(data, argvals, variables, weights, index, indForRep)
     
     for(ifr in indForRep){
       
-      tempId <- c(matrix(data[[ifr]], nrow=n)[index,])
+      tempId <- c(matrix(data[[ifr]], nrow = n)[index,])
       data[[ifr]] <- (1:length(unique(tempId)))[factor(tempId)]
       
     } 
     
-    argvals <- c(argvals,indForRep)
+    argvals <- c(argvals, indForRep)
     
   }else{
     

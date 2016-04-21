@@ -19,7 +19,8 @@ are subsetted according to weights or index. Must be supplied if \code{argvals} 
 
 \item{index}{vector of indices for observations. Must be supplied if \code{weights} is not supplied.}
 
-\item{indForRep}{character (vector); index for replications needed for bhistx-baselearner.}
+\item{indForRep}{character (vector); index for replications needed for \code{hmatrix}-object
+of bhistx-baselearner.}
 }
 \value{
 A list with the reweighted or subsetted data
