@@ -3,12 +3,15 @@
 \name{anisotropic_Kronecker}
 \alias{\%A0\%}
 \alias{\%A\%}
+\alias{\%Xa0\%}
 \alias{anisotropic_Kronecker}
-\title{Kronecker product of two base-learners with anisotropic penalty}
+\title{Kronecker product or row tensor product of two base-learners with anisotropic penalty}
 \usage{
 bl1 \%A\% bl2
 
 bl1 \%A0\% bl2
+
+bl1 \%Xa0\% bl2
 }
 \arguments{
 \item{bl1}{base-learner 1, e.g. \code{bbs(x1)}}
@@ -17,11 +20,11 @@ bl1 \%A0\% bl2
 }
 \description{
 EXPERIMENTAL!
-Kronecker product of two base-learners allowing for anisotropic penalties.
-\code{\%A\%} works in the general case, \code{\%A0\%} for the special case where
-the penalty in one direction is zero.
-
-
+Kronecker product or row tensor product of two base-learners allowing for anisotropic penalties.
+For the Kronecker product, \code{\%A\%} works in the general case, \code{\%A0\%} for the special case where
+the penalty is zero in one direction.
+For the row tensor product, \code{\%Xa0\%} works for the special case where
+the penalty is zero in one direction.
 }
 \details{
 When \code{\%O\%} is called with a specification of \code{df} in both base-learners,
@@ -66,6 +69,10 @@ If the \code{formula} in \code{FDboost} contains base-learners connected by
 \code{\%O\%}, \code{\%A\%} or \code{\%A0\%},
 those effects are not expanded with \code{timeformula}, allowing for model specifications
 with different effects in time-direction.
+
+\code{\%Xa0\%} computes like \code{\%X\%} the row tensor product of two base-learners,
+with the difference that it sets the penalty for one direction to zero.
+Thus, \code{\%Xa0\%} behaves to \code{\%X\%} analogously like \code{\%A0\%} to \code{\%O\%}.
 }
 \examples{
 ######## Example for anisotropic penalty

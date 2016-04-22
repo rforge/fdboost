@@ -2,7 +2,7 @@
 \title{News for Package 'FDboost'}
 
 
-\section{Changes in FDboost version 0.1-2 (2016-04-12)}{
+\section{Changes in FDboost version 0.1-2 (2016-04-22)}{
     \subsection{Bug-fixes}{
     \itemize{
     \item bugfix in bolsc(): correctly use index in bolsc() / bbsc(), 
@@ -11,7 +11,10 @@
     }
     \subsection{User-visible changes}{
     \itemize{
-	  \item add the function stabsel.FDboost() that refits the smooth offset in each fold  
+    \item add function %Xa0% that computes a row-tensor product of two base-learners where 
+          the penalty in one direction is zero  
+    \item add function reweightData() that computes the data for Bootstrap or cross-falidation folds
+	  \item add function stabsel.FDboost() that refits the smooth offset in each fold  
 	  \item add argument 'fun' to validateFDboost() 
 	  \item add update.FDboost() that overwrites update.mboost()
     }

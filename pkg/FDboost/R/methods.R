@@ -630,7 +630,7 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
           tvals <- rep(tvals, each = ng)
 
           if( grepl("%X", trm$get_call()) ){
-            split_bl <- strsplit(trm$get_call(), split = "%.{1,2}%")[[1]]
+            split_bl <- strsplit(trm$get_call(), split = "%.{1,3}%")[[1]]
             ## save the position of bhistx() 
             position_bhistx <- which(grepl("bhistx", split_bl))
             
@@ -1256,10 +1256,10 @@ coef.FDboost <- function(object, raw = FALSE, which = NULL,
     shortnames <- function(x){
       if(substr(x,1,1)=="\"") x <- substr(x, 2, nchar(x)-1)
 
-      ## split at expressions %.% with 1 or 2 characters between % and %
-      xpart <- unlist(strsplit(x, split = "%.{1,2}%"))
+      ## split at expressions %.% with 1 to 3 characters between % and %
+      xpart <- unlist(strsplit(x, split = "%.{1,3}%"))
       ## find the expressions at which the split is done 
-      operator <- gregexpr(pattern = "%.{1,2}%", text = x)[[1]]
+      operator <- gregexpr(pattern = "%.{1,3}%", text = x)[[1]]
       operator <- sapply(1:length(operator), 
                       function(i) substr(x, operator[i], operator[i] + attr(operator, "match.length")[i] -1 ) )
       

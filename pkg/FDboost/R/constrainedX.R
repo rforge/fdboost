@@ -550,12 +550,14 @@ bl_lin_matrix_a <- function(blg, Xfun, args) {
 
 
 
-#' Kronecker product of two base-learners with anisotropic penalty 
+#' Kronecker product or row tensor product of two base-learners with anisotropic penalty 
 #' 
 #' EXPERIMENTAL! 
-#' Kronecker product of two base-learners allowing for anisotropic penalties. 
-#' \code{\%A\%} works in the general case, \code{\%A0\%} for the special case where 
-#' the penalty in one direction is zero.  
+#' Kronecker product or row tensor product of two base-learners allowing for anisotropic penalties. 
+#' For the Kronecker product, \code{\%A\%} works in the general case, \code{\%A0\%} for the special case where 
+#' the penalty is zero in one direction. 
+#' For the row tensor product, \code{\%Xa0\%} works for the special case where 
+#' the penalty is zero in one direction.  
 #' 
 #' @param bl1 base-learner 1, e.g. \code{bbs(x1)}
 #' @param bl2 base-learner 2, e.g. \code{bbs(x2)}
@@ -603,6 +605,11 @@ bl_lin_matrix_a <- function(blg, Xfun, args) {
 #' \code{\%O\%}, \code{\%A\%} or \code{\%A0\%}, 
 #' those effects are not expanded with \code{timeformula}, allowing for model specifications 
 #' with different effects in time-direction.  
+#' 
+#' \code{\%Xa0\%} computes like \code{\%X\%} the row tensor product of two base-learners, 
+#' with the difference that it sets the penalty for one direction to zero. 
+#' Thus, \code{\%Xa0\%} behaves to \code{\%X\%} analogously like \code{\%A0\%} to \code{\%O\%}. 
+#'  
 #' 
 #' @references 
 #' Brockhaus, S., Scheipl, F., Hothorn, T. and Greven, S. (2015): 
@@ -685,7 +692,8 @@ NULL
 
 
 
-#'  @rdname anisotropic_Kronecker
+#' @rdname anisotropic_Kronecker
+#' @export
 "%A%" <- function(bl1, bl2) {
 
   ###### <FIXME> was passiert hier???
@@ -810,6 +818,7 @@ NULL
 # Only works for the special case were lambda1 or lambda2 is 0. 
 # Computes only one global lambda for the penalty. 
 #' @rdname anisotropic_Kronecker
+#' @export
 "%A0%" <- function(bl1, bl2) {
   
   #   if (is.list(bl1) && !inherits(bl1, "blg"))
@@ -941,3 +950,168 @@ NULL
 }
 
 
+
+
+# Row tensor product of two base-learners with penalty in one direction  
+# Only works for the special case were lambda1 or lambda2 is 0. 
+# Computes only one global lambda for the penalty. 
+#' @rdname anisotropic_Kronecker
+#' @export
+"%Xa0%" <- function(bl1, bl2) {
+
+  if (is.list(bl1) && !inherits(bl1, "blg"))
+    return(lapply(bl1, "%Xa0%", bl2 = bl2))
+  
+  if (is.list(bl2) && !inherits(bl2, "blg"))
+    return(lapply(bl2, "%Xa0%", bl1 = bl1))
+  
+  cll <- paste(bl1$get_call(), "%Xa0%",
+               bl2$get_call(), collapse = "")
+  stopifnot(inherits(bl1, "blg"))
+  stopifnot(inherits(bl2, "blg"))
+  
+  stopifnot(!any(colnames(mboost_intern(bl1, fun = "model.frame.blg")) %in%
+                   colnames(mboost_intern(bl2, fun = "model.frame.blg"))))
+  mf <- cbind( mboost_intern(bl1, fun = "model.frame.blg"), 
+               mboost_intern(bl2, fun = "model.frame.blg") )
+  
+  index1 <- bl1$get_index()
+  index2 <- bl2$get_index()
+  if (is.null(index1)) index1 <- 1:nrow(mf)
+  if (is.null(index2)) index2 <- 1:nrow(mf)
+  
+  mfindex <- cbind(index1, index2)
+  index <- NULL
+  
+  # CC <- all(Complete.cases(mf))
+  CC <- all(mboost_intern(mf, fun = "Complete.cases"))
+  if (!CC)
+    warning("base-learner contains missing values;\n",
+            "missing values are excluded per base-learner, ",
+            "i.e., base-learners may depend on different",
+            " numbers of observations.")
+  ### option
+  DOINDEX <- (nrow(mf) > options("mboost_indexmin")[[1]])
+  if (is.null(index)) {
+    if (!CC || DOINDEX) {
+      index <- mboost_intern(mfindex, fun = "get_index")
+      mf <- mf[index[[1]],,drop = FALSE]
+      index <- index[[2]]
+    }
+  }
+  
+  vary <- ""
+  
+  ret <- list(model.frame = function()
+    if (is.null(index)) return(mf) else return(mf[index,,drop = FALSE]),
+    get_call = function(){
+      cll <- deparse(cll, width.cutoff=500L)
+      if (length(cll) > 1)
+        cll <- paste(cll, collapse="")
+      cll
+    },
+    get_data = function() mf,
+    get_index = function() index,
+    get_vary = function() vary,
+    get_names = function() colnames(mf),
+    ## <FIXME> Is this all we want to change if we set names here?
+    set_names = function(value) attr(mf, "names") <<- value)
+  ## </FIXME>
+  class(ret) <- "blg"
+  
+  args1 <- environment(bl1$dpp)$args
+  args2 <- environment(bl2$dpp)$args
+  l1 <- args1$lambda
+  l2 <- args2$lambda
+  
+  if (xor(is.null(l1), is.null(l2)))
+    stop("you cannot mix lambda and df in ",
+         sQuote("%Xa0%"))
+  
+  if (!is.null(l1) && !is.null(l2)) {
+    args <- list(lambda = 1, df = NULL)
+    
+  } else {
+
+    ### <SB> anisotropic penalty matrix 
+    df1 <- args1$df
+    df2 <- args2$df
+    
+    args <- list(lambda = NULL,
+                 df = ifelse(is.null(df1), 1, df1) * 
+                   ifelse(is.null(df2), 1, df2))
+    
+    ## case that df equals nr columns of design matrix -> no penalty -> lambda = 0
+    if( ncol(environment(bl1$dpp)$X) - df1 < .Machine$double.eps*10^10){ 
+      args$lambda1 <- 0 
+      if( ncol(environment(bl1$dpp)$X) - df1 < - .Machine$double.eps*10^10){
+        warning("Specified df in ", bl1$get_call(), " are higher than the number of columns, ",  
+                "which is ", ncol(environment(bl1$dpp)$X), ".")
+      }
+    }else{
+      args$lambda1 <- 1
+    }
+    
+    ## case that df equals nr columns of design matrix
+    if( ncol(environment(bl2$dpp)$X) - df2 < .Machine$double.eps*10^10){ 
+      args$lambda2 <- 0 
+      if( ncol(environment(bl2$dpp)$X) - df2 < - .Machine$double.eps*10^10){
+        warning("Specified df in ", bl2$get_call(), " are higher than the number of columns, ",  
+                "which is ", ncol(environment(bl2$dpp)$X), ".")
+      }
+    }else{
+      args$lambda2 <- 1
+    }
+    
+    if(args$lambda1 != 0 & args$lambda2 != 0) 
+      stop("%Xa0% can only be used when smoothing parameter is zero for one direction.")
+    
+    l1 <- args$lambda1
+    l2 <- args$lambda2 
+
+  }
+  
+  Xfun <- function(mf, vary, args) {
+
+    newX1 <- environment(bl1$dpp)$newX
+    newX2 <- environment(bl2$dpp)$newX
+    
+    X1 <- newX1(mf[, bl1$get_names(), drop = FALSE],
+                prediction = args$prediction)
+    K1 <- X1$K
+    X1 <- X1$X
+    if (!is.null(l1)) K1 <- l1 * K1
+    MATRIX <- options("mboost_useMatrix")$mboost_useMatrix
+    if (MATRIX & !is(X1, "Matrix"))
+      X1 <- Matrix(X1)
+    if (MATRIX & !is(K1, "Matrix"))
+      K1 <- Matrix(K1)
+    
+    X2 <- newX2(mf[, bl2$get_names(), drop = FALSE],
+                prediction = args$prediction)
+    K2 <- X2$K
+    X2 <- X2$X
+    if (!is.null(l2)) K2 <- l2 * K2
+    if (MATRIX & !is(X2, "Matrix"))
+      X2 <- Matrix(X2)
+    if (MATRIX & !is(K2, "Matrix"))
+      K2 <- Matrix(K2)
+    suppressMessages(
+      X <- kronecker(X1, Matrix(1, ncol = ncol(X2),
+                                dimnames = list("", colnames(X2))),
+                     make.dimnames = TRUE) *
+        kronecker(Matrix(1, ncol = ncol(X1),
+                         dimnames = list("", colnames(X1))),
+                  X2, make.dimnames = TRUE)
+    )
+    suppressMessages(
+      K <- kronecker(K1, diag(ncol(X2))) +
+        kronecker(diag(ncol(X1)), K2)
+    )
+    list(X = X, K = K)
+  }
+  
+  ret$dpp <- mboost_intern(ret, Xfun = Xfun, args = args, fun = "bl_lin")
+  
+  return(ret)
+}
