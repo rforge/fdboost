@@ -193,6 +193,7 @@
 #' \item{offsetMboost}{offset as given to mboost}
 #' \item{call}{the call to \code{FDboost}}
 #' \item{callEval}{the evaluated function call to \code{FDboost} without data}
+#' \item{numInt}{value of argument \code{numInt} determining the numerical integration scheme}
 #' \item{timeformula}{the time-formula}
 #' \item{formulaFDboost}{the formula with which \code{FDboost} was called}
 #' \item{formulaMboost}{the formula with which \code{mboost} was called within \code{FDboost}}
@@ -1014,6 +1015,9 @@ FDboost <- function(formula,          ### response ~ xvars
   })
   ret$callEval$data <- NULL # do not save data and weights in callEval to save memory
   ret$callEval$weights <- NULL
+  
+  ## save value of numInt
+  ret$numInt <- numInt
   
   # save formulas as character strings to save memory
   ret$timeformula <- paste(deparse(timeformula), collapse = "")

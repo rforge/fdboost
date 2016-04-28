@@ -124,7 +124,7 @@ can be useful in simulation studies where the true value of the response is know
 the model fit the response is used with noise.
 
 The function \code{cvrisk.FDboost} is a wrapper for \code{\link[mboost]{cvrisk}} in package mboost.
-It overrieds the default for the folds, so that the folds are sampled on the level of curves
+It overrides the default for the folds, so that the folds are sampled on the level of curves
 (not on the level of single observations, which does not make sense for functional response).
 Note that the offset is not part of the refitting if \code{cvrisk} is used.
 Per default the integration weights of the model fit are used to compute the prediction errors

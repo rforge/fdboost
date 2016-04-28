@@ -61,7 +61,7 @@
 #' the model fit the response is used with noise. 
 #' 
 #' The function \code{cvrisk.FDboost} is a wrapper for \code{\link[mboost]{cvrisk}} in package mboost. 
-#' It overrieds the default for the folds, so that the folds are sampled on the level of curves 
+#' It overrides the default for the folds, so that the folds are sampled on the level of curves 
 #' (not on the level of single observations, which does not make sense for functional response).  
 #' Note that the offset is not part of the refitting if \code{cvrisk} is used. 
 #' Per default the integration weights of the model fit are used to compute the prediction errors 
@@ -294,11 +294,11 @@ validateFDboost <- function(object, response = NULL,
       names_variables <- c(object$yname, names_variables)
       
       ## get data according to weights
-      dat_weights <- reweightData(data = dathelp, covariates = names_variables, 
+      dat_weights <- reweightData(data = dathelp, vars = names_variables, 
                                   weights = weights)
       
       ## get data according to oobweights
-      dat_oobweights <- reweightData(data = dathelp, covariates = names_variables, 
+      dat_oobweights <- reweightData(data = dathelp, vars = names_variables, 
                                      weights = oobweights)
       
       call <- object$callEval
