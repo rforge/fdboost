@@ -81,13 +81,14 @@
                 deparse(match.call()$bl2[[1]]) )
   if(any(used_bl == "bolsc")) stop("Use bols instead of bolsc with %Xc%.")
   if(any(used_bl == "brandomc")) stop("Use brandom instead of brandomc with %Xc%.")
+  if(any(used_bl == "bbsc")) stop("Use bbs instead of bbsc with %Xc%.")
   if( (!is.null(match.call()$bl1$intercept) &&  match.call()$bl1$intercept != TRUE) |
       (!is.null(match.call()$bl2$intercept) &&  match.call()$bl2$intercept != TRUE) ){
     stop("Set intercept = TRUE in base-learners used with %Xc%.")
   }
   
-  if(any(!used_bl %in% c("bols", "brandom")) ){
-    warning("%Xc% is only tested for base-learners bols and brandom with factor variables!")
+  if(any(!used_bl %in% c("bols", "brandom", "bbs")) ){
+    warning("%Xc% is intended to combine base-learners bols, brandom and bbs.")
   }
   
   stopifnot(!any(colnames(mboost_intern(bl1, fun = "model.frame.blg")) %in%
