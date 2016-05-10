@@ -37,7 +37,7 @@ For more details see \code{\link[mboost]{boost_control}}.}
 including, \code{family} and \code{control}.}
 }
 \value{
-an object of class \code{FDboostLSS} that inherits from \code{mboostLSS}.
+An object of class \code{FDboostLSS} that inherits from \code{mboostLSS}.
 The \code{FDboostLSS}-object is a named list containing one list entry per distribution parameter
 and some attributes. The list is named like the parameters, e.g. mu and sigma,
 if the parameters mu and sigma are modelled. Each list-element is an object of class \code{FDboost}.

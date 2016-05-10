@@ -115,7 +115,7 @@ check_y_family <- function(y, family){
 #' See \code{\link[gamboostLSS]{mboostLSS}} for 
 #' details on boosting of GAMLSS for scalar variables as introduced by Mayr et al. (2012). 
 #' 
-#' @return an object of class \code{FDboostLSS} that inherits from \code{mboostLSS}. 
+#' @return An object of class \code{FDboostLSS} that inherits from \code{mboostLSS}. 
 #' The \code{FDboostLSS}-object is a named list containing one list entry per distribution parameter
 #' and some attributes. The list is named like the parameters, e.g. mu and sigma, 
 #' if the parameters mu and sigma are modelled. Each list-element is an object of class \code{FDboost}.  

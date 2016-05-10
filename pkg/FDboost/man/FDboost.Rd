@@ -11,7 +11,7 @@ FDboost(formula, timeformula, id = NULL, numInt = "equal", data,
 \arguments{
 \item{formula}{a symbolic description of the model to be fit.
 Per default no intercept is added, only a smooth offset, see argument \code{offset}.
-To add a smooth intercept, use 1, e.g. \code{y ~ 1} for a pure intercept model.}
+To add a smooth intercept, use 1, e.g., \code{y ~ 1} for a pure intercept model.}
 
 \item{timeformula}{one-sided formula for the specification of the effect over the index of the response.
 For functional response \eqn{Y_i(t)} typically use \code{~ bbs(t)} to obtain smooth
@@ -104,7 +104,7 @@ smooth and linear effects of scalar covariates \eqn{f(z_i)} or \eqn{z_i \beta(t)
 }
 \details{
 In matrix representation of functional response and covariates each row
-represents one functional observation, e.g. \code{Y[i,t_g]} corresponds to \eqn{Y_i(t_g)},
+represents one functional observation, e.g., \code{Y[i,t_g]} corresponds to \eqn{Y_i(t_g)},
 giving a <number of curves> by <number of evaluations> matrix.
 For the model fit, the matrix of the functional
 response evaluations \eqn{Y_i(t_g)} are stacked internally into one long vector.
@@ -119,12 +119,12 @@ The Kronecker product of two marginal bases is implemented in R-package mboost
 in the function \code{\%O\%}, see \code{\link[mboost]{\%O\%}}.
 
 When \code{\%O\%} is called with a specification of \code{df} in both base-learners,
-e.g. \code{bbs(x1, df = df1) \%O\% bbs(t, df = df2)}, the global \code{df} for the
+e.g., \code{bbs(x1, df = df1) \%O\% bbs(t, df = df2)}, the global \code{df} for the
 Kroneckered base-learner is computed as \code{df = df1 * df2}.
 And thus the penalty has only one smoothness parameter lambda resulting in an isotropic penalty.
 A Kronecker product with anisotropic penalty is \code{\%A\%}, allowing for different
 amount of smoothness in the two directions, see \code{\link{\%A\%}}.
-If the formula contains base-learners connected by \code{\%O\%} or \code{\%A\%},
+If the formula contains base-learners connected by \code{\%O\%}, \code{\%A\%} or \code{\%A0\%},
 those effects are not expanded with \code{timeformula}, allowing for model specifications
 with different effects in time-direction.
 
@@ -143,7 +143,7 @@ time-direction is used, see Brockhaus et al. (2015) for details.
 Alternatively, the scalar response is fitted as scalar response, like in the function
 \code{\link[mboost]{mboost}} in package mboost.
 The advantage of using \code{FDboost} in that case
-is that methods for the functional base-learners are available, e.g. \code{plot}.
+is that methods for the functional base-learners are available, e.g., \code{plot}.
 
 The desired regression type is specified by the \code{family}-argument,
 see the help-page of \code{\link[mboost]{mboost}}. For example a mean regression model is obtained by
@@ -158,44 +158,44 @@ The \code{timeformula} is used to expand the effects in \code{t}-direction.
 \itemize{
 \item Linear functional effect of scalar (numeric or factor) covariate \eqn{z} that varies
   smoothly over \eqn{t}, i.e. \eqn{z_i \beta(t)}, specified as
-  \code{~ bolsc(z)}, see \code{\link{bolsc}},
-  or for a group effect with mean zero use \code{~ brandomc(z)}.
+  \code{bolsc(z)}, see \code{\link{bolsc}},
+  or for a group effect with mean zero use \code{brandomc(z)}.
 \item Nonlinear effects  of a scalar covariate that vary smoothly over \eqn{t},
   i.e. \eqn{f(z_i, t)}, specified as \code{bbsc(z)},
   see \code{\link{bbsc}}.
 \item (Nonlinear) effects of scalar covariates that are constant
-  over \eqn{t}, e.g. \eqn{f(z_i)}, specified as \code{~ c(bbs(z))},
-  or \eqn{\beta z_i}, specified as \code{~ c(bols(z))}.
-\item Interaction terms between two scalar covariates, e.g. \eqn{z_i1 zi2 \beta(t)},
-  are specified as \code{bolsc(z1) \%Xc\% bolsc(z2)} and
-  an interaction \eqn{z_i1 f(zi2, t)} as \code{bolsc(z1) \%Xc\% bbsc(z2)}, as
+  over \eqn{t}, e.g., \eqn{f(z_i)}, specified as \code{c(bbs(z))},
+  or \eqn{\beta z_i}, specified as \code{c(bols(z))}.
+\item Interaction terms between two scalar covariates, e.g., \eqn{z_i1 zi2 \beta(t)},
+  are specified as \code{bols(z1) \%Xc\% bols(z2)} and
+  an interaction \eqn{z_i1 f(zi2, t)} as \code{bols(z1) \%Xc\% bbs(z2)}, as
   \code{\%Xc\%} applies the sum-to-zero constraint to the desgin matrix of the tensor product
-  built by \code{\%Xc\%}, see  \code{\link{\%Xc\%}}, EXPERIMENTAL!
+  built by \code{\%Xc\%}, see \code{\link{\%Xc\%}}, EXPERIMENTAL!
 \item Function-on-function regression terms of functional covariates \code{x},
-  e.g. \eqn{\int x_i(s)\beta(s,t)ds}, specified as \code{~ bsignal(x, s = s)},
+  e.g., \eqn{\int x_i(s)\beta(s,t)ds}, specified as \code{bsignal(x, s = s)},
   using P-splines, see \code{\link{bsignal}}.
   Terms given by \code{\link{bfpc}} provide FPC-based effects of functional
   covariates, see \code{\link{bfpc}}.
 \item Function-on-function regression terms of functional covariates \code{x}
   with integration limits \eqn{[l(t), u(t)]} depending on \eqn{t},
-  e.g. \eqn{\int_[l(t), u(t)] x_i(s)\beta(s,t)ds}, specified as
-  \code{~ bhist(x, s = s, time = t, limits)}. The \code{limits} argument defaults to
-  \code{"s<=t"} which yields a hisotircal effect with limits \eqn{[min(t),t]},
+  e.g., \eqn{\int_[l(t), u(t)] x_i(s)\beta(s,t)ds}, specified as
+  \code{bhist(x, s = s, time = t, limits)}. The \code{limits} argument defaults to
+  \code{"s<=t"} which yields a historical effect with limits \eqn{[min(t),t]},
    see \code{\link{bhist}}.
 \item Concurrent effects of functional covariates \code{x}
   measured on the same grid as the response, i.e., \eqn{x_i(s)\beta(t)},
-  are specified as \code{~ bconcurrent(x, s = s, time = t)},
+  are specified as \code{bconcurrent(x, s = s, time = t)},
   see \code{\link{bconcurrent}}.
 \item Interaction effects can be estimated as tensor product smooth, e.g.,
-  \eqn{ z \int x_i(s)\beta(s,t)ds} as \code{~ bsignal(x, s = s) \%X\% bolsc(z)}
+  \eqn{ z \int x_i(s)\beta(s,t)ds} as \code{bsignal(x, s = s) \%X\% bolsc(z)}
 \item For interaction effects with historical functional effects, e.g.,
   \eqn{ z_i \int_[l(t),u(t)] x_i(s)\beta(s,t)ds} the base-learner
   \code{bhistx} should be used instead of \code{bhist},
-  e.g. \code{~ bhistx(x, limits) \%X\% bolsc(z)}, see \code{\link{bhistx}}.
+  e.g., \code{bhistx(x, limits) \%X\% bolsc(z)}, see \code{\link{bhistx}}.
 \item Generally, the \code{c()}-notation can be used to get effects that are
   constant over the index of the functional response.
 \item If the \code{formula} in \code{FDboost} contains base-learners connected by
-\code{\%O\%} or \code{\%A\%}, those effects are not expanded with \code{timeformula},
+\code{\%O\%}, \code{\%A\%} or \code{\%A0\%}, those effects are not expanded with \code{timeformula},
 allowing for model specifications with different effects in time-direction.
 }
 
@@ -211,7 +211,7 @@ see \code{\link[mboost]{extract}}.
 The most important tuning parameter of component-wise gradient boosting
 is the number of boosting iterations. It is recommended to use the number of
 boosting iterations as only tuning parameter,
-fixing the step-length at a small value (e.g. nu = 0.1).
+fixing the step-length at a small value (e.g., nu = 0.1).
 Note that the default number of boosting iterations is 100 which is arbitrary and in most
 cases not adequate (the optimal number of boosting iterations can considerably exceed 100).
 The optimal stopping iteration can be determined by resampling methods like
