@@ -557,7 +557,7 @@ X_bsignal <- function(mf, vary, args) {
 #' Electronic Journal of Statistics, 10(1), 495-526. 
 #'  
 #' @examples 
-#' ######## Example for scalar-on-function-regression 
+#' ######## Example for scalar-on-function-regression with bsignal  
 #' data("fuelSubset", package = "FDboost")
 #' 
 #' ## center the functional covariates per observed wavelength
@@ -576,6 +576,89 @@ X_bsignal <- function(mf, vary, args) {
 #'                timeformula=NULL, data=fuelSubset) 
 #' summary(mod2) 
 #' ## plot(mod2)
+#' 
+#' 
+#' ###############################################
+#' ### data simulation like in manual of pffr::ff
+#' 
+#' if(require(refund)){
+#' 
+#' #########
+#' # model with linear functional effect, use bsignal()
+#' # Y(t) = f(t)  + \int X1(s)\beta(s,t)ds + eps
+#' set.seed(2121)
+#' data1 <- pffrSim(scenario = "ff", n = 40)
+#' data1$X1 <- scale(data1$X1, scale = FALSE)
+#' dat_list <- as.list(data1)
+#' dat_list$t <- attr(data1, "yindex")
+#' dat_list$s <- attr(data1, "xindex")
+#' 
+#' ## model fit by FDboost 
+#' m1 <- FDboost(Y ~ 1 + bsignal(x= X1, s = s, knots = 5), 
+#'               timeformula = ~ bbs(t, knots = 5), data=dat_list, 
+#'               control = boost_control(mstop = 21))
+#' 
+#' ## search optimal mSTOP
+#' \dontrun{
+#'   set.seed(123)
+#'   cv <- validateFDboost(m1, grid = 1:100) # 21 iterations
+#' }
+#' 
+#' ## model fit by pffr
+#' t <- attr(data1, "yindex")
+#' s <- attr(data1, "xindex")
+#' m1_pffr <- pffr(Y ~ ff(X1, xind=s), yind=t, data=data1)
+#' 
+#' \dontrun{
+#'   par(mfrow = c(2, 2))
+#'   plot(m1, which = 1); plot(m1, which = 2) 
+#'   plot(m1_pffr, select = 1, shift = m1_pffr$coefficients["(Intercept)"]) 
+#'   plot(m1_pffr, select = 2)
+#' }
+#' 
+#' 
+#' ############################################
+#' # model with functional historical effect, use bhist() 
+#' # Y(t) = f(t)  + \int_0^t X1(s)\beta(s,t)ds + eps
+#' set.seed(2121)
+#' mylimits <- function(s, t){
+#'   (s < t) | (s == t)
+#' }
+#' data2 <- pffrSim(scenario = "ff", n = 40, limits = mylimits)
+#' data2$X1 <- scale(data2$X1, scale = FALSE)
+#' dat2_list <- as.list(data2)
+#' dat2_list$t <- attr(data2, "yindex")
+#' dat2_list$s <- attr(data2, "xindex")
+#' 
+#' ## model fit by FDboost 
+#' m2 <- FDboost(Y ~ 1 + bhist(x = X1, s = s, time = t, knots = 5), 
+#'               timeformula = ~ bbs(t, knots = 5), data = dat2_list, 
+#'               control = boost_control(mstop = 40))
+#'               
+#' ## search optimal mSTOP
+#' \dontrun{
+#'   set.seed(123)
+#'   cv2 <- validateFDboost(m2, grid = 1:100) # 40 iterations
+#' }               
+#' 
+#' ## model fit by pffr
+#' t <- attr(data2, "yindex")
+#' s <- attr(data2, "xindex")
+#' m2_pffr <- pffr(Y ~ ff(X1, xind = s, limits = "s<=t"), yind = t, data = data2)
+#' 
+#' \dontrun{
+#' par(mfrow = c(2, 2))
+#' plot(m2, which = 1); plot(m2, which = 2)
+#' ## plot of smooth intercept does not contain m1_pffr$coefficients["(Intercept)"]
+#' plot(m2_pffr, select = 1, shift = m2_pffr$coefficients["(Intercept)"]) 
+#' plot(m2_pffr, select = 2) 
+#' 
+#' }
+#' 
+#' 
+#' }
+#' 
+#' 
 #' @export
 ### P-spline base-learner for signal matrix with index vector
 bsignal <- function(x, s, index = NULL, inS=c("smooth", "linear", "constant"), #by = NULL,
@@ -1237,9 +1320,8 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   X1des <- X1des %*% Bs
   
   
-  ## see Scheipl and Greven: Identifiability in penalized function-on-function regression models  
+  ## see Scheipl and Greven (2016): Identifiability in penalized function-on-function regression models  
   ## <FIXME> only check identifiability for smooth effects?
-  ## <FIXME> check identifiability for historic effect in the same way as for functional effect?
   if(args$check.ident && args$inS=="smooth"){
     K1 <- diff(diag(ncol(Bs)), differences = args$differences)
     K1 <- crossprod(K1)
@@ -1250,8 +1332,9 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
     if(!is.function(args$limits) && args$limits %in% c("s<t", "s<=t") ) cumOverlap <- TRUE 
     res_check <- check_ident(X1=X1, L=L, Bs=Bs, K=K1, xname=xname, 
                              penalty=args$penalty, 
-                             cumOverlap=cumOverlap, 
-                             limits=args$limits, yind=yind, id=id, 
+                             cumOverlap=cumOverlap, # deprecated, decided by is.null(args$limits)
+                             limits=args$limits, 
+                             yind=yindHelp, id=id, # yind in long format
                              X1des=X1des, ind0=ind0, xind=xind)
     args$penalty <- res_check$penalty
     args$logCondDs <- res_check$logCondDs

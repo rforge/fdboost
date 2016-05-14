@@ -122,7 +122,7 @@ funplot <- function(x, y, id=NULL, rug=TRUE, ...){
     
     stopifnot(length(x) == ncol(y))
     
-    # Checke weather there are at least two values per row for the interpolation
+    # Check whether there are at least two values per row for the interpolation
     atLeast2values <- apply(y, 1, function(x) sum(is.na(x)) < length(x)-1 )
     if(any(!atLeast2values)) warning(sum(!atLeast2values), " rows contain less than 2 non-missing values.")  
     
@@ -635,7 +635,7 @@ funMRD <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,  ...
 
 
 ## based on code of function ff() in package refund
-## see Scheipl and Greven, 2014: Identifiability in penalized function-on-function regression models 
+## see Scheipl and Greven, 2016: Identifiability in penalized function-on-function regression models 
 # X1 matrix of functional covariate x(s)
 # L matrix of integration weights
 # Bs matrix of spline expansion in s
@@ -643,43 +643,49 @@ funMRD <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,  ...
 # xname name of functional covariate
 # penalty the type of the penalty one of "ps" or "pps"
 # cumOverlap should a cumulative overlap be computed, 
-# which is especially suited for a historical effect with triangular coefficient surface?
+#   which is especially suited for a historical effect with triangular coefficient surface?
 # limits the limits function of the historical effect, default to NULL for unconstrained effect
 # yind, id, X1des, ind0, xind pass from X_hist() to compute sequential identifiability measures
 # giveWarnings should warnings be printed
 check_ident <- function(X1, L, Bs, K, xname, penalty, 
-                        cumOverlap=FALSE, 
-                        limits=NULL, yind=NULL, 
-                        t_unique=NULL, 
-                        id=NULL, 
-                        X1des=NULL, ind0=NULL, xind=NULL, 
+                        cumOverlap = FALSE, 
+                        limits = NULL, yind = NULL, 
+                        t_unique = NULL, 
+                        id = NULL, 
+                        X1des = NULL, ind0 = NULL, xind = NULL, 
                         giveWarnings = TRUE){
   
   ## center X1 per column
-  X1 <- scale(X1, scale=FALSE)
+  X1 <- scale(X1, scale = FALSE)
   
   #print("check.ident")
   ## check whether (number of basis functions in Bs) < (number of relevant eigenfunctions of X1)
-  evls <- svd(X1, nu=0, nv=0)$d^2 # eigenvalues of centered fun. cov.
+  evls <- svd(X1, nu = 0, nv = 0)$d^2 # eigenvalues of centered fun. cov.
   evls[evls<0] <- 0
   maxK <- max(1, min(which((cumsum(evls)/sum(evls)) >= .995)))
   bsdim <- ncol(Bs) # number of basis functions in Bs
-  #if(maxK < bsdim){
-  #  warning("<k> (" , bsdim , ") larger than effective rank of <", xname, "> (", maxK, "). ", 
-  #          "Effect identifiable only through penalty.")
-  #}
-  ## <FIXME> automatically use less basis-functions in case of problems?
-  ## you would have to change args$knots accordingly
+  if(maxK <= 4)
+    warning("Very low effective rank of <", xname,
+            "> detected. ", maxK,
+            " largest eigenvalues of its covariance alone account for >99.5% of ",
+            "variability. <bfpc> might be a better choice here.")
+  if(maxK < bsdim){
+    warning("<k> (",  bsdim,") larger than effective rank of <", xname,
+            "> (", maxK, "). ",
+            "Model identifiable only through penalty.")
+  }
   
   ### compute condition number of Ds^t Ds
   ### <FIXME> possibel to use argument stand here?
   Ds <- (X1 * L) %*% Bs
-  DstDs <- crossprod(Ds)
-  e_DstDs <- try(eigen(DstDs))
-  e_DstDs$values <- pmax(0, e_DstDs$values) # set negative eigenvalues to 0
-  logCondDs <- log10(e_DstDs$values[1]) - log10(tail(e_DstDs$values, 1))
+  ## DstDs <- crossprod(Ds)
+  ## e_DstDs <- try(eigen(DstDs))
+  ## e_DstDs$values <- pmax(0, e_DstDs$values) # set negative eigenvalues to 0
+  ## logCondDs <- log10(e_DstDs$values[1]) - log10(tail(e_DstDs$values, 1))
+  evDs <- svd(Ds, nu = 0, nv = 0)$d^2  ## the same as eigenvalues of DstDs
+  logCondDs <- log10(max(evDs)) - log10(min(evDs))
   if(giveWarnings & logCondDs > 6 & is.null(limits)){
-    warning("condition number for <", xname, "> greater than 10^6. ", 
+    warning("Condition number for <", xname, "> greater than 10^6 (logCondDs = ", round(logCondDs, 2),"). ", 
             "Effect identifiable only through penalty.")
   }
   
@@ -692,7 +698,7 @@ check_ident <- function(X1, L, Bs, K, xname, penalty,
     ind0Bs <- ((!ind0)*1) %*% Bs # matrix to check for 0 columns
     ## implementation is suitable for common grid of t, maybe with some missings
     ## common grid is assumed if Y(t) is observed at least in 80% for each point 
-    if( all(table(yind)/max(id)>0.8) ){
+    if( length(yind) < nrow(X1des) | all(table(yind) / max(id) > 0.8) ){
       if(is.null(t_unique)) t_unique <- sort(unique(yind))
       logCondDs_hist <- rep(NA, length=length(t_unique))
       for(k in 1:length(t_unique)){
@@ -704,11 +710,13 @@ check_ident <- function(X1, L, Bs, K, xname, penalty,
         Ds_t <- Ds_t[ , apply(ind0Bs_t, 2, function(x) !all(abs(x)<10^-1) ), drop = FALSE ]
         
         if(dim(Ds_t)[2]!=0){ # for matrix with 0 columns does not make sense
-          DstDs_t <- crossprod(Ds_t)
-          e_DstDs_t <- try(eigen(DstDs_t))
-          e_DstDs_t$values <- pmax(0, e_DstDs_t$values) # set negative eigenvalues to 0
-          logCondDs_t <- log10(e_DstDs_t$values[1]) - log10(tail(e_DstDs_t$values, 1))
-          logCondDs_hist[k] <- logCondDs_t
+          ## DstDs_t <- crossprod(Ds_t)
+          ## e_DstDs_t <- try(eigen(DstDs_t))
+          ## e_DstDs_t$values <- pmax(0, e_DstDs_t$values) # set negative eigenvalues to 0
+          ## logCondDs_t <- log10(e_DstDs_t$values[1]) - log10(tail(e_DstDs_t$values, 1))
+          ## logCondDs_hist[k] <- logCondDs_t
+          evDs <- svd(Ds_t, nu = 0, nv = 0)$d^2  ## the same as eigenvalues of DstDs
+          logCondDs_hist[k] <- log10(max(evDs)) - log10(min(evDs))
         }
         ## matplot(xind, Bs, type="l", lwd=2, ylim=c(-2,2)); rug(xind); rug(yind, col=2, lwd=2)
         ## matplot(knots[1:ncol(Ds_t)], t(Ds_t), type="l", lwd=1, add=TRUE)
@@ -740,11 +748,13 @@ check_ident <- function(X1, L, Bs, K, xname, penalty,
         Ds_t <- Ds_t[ , apply(ind0Bs_t, 2, function(x) !all(abs(x)<10^-1) ), drop = FALSE] 
         
         if(dim(Ds_t)[2]!=0){ # for matrix with 0 columns does not make sense
-          DstDs_t <- crossprod(Ds_t)
-          e_DstDs_t <- try(eigen(DstDs_t))
-          e_DstDs_t$values <- pmax(0, e_DstDs_t$values) # set negative eigenvalues to 0
-          logCondDs_t <- log10(e_DstDs_t$values[1]) - log10(tail(e_DstDs_t$values, 1))
-          logCondDs_hist[k] <- logCondDs_t
+          ## DstDs_t <- crossprod(Ds_t)
+          ## e_DstDs_t <- try(eigen(DstDs_t))
+          ## e_DstDs_t$values <- pmax(0, e_DstDs_t$values) # set negative eigenvalues to 0
+          ## logCondDs_t <- log10(e_DstDs_t$values[1]) - log10(tail(e_DstDs_t$values, 1))
+          ## logCondDs_hist[k] <- logCondDs_t
+          evDs <- svd(Ds_t, nu = 0, nv = 0)$d^2  ## the same as eigenvalues of DstDs
+          logCondDs_hist[k] <- log10(max(evDs)) - log10(min(evDs))
         }
       }
       names(logCondDs_hist) <- round(t_unique[-length(t_unique)],2)
@@ -760,35 +770,70 @@ check_ident <- function(X1, L, Bs, K, xname, penalty,
   
   
   ## measure degree of overlap between the spans of ker(t(X1)) and W%*%Bs%*%ker(K)
-  ## overlap after Larsson and Villani 2001, Scheipl and Greven, 2014
+  ## ker = kernel = null space 
+  ## overlap measure like in Scheipl and Greven, 2016
+  ## based on distance measure of Larsson and Villani, 2001
   
-  tryNA <- function(expr){
-    ret <- try(expr, silent = TRUE)
-    if(any(class(ret)=="try-error")) return(NA)
-    return(ret)
-  }
-  tryNull <- function(expr){
-    ret <- try(expr, silent = TRUE)
-    if(any(class(ret)=="try-error")) return(matrix(NA, 0, 0))
-    return(ret)
-  }
+  #### code from pffr-ff.R to compute overlap for whole matrix
+  #   N.X <- Null(t(X1))
+  #   N.pen <- diag(L[1, ]) %*% Bs %*% Null(K)
+  #   if (any(c(NCOL(N.X) == 0, NCOL(N.pen) == 0))) {
+  #     nullOverlap <- 0
+  #   }
+  #   else {
+  #     nullOverlap <- trace_lv(svd(N.X)$u, svd(N.pen)$u)
+  #   }
   
-  ### get special measures for kernel overlap of WB_s(P_s) with subset of Xobs
-  ### overlap measure of Larsson and Villani 2001
-  ### as proposed by Scheipl and Greven 2015
   getOverlap <- function(subset, X1, L, Bs, K){
     # <FIXME> case that all observations are 0, kernel is everything -> kernel overlap
     if(all(X1[ , subset]==0)){
       return(5)
     }
-    KeXsub <- tryNull(Null(t(X1[ , subset])))
-    if(ncol(KeXsub)==0){ # no null space
-      return(0)
+    N.X <- Null(t(X1[ , subset, drop=FALSE]))
+    if(NCOL(N.X) != 0){
+      N.pen <- diag(L[1, subset]) %*% Bs[subset, , drop=FALSE] %*% Null(K)
+    }else N.pen <- 0
+    
+    if (any(c(NCOL(N.X) == 0, NCOL(N.pen) == 0))) {
+      nullOverlap <- 0
     }
-    KePen2sub <- tryNull(diag(L[1,subset]) %*% Bs[subset,] %*% Null(K))
-    overlapSub <- tryNA(trace_lv(svd(KeXsub)$u, svd(KePen2sub)$u))
-    return(overlapSub)
+    else {
+      nullOverlap <- trace_lv(svd(N.X)$u, svd(N.pen)$u)
+    }
+    return(nullOverlap)
   }
+  
+  #### check: 
+  #### nullOverlap == getOverlap(subset=1:ncol(X1), X1=X1, L=L, Bs=Bs, K=K)
+  
+  ####### old cumbersome code to compute the null space overlap
+  #   tryNA <- function(expr){
+  #     ret <- try(expr, silent = TRUE)
+  #     if(any(class(ret)=="try-error")) return(NA)
+  #     return(ret)
+  #   }
+  #   tryNull <- function(expr){
+  #     ret <- try(expr, silent = TRUE)
+  #     if(any(class(ret)=="try-error")) return(matrix(NA, 0, 0))
+  #     return(ret)
+  #   }
+  #   
+  #   ### get special measures for kernel overlap of WB_s(P_s) with subset of Xobs
+  #   ### overlap measure based on distance measure of Larsson and Villani 2001
+  #   ### as proposed by Scheipl and Greven 2016
+  #   getOverlap <- function(subset, X1, L, Bs, K){
+  #     # <FIXME> case that all observations are 0, kernel is everything -> kernel overlap
+  #     if(all(X1[ , subset]==0)){
+  #       return(5)
+  #     }
+  #     KeXsub <- tryNull(Null(t(X1[ , subset])))
+  #     if(ncol(KeXsub)==0){ # no null space
+  #       return(0)
+  #     }
+  #     KePen2sub <- tryNull(diag(L[1,subset]) %*% Bs[subset,] %*% Null(K))
+  #     overlapSub <- tryNA(trace_lv(svd(KeXsub)$u, svd(KePen2sub)$u))
+  #     return(overlapSub)
+  #   }
   
   cumOverlapKe <- NULL
   overlapKe <- NULL
@@ -815,7 +860,7 @@ check_ident <- function(X1, L, Bs, K, xname, penalty,
   #   plot( seq(min(t_unique), max(t_unique), l=10), cumOverlapKe, ylim=c(0,1))
   
   
-  ## sequential overlap for historical model with general integraion limits
+  ## sequential overlap for historical model with general integration limits
   if(!is.null(limits)){  
     
     subs <- list()
@@ -838,7 +883,8 @@ check_ident <- function(X1, L, Bs, K, xname, penalty,
   if(giveWarnings & overlapKe >= 1){
     warning("Kernel overlap for <", xname, "> and the specified basis and penalty detected. ",
             "Changing basis for X-direction to <penalty='pss'> to make model identifiable through penalty. ", 
-            "Coefficient surface estimate will be inherently unreliable.") 
+            "Coefficient surface estimate will be inherently unreliable. ", 
+            "See Scheipl/Greven (2016) for details & alternatives.") 
     penalty <- "pss"
   }
   

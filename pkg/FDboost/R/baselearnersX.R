@@ -100,18 +100,17 @@ X_histx <- function(mf, vary, args, getDesign=TRUE) {
   L <- args$intFun(X1=X1, xind=xind)
   # print(L[1,])
   
-  ## see Scheipl and Greven: Identifiability in penalized function-on-function regression models  
-  ## <FIXME> only check identifiability for smooth effects?
-  ## <FIXME> check identifiability for historic effect in the same way as for functional effect?
+  ## see Scheipl and Greven (2016) Identifiability in penalized function-on-function regression models  
   if(args$check.ident && args$inS=="smooth"){
     K1 <- diff(diag(ncol(Bs)), differences = args$differences)
     K1 <- crossprod(K1)
-    # compute the kernel overlap cumulative?
-    cumOverlap <- FALSE 
-    # only for historical model of past
-    if( !is.function(args$limits) && args$limits %in% c("s<t", "s<=t") ) cumOverlap <- TRUE 
+    ### FIXME identifiability checks are only done for whole covariate matrix,
+    #    not for parts of them as recommended for historical effects, cf. bhist()
+    #    for that X1des must be specified and limits must be a function 
+    ### FIXME do identifiability check for the factor levels of the scalar variable
+    #         whith which bhistx() is combined via %X%? 
     res_check <- check_ident(X1=X1, L=L, Bs=Bs, K=K1, xname=xname, 
-                             penalty=args$penalty, cumOverlap=cumOverlap)
+                             penalty=args$penalty, cumOverlap=FALSE)
     args$penalty <- res_check$penalty
     args$logCondDs <- res_check$logCondDs
     args$overlapKe <- res_check$overlapKe
@@ -386,7 +385,7 @@ X_histx <- function(mf, vary, args, getDesign=TRUE) {
 #' @param penalty by default, \code{penalty="ps"}, the difference penalty for P-splines is used, 
 #' for \code{penalty="pss"} the penalty matrix is transformed to have full rank, 
 #' so called shrinkage approach by Marra and Wood (2011)
-#' @param check.ident use checks for identifiability of the effect, based on Scheipl and Greven (2015b)
+#' @param check.ident use checks for identifiability of the effect, based on Scheipl and Greven (2016)
 #' @param standard the historical effect can be standardized with a factor. 
 #' "no" means no standardization, "time" standardizes with the current value of time and 
 #' "lenght" standardizes with the lenght of the integral 
@@ -419,7 +418,7 @@ X_histx <- function(mf, vary, args, getDesign=TRUE) {
 #' @return Equally to the base-learners of package mboost: 
 #' 
 #' An object of class \code{blg} (base-learner generator) with a 
-#' \code{dpp} function. 
+#' \code{dpp} function (dpp, data pre-processing). 
 #' 
 #' The call of \code{dpp} returns an object of class 
 #' \code{bl} (base-learner) with a \code{fit} function. The call to 
@@ -432,12 +431,12 @@ X_histx <- function(mf, vary, args, getDesign=TRUE) {
 #' Marra, G. and Wood, S.N. (2011): Practical variable selection for generalized additive models. 
 #' Computational Statistics & Data Analysis, 55, 2372-2387.
 #' 
-#' Scheipl, F., Staicu, A.-M. and Greven, S. (2015a): 
+#' Scheipl, F., Staicu, A.-M. and Greven, S. (2015): 
 #' Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 24(2), 477-501.
 #' \url{http://arxiv.org/abs/1207.5947} 
 #' 
-#' Scheipl, F. and Greven, S. (2015b): Identifiability in penalized function-on-function regression models. 
-#' Technical Report 125, Department of Statistics, LMU Muenchen.
+#' Scheipl, F. and Greven, S. (2016): Identifiability in penalized function-on-function regression models. 
+#' Electronic Journal of Statistics, 10(1), 495-526. 
 #'  
 #' @examples 
 #' if(require(refund)){

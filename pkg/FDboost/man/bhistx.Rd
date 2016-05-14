@@ -58,13 +58,13 @@ large amount of smoothing and thus to "weaker" base-learners.}
 for \code{penalty="pss"} the penalty matrix is transformed to have full rank,
 so called shrinkage approach by Marra and Wood (2011)}
 
-\item{check.ident}{use checks for identifiability of the effect, based on Scheipl and Greven (2015b)}
+\item{check.ident}{use checks for identifiability of the effect, based on Scheipl and Greven (2016)}
 }
 \value{
 Equally to the base-learners of package mboost:
 
 An object of class \code{blg} (base-learner generator) with a
-\code{dpp} function.
+\code{dpp} function (dpp, data pre-processing).
 
 The call of \code{dpp} returns an object of class
 \code{bl} (base-learner) with a \code{fit} function. The call to
@@ -131,12 +131,12 @@ mod <- FDboost(Y ~ 1 + bhistx(x = X1h, df = 5, knots = 5) +
 Marra, G. and Wood, S.N. (2011): Practical variable selection for generalized additive models.
 Computational Statistics & Data Analysis, 55, 2372-2387.
 
-Scheipl, F., Staicu, A.-M. and Greven, S. (2015a):
+Scheipl, F., Staicu, A.-M. and Greven, S. (2015):
 Functional Additive Mixed Models, Journal of Computational and Graphical Statistics, 24(2), 477-501.
 \url{http://arxiv.org/abs/1207.5947}
 
-Scheipl, F. and Greven, S. (2015b): Identifiability in penalized function-on-function regression models.
-Technical Report 125, Department of Statistics, LMU Muenchen.
+Scheipl, F. and Greven, S. (2016): Identifiability in penalized function-on-function regression models.
+Electronic Journal of Statistics, 10(1), 495-526.
 }
 \seealso{
 \code{\link{FDboost}} for the model fit.
