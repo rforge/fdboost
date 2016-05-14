@@ -1087,6 +1087,8 @@ reweightData <- function(data, argvals, vars, weights, index, idvars)
     nd <- nd[remV]
     # the same for isVec
     isVec <- isVec[remV]
+    nc <- if(length(isVec)==0) ncol(attr(data[[nhm]],"x")) else 
+      ncol(data[nd[!isVec]][[1]])
     
     # construct the new hmatrices
     for(j in 1:length(nhm)){
@@ -1131,7 +1133,7 @@ reweightData <- function(data, argvals, vars, weights, index, idvars)
       # (@SARAH: thought too simple? Are rep idvars always a multiple of rows?)
 #       tempId <- c(matrix(data[[ifr]], nrow = n)[index,]) 
 #       data[[ifr]] <- (1:length(unique(tempId)))[factor(tempId)]
-      data[[ifr]] <- rep(1:length(index), ncol(data[nd[!isVec]][[1]]))
+      data[[ifr]] <- rep(1:length(index), nc)
       
     } 
     
