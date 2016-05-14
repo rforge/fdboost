@@ -1066,7 +1066,7 @@ reweightData <- function(data, argvals, vars, weights, index, idvars)
   #   warning("The resulting data will have more / less observations than the original data.")
   
   # transform weights in index
-  if(missing(index)) index <- rep(1:n, weights)
+  if(missing(index)) index <- rep(1:n, weights) else index <- sort(index)
   
   is.wholenumber <- function(x, tol = .Machine$double.eps^0.5)  abs(x - round(x)) < tol
   # is.wholenumber(x) # is TRUE
@@ -1102,6 +1102,7 @@ reweightData <- function(data, argvals, vars, weights, index, idvars)
         
       }
       resMat <- resMat[-1,]
+      resMat[,2] <- c(factor(resMat[,2]))
       tempId <- (1:length(unique(resMat[,2])))[factor(resMat[,2])]
       newHatmats[[j]] <- hmatrix(time=resMat[,1], id=tempId, 
                                  x=attrTemp$x[unique(index), , drop=FALSE], 
@@ -1128,8 +1129,9 @@ reweightData <- function(data, argvals, vars, weights, index, idvars)
     for(ifr in idvars){
       
       # (@SARAH: thought too simple? Are rep idvars always a multiple of rows?)
-      tempId <- c(matrix(data[[ifr]], nrow = n)[index,]) 
-      data[[ifr]] <- (1:length(unique(tempId)))[factor(tempId)]
+#       tempId <- c(matrix(data[[ifr]], nrow = n)[index,]) 
+#       data[[ifr]] <- (1:length(unique(tempId)))[factor(tempId)]
+      data[[ifr]] <- rep(1:length(index), ncol(data[nd[!isVec]][[1]]))
       
     } 
     
