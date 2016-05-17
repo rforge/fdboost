@@ -142,41 +142,41 @@ abline(0,1)
 @
 
 
-\section{Plot of data}
-<<plot-data, echo=TRUE, fig = FALSE>>=
-# pdf("NIR_UVVIS.pdf", width=7, height=7)
-jpeg("NIR_UVVIS.jpg", width=1500, height=1500)
-par(mfrow=c(2,2), mar=c(4, 4, 1, 1), cex=1.5)
-
-# generate colors depending on heat value for equidistant cuts
-quants <- seq(from=min(fuel$heatan), to=max(fuel$heatan), l=11) 
-cats <- cut(fuel$heatan, quants, include.lowest = TRUE)
-pall <- heat.colors(12, alpha = 0.5)[1:10]
-cols <- pall[cats]
-
-## plot heatan
-with(fuel, hist(heatan, breaks=quants, col=pall, 
-                xlab="heat value [MJ]", main=""))
-
-## plot heat values versus predicted humidity
-with(fuel, plot(heatan~h2o, col=cols, pch=20, lwd=2,
-                xlab="predicted humidity [%]", ylab="heat value [MJ]"))
-with(fuel, points(heatan~h2o, col=1))
-
-## plot the two spectra
-with(fuel, matplot(uvvis.lambda, t(UVVIS), col=cols,
-      lwd=1, lty=1, ylab="UV-VIS", xlab="wavelength [nm]", type="l"))
-with(fuel, matplot(nir.lambda, t(NIR), col=cols,
-      lwd=1, lty=1, ylab="NIR", xlab="wavelength [nm]", type="l"))
-dev.off()
-@
-
-\begin{figure}[h]
-\begin{center}
-\includegraphics[width=1\textwidth]{NIR_UVVIS}
-\caption{The coloring of all plots is according to the heat value  in mega Joule (mJ), with red meaning low heat value and yellow meaning high heat value. The histogram at the top left can be used as a legend. The scatter plot at the top right shows the heat value depending on the predicted humidity. The lower panel shows the UVVIS and the NIR spectra. }
-\end{center}
-\end{figure}
+%' \section{Plot of data}
+%' <<plot-data, echo=TRUE, fig = FALSE>>=
+%' # pdf("NIR_UVVIS.pdf", width=7, height=7)
+%' jpeg("NIR_UVVIS.jpg", width=1500, height=1500)
+%' par(mfrow=c(2,2), mar=c(4, 4, 1, 1), cex=1.5)
+%' 
+%' # generate colors depending on heat value for equidistant cuts
+%' quants <- seq(from=min(fuel$heatan), to=max(fuel$heatan), l=11) 
+%' cats <- cut(fuel$heatan, quants, include.lowest = TRUE)
+%' pall <- heat.colors(12, alpha = 0.5)[1:10]
+%' cols <- pall[cats]
+%' 
+%' ## plot heatan
+%' with(fuel, hist(heatan, breaks=quants, col=pall, 
+%'                 xlab="heat value [MJ]", main=""))
+%' 
+%' ## plot heat values versus predicted humidity
+%' with(fuel, plot(heatan~h2o, col=cols, pch=20, lwd=2,
+%'                 xlab="predicted humidity [%]", ylab="heat value [MJ]"))
+%' with(fuel, points(heatan~h2o, col=1))
+%' 
+%' ## plot the two spectra
+%' with(fuel, matplot(uvvis.lambda, t(UVVIS), col=cols,
+%'       lwd=1, lty=1, ylab="UV-VIS", xlab="wavelength [nm]", type="l"))
+%' with(fuel, matplot(nir.lambda, t(NIR), col=cols,
+%'       lwd=1, lty=1, ylab="NIR", xlab="wavelength [nm]", type="l"))
+%' dev.off()
+%' @
+%' 
+%' \begin{figure}[h]
+%' \begin{center}
+%' \includegraphics[width=1\textwidth]{NIR_UVVIS}
+%' \caption{The coloring of all plots is according to the heat value  in mega Joule (mJ), with red meaning low heat value and yellow meaning high heat value. The histogram at the top left can be used as a legend. The scatter plot at the top right shows the heat value depending on the predicted humidity. The lower panel shows the UVVIS and the NIR spectra. }
+%' \end{center}
+%' \end{figure}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
