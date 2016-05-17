@@ -382,7 +382,8 @@ X_histx <- function(mf, vary, args) {
 #' @param penalty by default, \code{penalty="ps"}, the difference penalty for P-splines is used, 
 #' for \code{penalty="pss"} the penalty matrix is transformed to have full rank, 
 #' so called shrinkage approach by Marra and Wood (2011)
-#' @param check.ident use checks for identifiability of the effect, based on Scheipl and Greven (2016)
+#' @param check.ident use checks for identifiability of the effect, based on Scheipl and Greven (2016); 
+#'   see Brockhaus et al. (2016) for identifiability checks that take into account the integration limits
 #' @param standard the historical effect can be standardized with a factor. 
 #' "no" means no standardization, "time" standardizes with the current value of time and 
 #' "lenght" standardizes with the lenght of the integral 
@@ -392,9 +393,9 @@ X_histx <- function(mf, vary, args) {
 #' which is the index of the functional covariates x(s). 
 #' @param inTime historical effect can be smooth, linear or constant in time, 
 #' which is the index of the functional response y(time). 
-#' @param limits defaults to \code{"s<=t"} for an historical effect with s<=t, 
-#' otherwise specifies the integration limits s_{hi, i}, s_{lo, i}: 
-#' either one of \code{"s<t"} or \code{"s<=t"} for (s_{hi, i}, s_{lo, i}) = (0, t) or a 
+#' @param limits defaults to \code{"s<=t"} for an historical effect with s<=t;  
+#' either one of \code{"s<t"} or \code{"s<=t"} for [l(t), u(t)] = [T1, t]; 
+#' otherwise specify limits as a function for integration limits [l(t), u(t)]: 
 #' function that takes \eqn{s} as the first and \code{t} as the second argument and returns 
 #' \code{TRUE} for combinations of values (s,t) if \eqn{s} falls into the integration range for 
 #' the given \eqn{t}.  
@@ -402,12 +403,12 @@ X_histx <- function(mf, vary, args) {
 #' @details \code{bhistx} implements a base-learner for functional covariates with 
 #' flexible integration limits \code{l(t)}, \code{r(t)} and the possibility to
 #' standardize the effect by \code{1/t} or the length of the integration interval. 
-#' The effect is \code{stand * int_{l(t)}^{r_{t}} x(s)beta(t,s)ds}. 
+#' The effect is \code{stand * int_{l(t)}^{r_{t}} x(s)beta(t,s) ds}. 
 #' The base-learner defaults to a historical effect of the form 
-#' \eqn{\int_{t0}^{t} x_i(s)beta(t,s)ds}, 
-#' where \eqn{t0} is the minimal index of \eqn{t} of the response \eqn{Y(t)}. 
+#' \eqn{\int_{T1}^{t} x_i(s)beta(t,s) ds}, 
+#' where \eqn{T1} is the minimal index of \eqn{t} of the response \eqn{Y(t)}. 
 #' \code{bhistx} can only be used if \eqn{Y(t)} and \eqn{x(s)} are observd over
-#' the same domain \eqn{s,t \in [t_0, T]}. 
+#' the same domain \eqn{s,t \in [T1, T2]}. 
 #' 
 #' Note that the data has to be supplied as a \code{hmatrix} object for 
 #' model fit and predictions. 
@@ -425,6 +426,10 @@ X_histx <- function(mf, vary, args) {
 #' @keywords models
 #' 
 #' @references 
+#' Brockhaus, S., Melcher, M., Leisch, F. and Greven, S. (2016): 
+#' Boosting flexible functional regression models with a high number of functional historical effects, 
+#' Statistics and Computing, accepted. 
+#' 
 #' Marra, G. and Wood, S.N. (2011): Practical variable selection for generalized additive models. 
 #' Computational Statistics & Data Analysis, 55, 2372-2387.
 #' 

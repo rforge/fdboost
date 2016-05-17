@@ -456,7 +456,9 @@ X_bsignal <- function(mf, vary, args) {
 #' @param penalty by default, \code{penalty="ps"}, the difference penalty for P-splines is used, 
 #' for \code{penalty="pss"} the penalty matrix is transformed to have full rank, 
 #' so called shrinkage approach by Marra and Wood (2011)
-#' @param check.ident use checks for identifiability of the effect, based on Scheipl and Greven (2016)
+#' @param check.ident use checks for identifiability of the effect, based on Scheipl and Greven (2016) 
+#'  for linear functional effect using \code{bsignal} and 
+#'  based on Brockhaus et al. (2016) for historical effects using \code{bhist}
 #' @param standard the historical effect can be standardized with a factor. 
 #' "no" means no standardization, "time" standardizes with the current value of time and 
 #' "length" standardizes with the length of the integral 
@@ -466,9 +468,9 @@ X_bsignal <- function(mf, vary, args) {
 #' which is the index of the functional covariates x(s). 
 #' @param inTime historical effect can be smooth, linear or constant in time, 
 #' which is the index of the functional response y(time). 
-#' @param limits defaults to \code{"s<=t"} for an historical effect with s<=t, 
-#' otherwise specifies the integration limits s_{hi, i}, s_{lo, i}: 
-#' either one of \code{"s<t"} or \code{"s<=t"} for (s_{hi, i}, s_{lo, i}) = (0, t) or a 
+#' @param limits defaults to \code{"s<=t"} for an historical effect with s<=t;  
+#' either one of \code{"s<t"} or \code{"s<=t"} for [l(t), u(t)] = [T1, t]; 
+#' otherwise specify limits as a function for integration limits [l(t), u(t)]: 
 #' function that takes \eqn{s} as the first and \code{t} as the second argument and returns 
 #' \code{TRUE} for combinations of values (s,t) if \eqn{s} falls into the integration range for 
 #' the given \eqn{t}.  
@@ -492,7 +494,7 @@ X_bsignal <- function(mf, vary, args) {
 #' on a functional response, i.e., an effect of the form \eqn{x_i(t)\beta(t)} for
 #' a functional response \eqn{Y_i(t)} and concurrently observed covariate \eqn{x_i(t)}. 
 #' \code{bconcurrent} can only be used if \eqn{Y(t)} and \eqn{x(s)} are observed over
-#' the same domain \eqn{s,t \in [t_0, T]}.  
+#' the same domain \eqn{s,t \in [T1, T2]}.  
 #' Note that in the case of \code{bhist} the argument \code{index} is treated
 #' like a variable and thus has to be given as variable in \code{newdata}, 
 #' if \code{predict.FDboost} is with argument \code{newdata}.  
@@ -502,10 +504,10 @@ X_bsignal <- function(mf, vary, args) {
 #' standardize the effect by \code{1/t} or the length of the integration interval. 
 #' The effect is \eqn{stand * \int_{l(t)}^{r_{t}} x(s)\beta(t,s)ds}. 
 #' The base-learner defaults to a historical effect of the form 
-#' \eqn{\int_{t0}^{t} x_i(s)\beta(t,s)ds}, 
-#' where \eqn{t0} is the minimal index of \eqn{t} of the response \eqn{Y(t)}. 
+#' \eqn{\int_{T1}^{t} x_i(s)\beta(t,s)ds}, 
+#' where \eqn{T1} is the minimal index of \eqn{t} of the response \eqn{Y(t)}. 
 #' \code{bhist} can only be used if \eqn{Y(t)} and \eqn{x(s)} are observed over
-#' the same domain \eqn{s,t \in [t_0, T]}. 
+#' the same domain \eqn{s,t \in [T1, T2]}. 
 #' The functional variable must be observed on one common grid \code{s}, 
 #' see Brockhaus et al. (2016) for details on historical effects.   
 #' 

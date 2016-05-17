@@ -15,9 +15,9 @@ bhistx(x, limits = "s<=t", standard = c("no", "time", "length"),
 note that \code{timeLab} in the \code{hmatrix}-object must be equal to
 the name of the time-variable in \code{timeformula} in the \code{FDboost}-call}
 
-\item{limits}{defaults to \code{"s<=t"} for an historical effect with s<=t,
-otherwise specifies the integration limits s_{hi, i}, s_{lo, i}:
-either one of \code{"s<t"} or \code{"s<=t"} for (s_{hi, i}, s_{lo, i}) = (0, t) or a
+\item{limits}{defaults to \code{"s<=t"} for an historical effect with s<=t;
+either one of \code{"s<t"} or \code{"s<=t"} for [l(t), u(t)] = [T1, t];
+otherwise specify limits as a function for integration limits [l(t), u(t)]:
 function that takes \eqn{s} as the first and \code{t} as the second argument and returns
 \code{TRUE} for combinations of values (s,t) if \eqn{s} falls into the integration range for
 the given \eqn{t}.}
@@ -58,7 +58,8 @@ large amount of smoothing and thus to "weaker" base-learners.}
 for \code{penalty="pss"} the penalty matrix is transformed to have full rank,
 so called shrinkage approach by Marra and Wood (2011)}
 
-\item{check.ident}{use checks for identifiability of the effect, based on Scheipl and Greven (2016)}
+\item{check.ident}{use checks for identifiability of the effect, based on Scheipl and Greven (2016);
+see Brockhaus et al. (2016) for identifiability checks that take into account the integration limits}
 }
 \value{
 Equally to the base-learners of package mboost:
@@ -80,12 +81,12 @@ compared to other base-learners for functional data!
 \code{bhistx} implements a base-learner for functional covariates with
 flexible integration limits \code{l(t)}, \code{r(t)} and the possibility to
 standardize the effect by \code{1/t} or the length of the integration interval.
-The effect is \code{stand * int_{l(t)}^{r_{t}} x(s)beta(t,s)ds}.
+The effect is \code{stand * int_{l(t)}^{r_{t}} x(s)beta(t,s) ds}.
 The base-learner defaults to a historical effect of the form
-\eqn{\int_{t0}^{t} x_i(s)beta(t,s)ds},
-where \eqn{t0} is the minimal index of \eqn{t} of the response \eqn{Y(t)}.
+\eqn{\int_{T1}^{t} x_i(s)beta(t,s) ds},
+where \eqn{T1} is the minimal index of \eqn{t} of the response \eqn{Y(t)}.
 \code{bhistx} can only be used if \eqn{Y(t)} and \eqn{x(s)} are observd over
-the same domain \eqn{s,t \in [t_0, T]}.
+the same domain \eqn{s,t \in [T1, T2]}.
 
 Note that the data has to be supplied as a \code{hmatrix} object for
 model fit and predictions.
@@ -132,6 +133,10 @@ mod <- FDboost(Y ~ 1 + bhistx(x = X1h, df = 5, knots = 5) \%X\% bols(zlong),
 }
 }
 \references{
+Brockhaus, S., Melcher, M., Leisch, F. and Greven, S. (2016):
+Boosting flexible functional regression models with a high number of functional historical effects,
+Statistics and Computing, accepted.
+
 Marra, G. and Wood, S.N. (2011): Practical variable selection for generalized additive models.
 Computational Statistics & Data Analysis, 55, 2372-2387.
 
