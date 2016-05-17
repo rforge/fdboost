@@ -1855,7 +1855,7 @@ update.FDboost <- function(object, weights = NULL, oobweights = NULL, risk = NUL
       data[[yname]] <- matrix(data[[yname]], ncol = length(object$yind), byrow = FALSE)
       
     }
-    call$data <- data
+    assign(as.character(call$data), data)
     
     #    
     #     if(!is.null(object$id)) call$id <- ~id
