@@ -1816,6 +1816,7 @@ update.FDboost <- function(object, weights = NULL, oobweights = NULL, risk = NUL
   if (!is.null(risk) | !is.null(trace) | !is.null(extras$control)) {
     
     cc <- as.list(call$control)
+    if(length(cc)==0) cc <- list(as.symbol("boost_control"))
     if(!is.null(risk)) cc$risk <- risk
     if(!is.null(trace)) cc$trace <- trace
     if(!is.null(extras$control)) cc[names(as.list(extras$control))[-1]] <- as.list(extras$control)[-1]
