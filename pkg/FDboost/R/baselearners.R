@@ -359,16 +359,16 @@ X_bsignal <- function(mf, vary, args) {
   ## see Scheipl and Greven (2016): Identifiability in penalized function-on-function regression models  
   if(args$check.ident){
     res_check <- check_ident(X1=X1, L=L, Bs=Bs, K=K, xname=xname, 
-                             penalty=args$penalty, cumOverlap=FALSE)
+                             penalty=args$penalty)
     args$penalty <- res_check$penalty
     args$logCondDs <- res_check$logCondDs
     args$overlapKe <- res_check$overlapKe
     args$maxK <- res_check$maxK
   }
   
-  if(args$penalty=="pss"){
-    shrink <- 0.1 # <FIXME> allow for variable shrinkage parameter?
-    K <- penalty_pss(K=K, difference=args$difference, shrink=0.1)
+  if(args$penalty == "pss"){
+    # <FIXME> allow for variable shrinkage parameter in penalty_pss()?
+    K <- penalty_pss(K = K, difference = args$difference, shrink = 0.1)
   }
   
   #####################################################
@@ -1126,7 +1126,7 @@ hyper_hist <- function(mf, vary, knots = 10, boundary.knots = NULL, degree = 3,
 ### model.matrix for P-splines base-learner of signal matrix mf
 ### for response observed over a common grid, args$format="wide"
 ### or irregularly observed reponse, args$format="long" 
-X_hist <- function(mf, vary, args, getDesign=TRUE) {
+X_hist <- function(mf, vary, args) {
   
   stopifnot(is.data.frame(mf))
   xname <- names(mf)
@@ -1185,7 +1185,7 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   #     X1des0[(nrow(X1)*(i-1)+1):nrow(X1des0) ,i] <- X1[,i] # use fun. variable * integration weights
   #   }
   
-  ## set up design matrix for historical model according to limit()
+  ## set up design matrix for historical model according to args$limits()
   # use the argument limits (Code taken of function ff(), package refund)
   limits <- args$limits
   if (!is.null(limits)) {
@@ -1321,21 +1321,16 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   
   
   ## see Scheipl and Greven (2016): Identifiability in penalized function-on-function regression models  
-  ## <FIXME> only check identifiability for smooth effects?
-  if(args$check.ident && args$inS=="smooth"){
+  ## <FIXME> do checks for identifiability for effects that are not smooth? 
+  if(args$check.ident && args$inS == "smooth"){
     K1 <- diff(diag(ncol(Bs)), differences = args$differences)
     K1 <- crossprod(K1)
-    # compute the kernel overlap cumulative?
-    cumOverlap <- FALSE 
-    # only for historical model of past special case of cumOverlap meaningful
-    # use the limits function to compute chech measures on corresponding subsets of x(s)
-    if(!is.function(args$limits) && args$limits %in% c("s<t", "s<=t") ) cumOverlap <- TRUE 
-    res_check <- check_ident(X1=X1, L=L, Bs=Bs, K=K1, xname=xname, 
-                             penalty=args$penalty, 
-                             cumOverlap=cumOverlap, # deprecated, decided by is.null(args$limits)
-                             limits=args$limits, 
-                             yind=yindHelp, id=id, # yind in long format
-                             X1des=X1des, ind0=ind0, xind=xind)
+    # use the limits function to compute check measures on corresponding subsets of x(s) and B_j
+    res_check <- check_ident(X1 = X1, L = L, Bs = Bs, K = K1, xname = xname, 
+                             penalty = args$penalty, 
+                             limits = args$limits, 
+                             yind = yindHelp, id = id, # yind in long format
+                             X1des = X1des, ind0 = ind0, xind = xind)
     args$penalty <- res_check$penalty
     args$logCondDs <- res_check$logCondDs
     args$logCondDs_hist <- res_check$logCondDs_hist
@@ -1343,9 +1338,6 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
     args$cumOverlapKe <- res_check$cumOverlapKe
     args$maxK <- res_check$maxK
   }
-  
-  # X_hist was only run to check for identifiability
-  #if(!getDesign) return(list(args=args))
   
   # wide: design matrix over index of response for one response
   # long: design matrix over index of response (yind has long format!)
@@ -1381,9 +1373,9 @@ X_hist <- function(mf, vary, args, getDesign=TRUE) {
   if(args$inS == "smooth"){
     K1 <- diff(diag(ncol(Bs)), differences = args$differences)
     K1 <- crossprod(K1)    
-    if(args$penalty=="pss"){
-      shrink <- 0.1 # <FIXME> allow for variable shrinkage parameter?
-      K1 <- penalty_pss(K=K1, difference=args$difference, shrink=0.1)
+    if(args$penalty == "pss"){
+      # <FIXME> allow for variable shrinkage parameter in penalty_pss()? 
+      K1 <- penalty_pss(K = K1, difference = args$difference, shrink = 0.1)
     }    
   }else{ # Ridge-penalty
     K1 <- diag(ncol(Bs))
@@ -1528,8 +1520,7 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
                                         standard = standard, intFun = intFun, 
                                         inS = inS, inTime = inTime, 
                                         penalty = penalty, check.ident = check.ident, 
-                                        format="wide"), 
-                   getDesign=FALSE)
+                                        format="wide"))
   }else{
     ### X_hist for data in long format with irregular response
     temp <- X_hist(mf, vary, 
@@ -1540,8 +1531,7 @@ bhist <- function(x, s, time, index = NULL, #by = NULL,
                                      standard = standard, intFun = intFun, 
                                      inS = inS, inTime = inTime, 
                                      penalty = penalty, check.ident = check.ident, 
-                                     format="long"), 
-                   getDesign=FALSE)
+                                     format="long"))
   }
   temp$args$check.ident <- FALSE
   

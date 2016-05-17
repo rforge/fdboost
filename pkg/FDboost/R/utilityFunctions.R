@@ -642,13 +642,14 @@ funMRD <- function(object, overTime=TRUE, breaks=object$yind, global=FALSE,  ...
 # K penalty matrix
 # xname name of functional covariate
 # penalty the type of the penalty one of "ps" or "pps"
-# cumOverlap should a cumulative overlap be computed, 
+# cumOverlap DEPRECATED should a cumulative overlap be computed, 
 #   which is especially suited for a historical effect with triangular coefficient surface?
 # limits the limits function of the historical effect, default to NULL for unconstrained effect
-# yind, id, X1des, ind0, xind pass from X_hist() to compute sequential identifiability measures
+#   if limits is supplied a cumulative overlap and condition number according to limits is computed 
+# yind, id, X1des, ind0, xind passed from X_hist() to compute sequential identifiability measures
 # giveWarnings should warnings be printed
 check_ident <- function(X1, L, Bs, K, xname, penalty, 
-                        cumOverlap = FALSE, 
+                        ## cumOverlap = FALSE, 
                         limits = NULL, yind = NULL, 
                         t_unique = NULL, 
                         id = NULL, 
@@ -760,10 +761,11 @@ check_ident <- function(X1, L, Bs, K, xname, penalty,
       names(logCondDs_hist) <- round(t_unique[-length(t_unique)],2)
     }
     if(giveWarnings & any(logCondDs_hist > 6)){
-      # get the last entry of t, for which the condition number is >10^6
-      temp <- names(which.max(which(logCondDs_hist > 6)))
-      warning("condition number for <", xname, "> considering limits of historical effect ", 
-              "greater than 10^6, for some time-points up to ", temp, ". ",
+      # get the first and the last entry of t, for which the condition number is >10^6
+      tempL <- names(which.min(which(logCondDs_hist > 6)))
+      tempU <- names(which.max(which(logCondDs_hist > 6)))
+      warning("Condition number for <", xname, "> considering limits of historical effect ", 
+              "greater than 10^6, for time-points between ", tempL, " and ", tempU, ". ",
               "Effect in this region identifiable only through penalty.")
     }
   } ## end of computation of logCondDs_hist for historical effects
@@ -882,9 +884,9 @@ check_ident <- function(X1, L, Bs, K, xname, penalty,
   
   if(giveWarnings & overlapKe >= 1){
     warning("Kernel overlap for <", xname, "> and the specified basis and penalty detected. ",
-            "Changing basis for X-direction to <penalty='pss'> to make model identifiable through penalty. ", 
+            "Changing basis for x-direction to <penalty='pss'> to make model identifiable through penalty. ", 
             "Coefficient surface estimate will be inherently unreliable. ", 
-            "See Scheipl/Greven (2016) for details & alternatives.") 
+            "See Scheipl & Greven (2016) for details and alternatives.") 
     penalty <- "pss"
   }
   

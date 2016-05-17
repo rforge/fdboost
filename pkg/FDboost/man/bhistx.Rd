@@ -112,9 +112,13 @@ dataList$svals <- attr(data1, "xindex")
 dataList$zlong <- factor(gl(n = 2, k = n/2, length = n*nygrid), levels = 1:3)
 dataList$z <- factor(gl(n = 2, k = n/2, length = n), levels = 1:3)
 
-## do the model fit with main effect of bhistx() and interaction of bhistx and bolsc
+## do the model fit with main effect of bhistx() and interaction of bhistx() and bolsc()
 mod <- FDboost(Y ~ 1 + bhistx(x = X1h, df = 5, knots = 5) +
                bhistx(x = X1h, df = 5, knots = 5) \%X\% bolsc(zlong),
+              timeformula = ~ bbs(tvals, knots = 10), data = dataList)
+
+## alternative parameterization: interaction of bhistx() and bols()
+mod <- FDboost(Y ~ 1 + bhistx(x = X1h, df = 5, knots = 5) \%X\% bols(zlong),
               timeformula = ~ bbs(tvals, knots = 10), data = dataList)
 
 \dontrun{
