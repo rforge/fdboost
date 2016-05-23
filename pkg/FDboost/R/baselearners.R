@@ -864,6 +864,15 @@ X_conc <- function(mf, vary, args) {
                "linear" = matrix(c(rep(1, length(xind)), xind), ncol = 2),
                "constant"=  matrix(c(rep(1, length(xind))), ncol = 1))
   
+  # use cyclic splines
+  if (args$cyclic) {
+    if(args$inS != "smooth") stop("Cyclic splines are only meaningful for a smooth effect.")
+    Bs <- mboost_intern(xind, knots = args$knots$s$knots,
+                        boundary.knots = args$knots$s$boundary.knots,
+                        degree = args$degree, 
+                        fun = "cbs")
+  }
+  
   colnames(Bs) <- paste(xname, 1:ncol(Bs), sep="")
     
   # set up design matrix for concurrent model
