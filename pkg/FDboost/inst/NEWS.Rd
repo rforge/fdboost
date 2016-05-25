@@ -19,6 +19,11 @@
 	  \item add update.FDboost() that overwrites update.mboost()
     }
   }
+   \subsection{Miscellaneous}{
+    \itemize{
+	  \item FDboost() works with family = Binomial()  		 
+    }
+  }
 }
 
 

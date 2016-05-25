@@ -658,6 +658,13 @@ FDboost <- function(formula,          ### response ~ xvars
           stop("The timeLab of the hmatrix-object in bhistx(), '", getTimeLab(data[[temp_name]]),
                "', must be euqal to the name of the time-variable in timeformula, '", nameyind, "'.")
         }
+        timeLong <- time
+        ## for response matrix: expand time accordingly 
+        if(!is.null(ydim)) timeLong <- rep(time, each = ydim[1] )
+        if( any( abs(getTime(data[[temp_name]]) - timeLong) > .Machine$double.eps*10^10) ){
+          stop("The time of the hmatrix-object in bhistx() must match the time-variable in timeformula.")
+        }
+        
       }
     }
   }
