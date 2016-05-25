@@ -241,19 +241,28 @@ plotPredicted <- function(x, subset=NULL, posLegend="topleft", lwdObs=1, lwdPred
     id <- x$id[x$id %in% subset]
   }
   
-  ylim <- range(response, pred, na.rm = TRUE)
+  if(is.character(response) | is.factor(x$response)){
+    message("For response that is not continuous only the predicted values are plotted.")
+    ylim <- range(pred, na.rm = TRUE)
+    funplot(yind, pred, id=id, pch=2, lwd=lwdPred, ... )
+  } else{
+    
+    ylim <- range(response, pred, na.rm = TRUE)
+    
+    if(length(x$yind)>1){
+      # Observed values
+      funplot(yind, response, id=id, pch=1, ylim=ylim, lty=3, 
+              ylab=x$yname, xlab=attr(x$yind, "nameyind"), lwd=lwdObs, ...)
+      funplot(yind, pred, id=id, pch=2, lwd=lwdPred, add=TRUE, ...)
+      # predicted values
+      legend(posLegend, legend=c("observed","predicted"), col=1, pch=1:2)  
+    }else{
+      plot(response, pred, ylab="predicted", xlab="observed", ...)
+      abline(0,1)
+    }
+    
+  }
   
-  if(length(x$yind)>1){
-    # Observed values
-    funplot(yind, response, id=id, pch=1, ylim=ylim, lty=3, 
-            ylab=x$yname, xlab=attr(x$yind, "nameyind"), lwd=lwdObs, ...)
-    funplot(yind, pred, id=id, pch=2, lwd=lwdPred, add=TRUE, ...)
-    # predicted values
-    legend(posLegend, legend=c("observed","predicted"), col=1, pch=1:2)  
-  }else{
-    plot(response, pred, ylab="predicted", xlab="observed", ...)
-    abline(0,1)
-  }  
 }
 
 
@@ -264,6 +273,8 @@ plotPredicted <- function(x, subset=NULL, posLegend="topleft", lwdObs=1, lwdPred
 #' 
 ### function to plot the residuals
 plotResiduals <- function(x, subset=NULL, posLegend="topleft", ...){
+  
+  if(is.character(x$response) | is.factor(x$response)) stop("plotResiduals() only works for continuous response.")
   
   stopifnot("FDboost" %in% class(x))
   

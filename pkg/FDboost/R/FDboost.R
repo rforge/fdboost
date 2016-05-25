@@ -475,6 +475,7 @@ FDboost <- function(formula,          ### response ~ xvars
   ### for scalar response ~bols(1) or NULL
   scalarResponse <- FALSE
   scalarNoFLAM <- FALSE
+  response_factor <- NULL
   if(is.null(timeformula) || timeformula == ~bols(1)){
     
     scalarResponse <- TRUE
@@ -490,6 +491,9 @@ FDboost <- function(formula,          ### response ~ xvars
     ## timeformula <- ~bols(ONEtime, lambda = 0)
     
     data$ONEtime <- 1
+    ## matrix() converts factors to characters
+    ## thus, save the original factor variable if the response is a factor
+    if(is.factor(response)) response_factor <- response
     response <- matrix(response, ncol = 1)
   }
   
@@ -573,6 +577,10 @@ FDboost <- function(formula,          ### response ~ xvars
     stopifnot(ncol(response) == length(time))
     nc <- ncol(response)
     dresponse <- as.vector(response) # column-wise stacking of response 
+    ## convert characters to factor 
+    if(is.character(dresponse)) dresponse <- factor(dresponse) 
+    ## in case of a scalar factor response, use the original factor as response 
+    if(!is.null(response_factor)) dresponse <- response_factor
     nobs <- nr # number of observed trajectories
     ## check wether time variable is used in other base-learners
     ## only check in regular response case, as for irregular response, the problem cannot occur
