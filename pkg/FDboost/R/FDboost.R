@@ -409,7 +409,7 @@
 FDboost <- function(formula,          ### response ~ xvars
                     timeformula,      ### time
                     id = NULL,          ### id variable if response is in long format
-                    numInt = c("equal", "Riemann"),   ### option for approximation of integral over loss
+                    numInt = "equal",   ### option for approximation of integral over loss
                     data,             ### list of response, time, xvars
                     weights = NULL,   ### optional
                     offset = NULL,    ### optional

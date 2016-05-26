@@ -423,7 +423,7 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
 #' canada$temp <- scale(canada$temp, scale = FALSE) 
 #' rownames(canada$temp) <- NULL ## delete row-names 
 #'   
-#' ## fir the model  
+#' ## fit the model  
 #' mod <- FDboost(l10precip ~ 1 + bolsc(region, df = 4) + 
 #'                  bsignal(temp, s = day_s, cyclic = TRUE, boundary.knots = c(0.5, 365.5)), 
 #'                timeformula = ~ bbs(day, cyclic = TRUE, boundary.knots = c(0.5, 365.5)), 
@@ -467,8 +467,10 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
 #'   cvr_jackknife <- validateFDboost(mod, folds = cvLong(unique(mod$id), 
 #'                                    type = "curves"), grid = 1:75)
 #'   plot(cvr_jackknife)
-#'   plotPredCoef(cvr_jackknife, which = 3) # plot oob predictions per fold for 3rd effect 
-#'   plotPredCoef(cvr_jackknife, which = 2, terms = FALSE) # plot coefficients per fold for 2nd effect
+#'   ## plot oob predictions per fold for 3rd effect 
+#'   plotPredCoef(cvr_jackknife, which = 3) 
+#'   ## plot coefficients per fold for 2nd effect
+#'   plotPredCoef(cvr_jackknife, which = 2, terms = FALSE)
 #' }
 #' 
 #'}
