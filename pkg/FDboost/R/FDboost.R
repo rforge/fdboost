@@ -647,7 +647,7 @@ FDboost <- function(formula,          ### response ~ xvars
     for(j in 1:length(trmstrings)){
       if(any(grepl("bhistx", trmstrings[j]))){
         if(grepl("%X", trmstrings[j]) ){
-          temp <- strsplit(trmstrings[[j]], "%X%")[[1]]
+          temp <- strsplit(trmstrings[[j]], "%X.*%")[[1]]
           temp <- temp[ grepl("bhistx", temp) ]
           ## pryr::standardise_call(quote(bhistx(X1h, df=3))) 
           temp_name <- all.vars(formula(paste("~", temp)))[1]
