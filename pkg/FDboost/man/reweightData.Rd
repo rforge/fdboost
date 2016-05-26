@@ -2,9 +2,10 @@
 % Please edit documentation in R/utilityFunctions.R
 \name{reweightData}
 \alias{reweightData}
-\title{Function to reweight the data}
+\title{Function to Reweight Data}
 \usage{
-reweightData(data, argvals, vars, weights, index, idvars)
+reweightData(data, argvals, vars, longvars = NULL, weights, index,
+  idvars = NULL)
 }
 \arguments{
 \item{data}{a named list or data.frame.}
@@ -15,18 +16,21 @@ the index for observed grid points; must be supplied if \code{vars} is not suppl
 \item{vars}{character (vector); name(s) for entries in data, which
 are subsetted according to weights or index. Must be supplied if \code{argvals} is not supplied.}
 
+\item{longvars}{variables in long format, e.g., a response that is observed at curve specific grids.}
+
 \item{weights}{vector of weights for observations. Must be supplied if \code{index} is not supplied.}
 
 \item{index}{vector of indices for observations. Must be supplied if \code{weights} is not supplied.}
 
-\item{idvars}{character (vector); index, which inter alia is needed to expand vars to be conform
-with the hmatrix structure when using bhistx-baselearners.}
+\item{idvars}{character (vector); index, which is needed to expand \code{vars} to be conform
+with the \code{hmatrix} structure when using \code{bhistx}-base-learners or to be conform with
+variables in long format specified in \code{longvars}.}
 }
 \value{
 A list with the reweighted or subsetted data.
 }
 \description{
-Function to reweight the data
+Function to Reweight Data
 }
 \details{
 \code{reweightData} indexes the rows of matrices and / or positions of vectors by using
@@ -36,7 +40,7 @@ functional observations, the \code{argvals} argument (vector of character names 
 can be supplied. If \code{argvals} is not supplied, \code{vars} must be supplied and it is assumed that
 \code{argvals} is equal to \code{names(data)[!names(data) \%in\% vars]}.
 
-When using \code{weights}, a weight vector of length n must be supplied, where n is the number of observations.
+When using \code{weights}, a weight vector of length N must be supplied, where N is the number of observations.
 When using \code{index}, the vector must contain the index of each row as many times as it shall be included in the
 new data set.
 }

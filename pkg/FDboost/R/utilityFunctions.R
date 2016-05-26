@@ -960,18 +960,22 @@ penalty_pss <- function(K, difference, shrink){
 
 
 
-#' Function to reweight the data
+#' Function to Reweight Data
 #' 
 #' @param data a named list or data.frame.
 #' @param argvals character (vector); name(s) for entries in data giving 
 #' the index for observed grid points; must be supplied if \code{vars} is not supplied.
 #' @param vars character (vector); name(s) for entries in data, which
 #' are subsetted according to weights or index. Must be supplied if \code{argvals} is not supplied.
+#' @param longvars variables in long format, e.g., a response that is observed at curve specific grids. 
 #' @param weights vector of weights for observations. Must be supplied if \code{index} is not supplied.
 #' @param index vector of indices for observations. Must be supplied if \code{weights} is not supplied.
-#' @param idvars character (vector); index, which inter alia is needed to expand vars to be conform
-#' with the hmatrix structure when using bhistx-baselearners.
+#' @param idvars character (vector); index, which is needed to expand \code{vars} to be conform
+#' with the \code{hmatrix} structure when using \code{bhistx}-base-learners or to be conform with 
+#' variables in long format specified in \code{longvars}. 
+#' 
 #' @return A list with the reweighted or subsetted data.
+#' 
 #' @details \code{reweightData} indexes the rows of matrices and / or positions of vectors by using
 #' either the \code{index} or the \code{weights}-argument. To prevent the function from indexing
 #' the list entry / entries, which serve as time index for observed grid points of each trajectory of
@@ -979,7 +983,7 @@ penalty_pss <- function(K, difference, shrink){
 #' can be supplied. If \code{argvals} is not supplied, \code{vars} must be supplied and it is assumed that 
 #' \code{argvals} is equal to \code{names(data)[!names(data) \%in\% vars]}.
 #' 
-#' When using \code{weights}, a weight vector of length n must be supplied, where n is the number of observations.
+#' When using \code{weights}, a weight vector of length N must be supplied, where N is the number of observations.
 #' When using \code{index}, the vector must contain the index of each row as many times as it shall be included in the
 #' new data set.
 #' 
@@ -1023,7 +1027,8 @@ penalty_pss <- function(K, difference, shrink){
 #' @author David Ruegamer, Sarah Brockhaus
 #' 
 #' @export 
-reweightData <- function(data, argvals, vars, weights, index, idvars)
+reweightData <- function(data, argvals, vars, longvars = NULL, 
+                         weights, index, idvars = NULL)
 {
   
   if(missing(argvals) & missing(vars)) 
@@ -1034,26 +1039,26 @@ reweightData <- function(data, argvals, vars, weights, index, idvars)
   # get names of data
   nd <- names(data)
   
-  if(missing(idvars)) idvars <- NULL
+  # if(missing(idvars)) idvars <- NULL
   
   # drop not used entries if both argvals and vars are given
   if(!missing(argvals) & !missing(vars)){
     
-    data[nd[!nd %in% c(argvals, vars, idvars)]] <- NULL
+    data[nd[!nd %in% c(argvals, vars, longvars, idvars)]] <- NULL
     nd <- names(data) # reset names
     
   }
   
   # define argvals or vars if missing exclusively
-  if(missing(argvals)) argvals <- nd[!nd %in% c(vars, idvars)]
-  if(missing(vars)) vars <- nd[!nd %in% c(argvals, idvars)]
+  if(missing(argvals)) argvals <- nd[!nd %in% c(vars, idvars, longvars)]
+  if(missing(vars)) vars <- nd[!nd %in% c(argvals, idvars, longvars)]
   
-  whichNot <- which(!c(argvals, vars, idvars) %in% nd)
+  whichNot <- which(!c(argvals, vars, idvars, longvars) %in% nd)
   
   # check names
-  if(length(whichNot)!=0) 
+  if(length(whichNot) != 0) 
     stop(paste0("Could not find ", 
-                paste(c(argvals, vars, idvars)[whichNot], collapse = ", "),
+                paste(c(argvals, vars, idvars, longvars)[whichNot], collapse = ", "),
                 " in data."))
   
   # check for hmatrix and delete in argvals or vars if present
@@ -1075,7 +1080,7 @@ reweightData <- function(data, argvals, vars, weights, index, idvars)
   
   if(!missing(weights) && length(weights) != n) 
     stop("Length of weights and number of observations do not match!")
-  # if(!missing(weights) && sum(weights)!=n)
+  # if(!missing(weights) && sum(weights) != n)
   #   warning("The resulting data will have more / less observations than the original data.")
   
   # transform weights in index
@@ -1137,22 +1142,39 @@ reweightData <- function(data, argvals, vars, weights, index, idvars)
     
   }
   
-  # check for idvars variables
-  if(!is.null(idvars)){
-    
-    # if idvars exist, subset accordingly
-    for(ifr in idvars){
-      
-      # (@SARAH: thought too simple? Are rep idvars always a multiple of rows?)
-#       tempId <- c(matrix(data[[ifr]], nrow = n)[index,]) 
-#       data[[ifr]] <- (1:length(unique(tempId)))[factor(tempId)]
-      data[[ifr]] <- rep(1:length(index), nc)
-      
-    } 
-    
-    # add idvars to argvals, which are not subsetted in the following
-    argvals <- c(argvals, idvars)
-    
+  
+  ### @David: what are those checks for? can we restrict ourselves to one indvars? 
+  ### @David: what happens when longvars and hmatrix-vars are part of data?  
+  #   # check for idvars variables
+  #   if(!is.null(idvars)){
+  #     
+  #     # if idvars exist, subset accordingly
+  #     for(ifr in idvars){
+  #       
+  #       # (@SARAH: thought too simple? Are rep idvars always a multiple of rows?)
+  # #       tempId <- c(matrix(data[[ifr]], nrow = n)[index,]) 
+  # #       data[[ifr]] <- (1:length(unique(tempId)))[factor(tempId)]
+  #       data[[ifr]] <- rep(1:length(index), nc)
+  #       
+  #     } 
+  #     
+  #     # add idvars to argvals, which are not subsetted in the following
+  #     ## @David: I would subset idvars as a longvar 
+  #     argvals <- c(argvals, idvars)
+  #     
+  #   }
+  
+  temp_long <- NULL 
+  ## do the indexing for the variables in long format 
+  if(!is.null(longvars)){
+    if(length(idvars) > 1) stop("idvars can only have length one.")
+    if(!idvars %in% longvars) longvars <- c(longvars, idvars)
+    weights_long <- weights[data[[idvars]]]
+    index_long <- rep(1:length(weights_long), weights_long)
+    ## TODO do that within "recycle data"
+    temp_long <- lapply(longvars, function(nameWithoutDim) data[[nameWithoutDim]][index_long])
+    ## TODO create new id variable 1, 2, 3, ... that can be used for FDboost()
+    # new_idvars <- rep(1:sum(weights), )
   }
   
   inAVs <- nd %in% argvals
@@ -1160,9 +1182,10 @@ reweightData <- function(data, argvals, vars, weights, index, idvars)
   # recycle data
   data <- c(lapply(nd[!isVec & !inAVs], function(nameWithDim) data[[nameWithDim]][index, , drop=FALSE]),
             lapply(nd[isVec & !inAVs], function(nameWithoutDim) data[[nameWithoutDim]][index]), 
-            newHatmats,
+            newHatmats, 
+            temp_long, 
             data[argvals])
-  names(data) <- c(nd[!isVec & !inAVs], nd[isVec & !inAVs], nhm, argvals)
+  names(data) <- c(nd[!isVec & !inAVs], nd[isVec & !inAVs], nhm, longvars, argvals)
   
   return(drop(data))
   

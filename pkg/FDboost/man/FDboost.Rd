@@ -4,8 +4,8 @@
 \alias{FDboost}
 \title{Model-based Gradient Boosting for Functional Response}
 \usage{
-FDboost(formula, timeformula, id = NULL, numInt = "equal", data,
-  weights = NULL, offset = NULL, offset_control = o_control(),
+FDboost(formula, timeformula, id = NULL, numInt = c("equal", "Riemann"),
+  data, weights = NULL, offset = NULL, offset_control = o_control(),
   check0 = FALSE, ...)
 }
 \arguments{

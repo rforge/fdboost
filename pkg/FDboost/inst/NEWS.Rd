@@ -2,6 +2,14 @@
 \title{News for Package 'FDboost'}
 
 
+\section{Changes in FDboost version 0.2-0 (2016-05-26)}{
+    \subsection{User-visible changes}{
+    \itemize{
+    \item add function applyFolds() to compute the optimal stopping iteration
+    }
+  }
+}
+
 \section{Changes in FDboost version 0.1-2 (2016-04-22)}{
     \subsection{Bug-fixes}{
     \itemize{
