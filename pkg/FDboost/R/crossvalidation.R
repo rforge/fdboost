@@ -109,8 +109,6 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
   ## fitfct <- object$update
   fitfct <- function(weights, oobweights){
     
-    browser()
-    
     ## get data according to weights
     if(any(class(object) == "FDboostLong")){
       stop("applyFolds() for FDboostLong not yet implemented.")
@@ -466,10 +464,11 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
 #' 
 #' \dontrun{ 
 #'   ## compute out-of-bag risk and predicitons for leaving-one-curve-out cross-validation
-#'   cvr_jackknife <- validateFDboost(mod, folds = cvLong(unique(mod$id), type = "curves"), grid = 1:75)
+#'   cvr_jackknife <- validateFDboost(mod, folds = cvLong(unique(mod$id), 
+#'                                    type = "curves"), grid = 1:75)
 #'   plot(cvr_jackknife)
-#'   plotPredCoef(cvr_jackknife, which = 3) # plot oob predictions per fold for third effect 
-#'   plotPredCoef(cvr_jackknife, which = 2, terms = FALSE) # plot coefficients per fold for second effect
+#'   plotPredCoef(cvr_jackknife, which = 3) # plot oob predictions per fold for 3rd effect 
+#'   plotPredCoef(cvr_jackknife, which = 2, terms = FALSE) # plot coefficients per fold for 2nd effect
 #' }
 #' 
 #'}
