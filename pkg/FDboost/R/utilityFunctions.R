@@ -1083,8 +1083,10 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
   # if(!missing(weights) && sum(weights) != n)
   #   warning("The resulting data will have more / less observations than the original data.")
   
-  # transform weights in index
+  # transform weights in index and vice versa 
   if(missing(index)) index <- rep(1:n, weights) else index <- sort(index)
+  ## @David: computation of longvars need weights!
+  if(missing(weights)) weights <- sapply(1:n, function(i) sum(index == i)) 
   
   is.wholenumber <- function(x, tol = .Machine$double.eps^0.5)  abs(x - round(x)) < tol
   # is.wholenumber(x) # is TRUE
@@ -1096,6 +1098,7 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
   if(length(idvars)>1)
     if(!all(sapply(data[idvars][-1],function(x)all.equal(data[idvars][[1]],x)=="TRUE")))
       stop("All idvars must be identical.")
+  idvars_new <- NULL
   
   # if there is a hmatrix in the data, subsetting is done by reconstructing the hmatrix appropriately
   if(any(whichHmat)){
@@ -1105,9 +1108,9 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
     # construct a list for new hmatrices
     newHatmats <- vector("list", length(nhm))
     # get all names of data items, which are neither a hmatrix nor supplied via the idvars argument
-    remV <- !nd %in% c(nhm, idvars)
+    remV <- !nd %in% c(nhm, idvars, longvars)  ## @David: added longvars!
     # remove those
-    nd <- nd[remV]
+    nd <- nd[remV] 
     # the same for isVec
     isVec <- isVec[remV]
     
@@ -1154,21 +1157,6 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
     }
     names(newHatmats) <- nhm
     
-    # if idvars exist, subset accordingly;
-    # idvars has to be the same for all hmatrix-objects and response! 
-    if(!is.null(idvars)){
-      
-      ## only works for common observation grid of response
-      # idvars_new <- rep(1:length(index), nc) # index = c(1, 1, 2) -> 1, 2, 3
-      
-      for(ifr in idvars){
-        data[[ifr]] <- idvars_new
-      } 
-      ## data[[idvars]] <- getId(newHatmats[[j]])
-      argvals <- c(argvals, idvars)
-    }
-    
-    
   }else{ # if there are no hmatrices, set the list and corresponding names to NULL
     
     newHatmats <- NULL
@@ -1179,15 +1167,32 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
   temp_long <- NULL 
   ## do the indexing for the variables in long format 
   if(!is.null(longvars)){
-    if(length(idvars) > 1) stop("idvars can only have length one.")
-    if(!idvars %in% longvars) longvars <- c(longvars, idvars)
-    weights_long <- weights[data[[idvars]]]
+    # if(!idvars[1] %in% longvars) longvars <- c(longvars, idvars[1])
+    weights_long <- weights[data[[idvars[1]]]]
     index_long <- rep(1:length(weights_long), weights_long)
     ## TODO do that within "recycle data"
     temp_long <- lapply(longvars, function(nameWithoutDim) data[[nameWithoutDim]][index_long])
-    #names(temp_long) <- longvars
+    temp_idvars <- data[[idvars[1]]][index_long]
+    # names(temp_long) <- longvars
+    
     #### create new id variable 1, 2, 3, ... that can be used for FDboost()
-    # idvars_new <- c(factor(temp_long[[idvars]]))
+    if(is.null(idvars_new)) idvars_new <- c(factor(temp_idvars))
+
+  }
+  
+  ## @David: compute idvars_new individually in hmatrix-part or in longvars part, but add to data here 
+  # if idvars exist, subset accordingly;
+  # idvars has to be the same for all hmatrix-objects and response! 
+  if(!is.null(idvars)){
+    
+    ## only works for common observation grid of response
+    # idvars_new <- rep(1:length(index), nc) # index = c(1, 1, 2) -> 1, 2, 3
+    
+    for(ifr in idvars){
+      data[[ifr]] <- idvars_new
+    } 
+    ## data[[idvars]] <- getId(newHatmats[[j]])
+    argvals <- c(argvals, idvars)
   }
   
   inAVs <- nd %in% argvals
