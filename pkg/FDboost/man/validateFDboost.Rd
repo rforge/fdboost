@@ -214,18 +214,18 @@ canada$tempRaw <- canada$temp
 canada$temp <- scale(canada$temp, scale = FALSE)
 rownames(canada$temp) <- NULL ## delete row-names
 
-## fir the model
+## fit the model
 mod <- FDboost(l10precip ~ 1 + bolsc(region, df = 4) +
                  bsignal(temp, s = day_s, cyclic = TRUE, boundary.knots = c(0.5, 365.5)),
                timeformula = ~ bbs(day, cyclic = TRUE, boundary.knots = c(0.5, 365.5)),
                data = canada)
 
 
-## create folds for 10-fold bootstrap: one weight for each curve
+## create folds for 5-fold bootstrap: one weight for each curve
 set.seed(123)
-folds_bs <- cv(weights = rep(1, mod$ydim[1]), type = "bootstrap", B = 10)
+folds_bs <- cv(weights = rep(1, mod$ydim[1]), type = "bootstrap", B = 5)
 
-## compute out-of-bag risk on the 10 folds for 1 to 75 boosting iterations
+## compute out-of-bag risk on the 5 folds for 1 to 75 boosting iterations
 cvr <- applyFolds(mod, folds = folds_bs, grid = 1:75)
 
 ## compute out-of-bag risk and coefficient estimates on folds
@@ -233,8 +233,8 @@ cvr2 <- validateFDboost(mod, folds = folds_bs, grid = 1:75)
 
 ## weights per observation point
 folds_bs_long <- folds_bs[rep(1:nrow(folds_bs), times = mod$ydim[2]), ]
-attr(folds_bs_long, "type") <- "10-fold bootstrap"
-## compute out-of-bag risk on the 10 folds for 1 to 75 boosting iterations
+attr(folds_bs_long, "type") <- "5-fold bootstrap"
+## compute out-of-bag risk on the 5 folds for 1 to 75 boosting iterations
 cvr3 <- cvrisk(mod, folds = folds_bs_long, grid = 1:75)
 
 \dontrun{
@@ -247,7 +247,7 @@ cvr3 <- cvrisk(mod, folds = folds_bs_long, grid = 1:75)
 
 \dontrun{
   ## plot the estimated coefficients per fold
-  ## more meaningful for higher number of folds e.g. B = 100
+  ## more meaningful for higher number of folds, e.g., B = 100
   par(mfrow = c(2,2))
   plotPredCoef(cvr2, terms = FALSE, which = 2)
   plotPredCoef(cvr2, terms = FALSE, which = 3)
@@ -255,10 +255,13 @@ cvr3 <- cvrisk(mod, folds = folds_bs_long, grid = 1:75)
 
 \dontrun{
   ## compute out-of-bag risk and predicitons for leaving-one-curve-out cross-validation
-  cvr_jackknife <- validateFDboost(mod, folds = cvLong(unique(mod$id), type = "curves"), grid = 1:75)
+  cvr_jackknife <- validateFDboost(mod, folds = cvLong(unique(mod$id),
+                                   type = "curves"), grid = 1:75)
   plot(cvr_jackknife)
-  plotPredCoef(cvr_jackknife, which = 3) # plot oob predictions per fold for third effect
-  plotPredCoef(cvr_jackknife, which = 2, terms = FALSE) # plot coefficients per fold for second effect
+  ## plot oob predictions per fold for 3rd effect
+  plotPredCoef(cvr_jackknife, which = 3)
+  ## plot coefficients per fold for 2nd effect
+  plotPredCoef(cvr_jackknife, which = 2, terms = FALSE)
 }
 
 }

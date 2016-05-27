@@ -38,7 +38,6 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
   if(!numInt %in% c("equal", "Riemann")) 
     warning("argument 'numInt' is ignored as it is none of 'equal' and 'Riemann'.")
   
-  
   if(is.numeric(numInt)){  # use the integration scheme specified in applyFolds
     if(length(numInt) != length(object$yind)) stop("Length of integration weights and time vector are not equal.")
     integration_weights <- numInt

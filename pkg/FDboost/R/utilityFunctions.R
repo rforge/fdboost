@@ -1092,6 +1092,8 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
   if(!missing(weights) && any(!is.wholenumber(weights))) stop("weights can only contain integers.")
   if(any(!is.wholenumber(index))) stop("index can only contain integers.")
   
+  ## TODO check that all idvars are equal
+  
   # if there is a hmatrix in the data, subsetting is done by reconstructing the hmatrix appropriately
   if(any(whichHmat)){
     
@@ -1105,27 +1107,34 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
     nd <- nd[remV]
     # the same for isVec
     isVec <- isVec[remV]
-    nc <- if(length(isVec)==0) ncol(attr(data[[nhm]],"x")) else 
-      ncol(data[nd[!isVec]][[1]])
     
     # construct the new hmatrices
     for(j in 1:length(nhm)){
       
+      ## TODO check that idvars math id-variables in all hmatrix-objects
+      
+      ## number columns of X-matrix in hmatrix-object
+      nc <- ncol(attr(data[[nhm[j]]], "x"))
+      
       tempHmat <- data[[nhm[j]]]
       attrTemp <- attributes(tempHmat)
+      # save time and id variable of hmatrix-object as ordinary matrix
+      # otherwise [ on a hmatrix-object behaves unexpectedly 
       tempMat <- cbind(tempHmat[,1], tempHmat[,2])
       resMat <- matrix(ncol=2)
-      for(t in unique(tempHmat[,1])){
+      for(t in unique(tempHmat[,1])){ 
         
-        idInT <- index%in%tempMat[tempMat[,1]==t,2]
+        idInT <- index %in% tempMat[tempMat[,1]==t,2]
+        # add rows for observations selected by index for time t
         resMat <- rbind(resMat, matrix(c(rep(t, sum(idInT)), index[idInT]), ncol=2))
         
       }
-      resMat <- resMat[-1,]
-      resMat[,2] <- c(factor(resMat[,2]))
-      tempId <- (1:length(unique(resMat[,2])))[factor(resMat[,2])]
-      newHatmats[[j]] <- hmatrix(time=resMat[,1], id=tempId, 
-                                 x=attrTemp$x[unique(index), , drop=FALSE], 
+      resMat <- resMat[-1,] # drop first row with NAs
+      resMat[,2] <- c(factor(resMat[,2])) # get id variable with values 1, 2, 3, ...
+      tempId <- (1:length(unique(resMat[,2])))[factor(resMat[,2])] # correct ordering 
+      newHatmats[[j]] <- hmatrix(time = resMat[,1], 
+                                 id = tempId, 
+                                 x = attrTemp$x[unique(index), , drop=FALSE], 
                                  argvals = attrTemp$argvals, 
                                  timeLab = attrTemp$timeLab, 
                                  idLab = attrTemp$idLab, 
@@ -1134,6 +1143,22 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
       
     }
     names(newHatmats) <- nhm
+
+    # if idvars exist, subset accordingly;
+    # idvars has to be the same for all hmatrix-objects and response! 
+    if(!is.null(idvars)){
+      ## only works for common observation grid of response
+      idvars_new <- rep(1:length(index), nc) # index = c(1, 1, 2) -> 1, 2, 3
+  
+      ## idvars_new <- sapply(paste() , data[[idvars[1]]] )  
+      
+      for(ifr in idvars){
+        data[[ifr]] <- idvars_new
+      } 
+      ## data[[idvars]] <- getId(newHatmats[[j]])
+      argvals <- c(argvals, idvars)
+    }
+
     
   }else{ # if there are no hmatrices, set the list and corresponding names to NULL
     
@@ -1141,29 +1166,7 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
     nhm <- NULL
     
   }
-  
-  
-  ### @David: what are those checks for? can we restrict ourselves to one indvars? 
-  ### @David: what happens when longvars and hmatrix-vars are part of data?  
-  #   # check for idvars variables
-  #   if(!is.null(idvars)){
-  #     
-  #     # if idvars exist, subset accordingly
-  #     for(ifr in idvars){
-  #       
-  #       # (@SARAH: thought too simple? Are rep idvars always a multiple of rows?)
-  # #       tempId <- c(matrix(data[[ifr]], nrow = n)[index,]) 
-  # #       data[[ifr]] <- (1:length(unique(tempId)))[factor(tempId)]
-  #       data[[ifr]] <- rep(1:length(index), nc)
-  #       
-  #     } 
-  #     
-  #     # add idvars to argvals, which are not subsetted in the following
-  #     ## @David: I would subset idvars as a longvar 
-  #     argvals <- c(argvals, idvars)
-  #     
-  #   }
-  
+
   temp_long <- NULL 
   ## do the indexing for the variables in long format 
   if(!is.null(longvars)){
@@ -1173,8 +1176,9 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
     index_long <- rep(1:length(weights_long), weights_long)
     ## TODO do that within "recycle data"
     temp_long <- lapply(longvars, function(nameWithoutDim) data[[nameWithoutDim]][index_long])
-    ## TODO create new id variable 1, 2, 3, ... that can be used for FDboost()
-    # new_idvars <- rep(1:sum(weights), )
+    #names(temp_long) <- longvars
+    #### create new id variable 1, 2, 3, ... that can be used for FDboost()
+    # idvars_new <- c(factor(temp_long[[idvars]]))
   }
   
   inAVs <- nd %in% argvals
