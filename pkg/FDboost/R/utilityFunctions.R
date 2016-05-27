@@ -1092,7 +1092,10 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
   if(!missing(weights) && any(!is.wholenumber(weights))) stop("weights can only contain integers.")
   if(any(!is.wholenumber(index))) stop("index can only contain integers.")
   
-  ## TODO check that all idvars are equal
+  ## check that all idvars are equal
+  if(length(idvars)>1)
+    if(!all(sapply(data[idvars][-1],function(x)all.equal(data[idvars][[1]],x)=="TRUE")))
+      stop("All idvars must be identical.")
   
   # if there is a hmatrix in the data, subsetting is done by reconstructing the hmatrix appropriately
   if(any(whichHmat)){
@@ -1111,7 +1114,9 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
     # construct the new hmatrices
     for(j in 1:length(nhm)){
       
-      ## TODO check that idvars math id-variables in all hmatrix-objects
+      ## check that idvars = idvars[[1]] match id-variables in all hmatrix-objects
+      if(!is.null(idvars) && !(all.equal(getId(data[[nhm[j]]]),data[[idvars[1]]])=="TRUE")) 
+        stop("id variable in hmatrix object must be equal to idvars")
       
       ## number columns of X-matrix in hmatrix-object
       nc <- ncol(attr(data[[nhm[j]]], "x"))
@@ -1121,15 +1126,20 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
       # save time and id variable of hmatrix-object as ordinary matrix
       # otherwise [ on a hmatrix-object behaves unexpectedly 
       tempMat <- cbind(tempHmat[,1], tempHmat[,2])
-      resMat <- matrix(ncol=2)
+      resMat <- matrix(ncol=3)
       for(t in unique(tempHmat[,1])){ 
         
         idInT <- index %in% tempMat[tempMat[,1]==t,2]
         # add rows for observations selected by index for time t
-        resMat <- rbind(resMat, matrix(c(rep(t, sum(idInT)), index[idInT]), ncol=2))
+        resMat <- rbind(resMat, matrix(c(rep(t, sum(idInT)), # for time points in hmatrix
+                                         index[idInT], # for id in hmatrix
+                                         (1:length(index))[idInT]), # for idvars 
+                                       ncol=3))
         
       }
       resMat <- resMat[-1,] # drop first row with NAs
+      idvars_new <- resMat[,3]
+      resMat <- resMat[,-3]
       resMat[,2] <- c(factor(resMat[,2])) # get id variable with values 1, 2, 3, ...
       tempId <- (1:length(unique(resMat[,2])))[factor(resMat[,2])] # correct ordering 
       newHatmats[[j]] <- hmatrix(time = resMat[,1], 
@@ -1143,14 +1153,13 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
       
     }
     names(newHatmats) <- nhm
-
+    
     # if idvars exist, subset accordingly;
     # idvars has to be the same for all hmatrix-objects and response! 
     if(!is.null(idvars)){
+      
       ## only works for common observation grid of response
-      idvars_new <- rep(1:length(index), nc) # index = c(1, 1, 2) -> 1, 2, 3
-  
-      ## idvars_new <- sapply(paste() , data[[idvars[1]]] )  
+      # idvars_new <- rep(1:length(index), nc) # index = c(1, 1, 2) -> 1, 2, 3
       
       for(ifr in idvars){
         data[[ifr]] <- idvars_new
@@ -1158,7 +1167,7 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
       ## data[[idvars]] <- getId(newHatmats[[j]])
       argvals <- c(argvals, idvars)
     }
-
+    
     
   }else{ # if there are no hmatrices, set the list and corresponding names to NULL
     
@@ -1166,7 +1175,7 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
     nhm <- NULL
     
   }
-
+  
   temp_long <- NULL 
   ## do the indexing for the variables in long format 
   if(!is.null(longvars)){
