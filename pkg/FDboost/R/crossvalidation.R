@@ -9,6 +9,10 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
                        mc.preschedule = FALSE, showProgress = TRUE, 
                        ...) {
   
+  if(any(class(object) == "FDboostLong")){
+    stop("applyFolds() not yet implemented for FDboostlong.")
+  }
+  
   if (is.null(folds)) {
     stop("Specify folds.")
   } 
@@ -110,12 +114,9 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
     
     ## get data according to weights
     if(any(class(object) == "FDboostLong")){
-      stop("applyFolds() for FDboostLong not yet implemented.")
       dat_weights <- reweightData(data = dathelp, vars = names_variables, 
-                                  longvars = c(object$yname, nameyind, attr(object$id, "nameid"), "integration_weights"),  
+                                  longvars = c(object$yname, nameyind, "integration_weights"),  
                                   weights = weights, idvars = attr(object$id, "nameid"))
-      ## TODO: for the model fit the id-variable must be integers 1, 2, 3, ...
-      ## implement that in reweightData()
     }else{
       dat_weights <- reweightData(data = dathelp, vars = names_variables, 
                                   weights = weights)
@@ -148,7 +149,7 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
   
   if (is.null(fun)) {
     dummyfct <- function(weights, oobweights) {
-      
+
       mod <- fitfct(weights = weights, oobweights = oobweights)
       mod <- mod[max(grid)]
       # mod$risk()[grid]
@@ -162,8 +163,23 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
       }
       
       ## get data according to oobweights
-      dat_oobweights <- reweightData(data = dathelp, vars = names_variables, 
-                                     weights = oobweights)
+      if(any(class(object) == "FDboostLong")){
+        dat_oobweights <- reweightData(data = dathelp, vars = names_variables, 
+                                       longvars = c(object$yname, nameyind, "integration_weights"),  
+                                       weights = oobweights, idvars = attr(object$id, "nameid"))
+        for(v in names_variables){
+          if(!is.null(dim(dat_oobweights[[v]]))){
+            dat_oobweights[[v]] <- dat_oobweights[[v]][dat_oobweights[[attr(object$id, "nameid")]], ]
+          }else{
+            dat_oobweights[[v]] <- dat_oobweights[[v]][dat_oobweights[[attr(object$id, "nameid")]]]
+          }
+          
+        }
+        
+      }else{
+        dat_oobweights <- reweightData(data = dathelp, vars = names_variables, 
+                                       weights = oobweights)
+      }
       
       response_oobweights <- c(dat_oobweights[[object$yname]])
       
@@ -177,18 +193,25 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
       #                                                 predict(mod[g], newdata = dat_oobweights, toFDboost = FALSE), 
       #                                                 w = integration_weights_oob)} ) / sum(oobweights[object$id])
       
-      if(numInt == "equal"){
+      if(numInt == "equal"){ # oobweights for i=1, ..., N
         oobwstand <- oobweights[object$id]*(1/sum(oobweights[object$id]))
       }else{
         # compute integration weights for standardizing risk 
         oobwstand <- lengthTi1[object$id]*oobweights[object$id]*integration_weights*(1/sum(oobweights))
       }
       
-      # compute risk with integration weights like in FDboost::validateFDboost
-      risk <- sapply(grid, function(g){riskfct( response_oobweights, 
-                                                predict(mod[g], newdata = dat_oobweights, toFDboost = FALSE), 
-                                                w = oobwstand[oobweights != 0 ])})
-      
+      if(any(class(object) == "FDboostLong")){
+        # compute risk with integration weights like in FDboost::validateFDboost
+        risk <- sapply(grid, function(g){riskfct( response_oobweights, 
+                                                  predict(mod[g], newdata = dat_oobweights, toFDboost = FALSE), 
+                                                  w = oobwstand[oobweights[object$id] != 0 ])})
+      }else{
+        # compute risk with integration weights like in FDboost::validateFDboost
+        risk <- sapply(grid, function(g){riskfct( response_oobweights, 
+                                                  predict(mod[g], newdata = dat_oobweights, toFDboost = FALSE), 
+                                                  w = oobwstand[oobweights != 0 ])})
+      }
+
       if(showProgress) cat(".")
       
       risk
@@ -321,14 +344,14 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
 #' see \code{\link[mboost]{cvrisk}} in package mboost. 
 #' 
 #' \code{applyFolds} is still EXPERIMENTAL! 
-#' The function \code{applyFolds} is especially suited for models with functional response. 
+#' The function \code{applyFolds} is especially suited to models with functional response. 
 #' It recomputes the model in each fold using \code{FDboost}. Thus, all parameters are recomputed, 
 #' including the smooth offset (if present) and the identifiability constraints (if present, only 
 #' relevant for bolsc, brandomc and bbsc).  
 #' Note, that the function \code{applyFolds} expects folds that give weights
 #' per trajectory without considering integration weights.  
 #' 
-#' The function \code{validateFDboost} is especially suitable for models with functional response. 
+#' The function \code{validateFDboost} is especially suited to models with functional response. 
 #' Using the option \code{refitSmoothOffset} the offset is refitted on each fold. 
 #' Note, that the function \code{validateFDboost} expects folds that give weights
 #' per trajectory without considering integration weights. The integration weights of 
@@ -462,7 +485,7 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
 #' }
 #' 
 #' \dontrun{ 
-#'   ## compute out-of-bag risk and predicitons for leaving-one-curve-out cross-validation
+#'   ## compute out-of-bag risk and predictions for leaving-one-curve-out cross-validation
 #'   cvr_jackknife <- validateFDboost(mod, folds = cvLong(unique(mod$id), 
 #'                                    type = "curves"), grid = 1:75)
 #'   plot(cvr_jackknife)
@@ -490,6 +513,12 @@ validateFDboost <- function(object, response = NULL,
   #     warning("is.null(folds), per default folds=cvMa(ydim=object$ydim, weights=model.weights(object), type=\"bootstrap\")")
   #     folds <- cvMa(ydim=object$ydim, weights=model.weights(object), type="bootstrap")
   #   }
+  
+  names_bl <- names(object$baselearner)
+  if(any(grepl("brandomc", names_bl))) message("For brandomc, the transformation matrix Z is fixed over all folds.")
+  if(any(grepl("bolsc", names_bl))) message("For bolsc, the transformation matrix Z is fixed over all folds.")
+  if(any(grepl("bbsc", names_bl))) message("For bbsc, the transformation matrix Z is fixed over all folds.")
+  
   
   type <- attr(folds, "type")
   if(is.null(type)) type <- "unknown"

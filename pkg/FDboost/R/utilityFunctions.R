@@ -1085,7 +1085,7 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
   
   # transform weights in index and vice versa 
   if(missing(index)) index <- rep(1:n, weights) else index <- sort(index)
-  ## @David: computation of longvars need weights!
+  ## computation of longvars needs weights 
   if(missing(weights)) weights <- sapply(1:n, function(i) sum(index == i)) 
   
   is.wholenumber <- function(x, tol = .Machine$double.eps^0.5)  abs(x - round(x)) < tol
@@ -1100,25 +1100,27 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
       stop("All idvars must be identical.")
   idvars_new <- NULL
   
+  # get names of hmatrix variables
+  nhm <- vars[whichHmat]
+  # get all names of data items, which are neither a hmatrix 
+  # nor supplied via the idvars or longvars argument
+  remV <- !nd %in% c(nhm, idvars, longvars)  
+  # remove those
+  nd <- nd[remV] 
+  # the same for isVec
+  isVec <- isVec[remV]
+  
   # if there is a hmatrix in the data, subsetting is done by reconstructing the hmatrix appropriately
   if(any(whichHmat)){
     
-    # get names of hmatrix variables
-    nhm <- vars[whichHmat]
     # construct a list for new hmatrices
     newHatmats <- vector("list", length(nhm))
-    # get all names of data items, which are neither a hmatrix nor supplied via the idvars argument
-    remV <- !nd %in% c(nhm, idvars, longvars)  ## @David: added longvars!
-    # remove those
-    nd <- nd[remV] 
-    # the same for isVec
-    isVec <- isVec[remV]
     
     # construct the new hmatrices
     for(j in 1:length(nhm)){
       
-      ## check that idvars = idvars[[1]] match id-variables in all hmatrix-objects
-      if(!is.null(idvars) && !(all.equal(getId(data[[nhm[j]]]),data[[idvars[1]]])=="TRUE")) 
+      ## check that idvars == idvars[[1]] and match id-variables in all hmatrix-objects
+      if(!is.null(idvars) && !(all.equal(getId(data[[nhm[j]]]), data[[idvars[1]]]) == "TRUE")) 
         stop("id variable in hmatrix object must be equal to idvars")
       
       ## number columns of X-matrix in hmatrix-object
@@ -1128,11 +1130,11 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
       attrTemp <- attributes(tempHmat)
       # save time and id variable of hmatrix-object as ordinary matrix
       # otherwise [ on a hmatrix-object behaves unexpectedly 
-      tempMat <- cbind(tempHmat[,1], tempHmat[,2])
+      tempMat <- cbind(tempHmat[,1], tempHmat[, 2])
       resMat <- matrix(ncol=3)
       for(t in unique(tempHmat[,1])){ 
         
-        idInT <- index %in% tempMat[tempMat[,1]==t,2]
+        idInT <- index %in% tempMat[tempMat[,1] == t, 2]
         # add rows for observations selected by index for time t
         resMat <- rbind(resMat, matrix(c(rep(t, sum(idInT)), # for time points in hmatrix
                                          index[idInT], # for id in hmatrix
@@ -1167,20 +1169,21 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
   temp_long <- NULL 
   ## do the indexing for the variables in long format 
   if(!is.null(longvars)){
-    # if(!idvars[1] %in% longvars) longvars <- c(longvars, idvars[1])
+    if(any(idvars %in% longvars)) longvars <- longvars[!longvars %in% idvars]
     weights_long <- weights[data[[idvars[1]]]]
     index_long <- rep(1:length(weights_long), weights_long)
     ## TODO do that within "recycle data"
     temp_long <- lapply(longvars, function(nameWithoutDim) data[[nameWithoutDim]][index_long])
-    temp_idvars <- data[[idvars[1]]][index_long]
-    # names(temp_long) <- longvars
     
     #### create new id variable 1, 2, 3, ... that can be used for FDboost()
-    if(is.null(idvars_new)) idvars_new <- c(factor(temp_idvars))
+    if(is.null(idvars_new)){
+      temp_idvars <- data[[idvars[1]]][index_long] # compute new id-variable
+      idvars_new <- c(factor(temp_idvars))
+    } 
 
   }
   
-  ## @David: compute idvars_new individually in hmatrix-part or in longvars part, but add to data here 
+  ## compute idvars_new in hmatrix-part or in longvars part, but add to data here 
   # if idvars exist, subset accordingly;
   # idvars has to be the same for all hmatrix-objects and response! 
   if(!is.null(idvars)){

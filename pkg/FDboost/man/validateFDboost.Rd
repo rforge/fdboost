@@ -145,14 +145,14 @@ The weights (zero weights correspond to test cases) are defined via the folds ma
 see \code{\link[mboost]{cvrisk}} in package mboost.
 
 \code{applyFolds} is still EXPERIMENTAL!
-The function \code{applyFolds} is especially suited for models with functional response.
+The function \code{applyFolds} is especially suited to models with functional response.
 It recomputes the model in each fold using \code{FDboost}. Thus, all parameters are recomputed,
 including the smooth offset (if present) and the identifiability constraints (if present, only
 relevant for bolsc, brandomc and bbsc).
 Note, that the function \code{applyFolds} expects folds that give weights
 per trajectory without considering integration weights.
 
-The function \code{validateFDboost} is especially suitable for models with functional response.
+The function \code{validateFDboost} is especially suited to models with functional response.
 Using the option \code{refitSmoothOffset} the offset is refitted on each fold.
 Note, that the function \code{validateFDboost} expects folds that give weights
 per trajectory without considering integration weights. The integration weights of
@@ -254,7 +254,7 @@ cvr3 <- cvrisk(mod, folds = folds_bs_long, grid = 1:75)
 }
 
 \dontrun{
-  ## compute out-of-bag risk and predicitons for leaving-one-curve-out cross-validation
+  ## compute out-of-bag risk and predictions for leaving-one-curve-out cross-validation
   cvr_jackknife <- validateFDboost(mod, folds = cvLong(unique(mod$id),
                                    type = "curves"), grid = 1:75)
   plot(cvr_jackknife)

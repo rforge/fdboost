@@ -249,6 +249,7 @@ predict.FDboost <- function(object, newdata = NULL, which = NULL, toFDboost = TR
       #if(!is.list(newdata)) newdata <- list(newdata)
       for(i in c(posBsignal, posBconc, posBhist)){ 
         xname <- object$baselearner[[i]]$get_names()[1] 
+        indname <- attr(object$baselearner[[i]]$get_data()[[xname]], "indname")  # does not work for %X% 
         ## if two ore more base-learners are connected by %X%, find the functional variable 
         if(grepl("%X", names(object$baselearner)[i])){
           form <- strsplit(object$baselearner[[i]]$get_call(), "%X")[[1]]
@@ -256,9 +257,14 @@ predict.FDboost <- function(object, newdata = NULL, which = NULL, toFDboost = TR
           form <- form[findFun]
           if(sum(findFun)!=1){stop("Can only predict effect of one functional effect in %X% or %Xc%.")}
           xname <- object$baselearner[[i]]$get_names()[findFun][1]
+          fun_call <- strsplit(names(object$baselearner)[[i]], "%.{1,3}%")[[1]][findFun]
+          if(substr(fun_call,1,1) == "\"") fun_call <- substr(fun_call, 2, nchar(fun_call)-1)
+          fun_call <- gsub(pattern = "\\\"", replacement = "", x = fun_call, fixed=TRUE)
+          fun_call <- gsub(pattern = "\\", replacement = "", x = fun_call, fixed=TRUE)
+          indname <- all.vars(formula(paste("Y~", fun_call)))[3] # variabes are Y, x, s, (time)
         }
-        # print(xname)
-        indname <- attr(object$baselearner[[i]]$get_data()[[xname]], "indname") 
+        # print(xname); print(indname)
+
         #indname_all <- c(indname_all, indname)
         if(i %in% c(posBhist, posBconc)){
           indnameY <- attr(object$baselearner[[i]]$get_data()[[xname]], "indnameY")
