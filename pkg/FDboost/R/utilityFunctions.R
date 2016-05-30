@@ -1120,7 +1120,7 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
     for(j in 1:length(nhm)){
       
       ## check that idvars == idvars[[1]] and match id-variables in all hmatrix-objects
-      if(!is.null(idvars) && !(all.equal(getId(data[[nhm[j]]]), data[[idvars[1]]]) == "TRUE")) 
+      if(!is.null(idvars) && !(all.equal(c(getId(data[[nhm[j]]])), c(data[[idvars[1]]])) == "TRUE")) 
         stop("id variable in hmatrix object must be equal to idvars")
       
       ## number columns of X-matrix in hmatrix-object
