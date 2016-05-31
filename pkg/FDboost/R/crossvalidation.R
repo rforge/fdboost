@@ -164,7 +164,7 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
 
       ## get data according to oobweights
       if(any(class(object) == "FDboostLong")){
-        dathelp$lengthTi1 <- lengthTi1
+        dathelp$lengthTi1 <- c(lengthTi1)
         dat_oobweights <- reweightData(data = dathelp, vars = c(names_variables, "lengthTi1"),  
                                        longvars = c(object$yname, nameyind, "integration_weights"),  
                                        weights = oobweights, idvars = attr(object$id, "nameid"))
@@ -204,7 +204,7 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
         }else{
           # compute integration weights for standardizing risk 
           oobwstand <- dat_oobweights$lengthTi1[dat_oobweights[[attr(object$id, "nameid")]]] * 
-            dat_oobweights$integration_weights * (1/sum(dat_oobweights$integration_weights))
+            dat_oobweights$integration_weights * (1/sum(oobweights))
         }
         
         # compute risk with integration weights like in FDboost::validateFDboost
