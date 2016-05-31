@@ -1178,9 +1178,23 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
     #### create new id variable 1, 2, 3, ... that can be used for FDboost()
     if(is.null(idvars_new)){
       temp_idvars <- data[[idvars[1]]][index_long] # compute new id-variable
-      idvars_new <- c(factor(temp_idvars))
+      
+      ## gives equal numbers to repetitions of the same observation
+      ## idvars_new <- c(factor(temp_idvars))
+      
+      ## @David: hack to change the id, what is about the id in hmatrix?
+      ## gives different numbers to repetitions of the same observation
+      my_index_long <- index_long 
+      my_temp_idvars <- temp_idvars
+      i <- 1
+      # add 0.1^1 to duplicates, 0.1^1 + 0.1^2 = 0.11 to triplicates, ...
+      while(any(duplicated(my_index_long))){ # loop until no more duplicates in the data  
+        my_temp_idvars[duplicated(my_index_long)] <- my_temp_idvars[duplicated(my_index_long)] + 0.1^i
+        my_index_long[duplicated(my_index_long)] <- my_index_long[duplicated(my_index_long)] + 0.1^i
+        i <- i + 1
+      }
+      idvars_new <- c(factor(my_temp_idvars))
     } 
-
   }
   
   ## compute idvars_new in hmatrix-part or in longvars part, but add to data here 

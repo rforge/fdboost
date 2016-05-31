@@ -9,9 +9,9 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
                        mc.preschedule = FALSE, showProgress = TRUE, 
                        ...) {
   
-  if(any(class(object) == "FDboostLong")){
-    stop("applyFolds() not yet implemented for FDboostlong.")
-  }
+  #if(any(class(object) == "FDboostLong")){
+  #  stop("applyFolds() not yet implemented for FDboostlong.")
+  #}
   
   if (is.null(folds)) {
     stop("Specify folds.")
@@ -63,7 +63,7 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
   
   ### get yind in long format
   yindLong <- object$yind
-  if(!any(class(object)=="FDboostLong")){
+  if(!any(class(object) == "FDboostLong")){
     yindLong <- rep(object$yind, each=object$ydim[1])
   }
   ### compute ("length of each trajectory")^-1 in the response
@@ -161,13 +161,17 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
         stopifnot(is.function(riskFun))
         riskfct <- riskFun 
       }
-      
+
       ## get data according to oobweights
       if(any(class(object) == "FDboostLong")){
-        dat_oobweights <- reweightData(data = dathelp, vars = names_variables, 
+        dathelp$lengthTi1 <- lengthTi1
+        dat_oobweights <- reweightData(data = dathelp, vars = c(names_variables, "lengthTi1"),  
                                        longvars = c(object$yname, nameyind, "integration_weights"),  
                                        weights = oobweights, idvars = attr(object$id, "nameid"))
-        for(v in names_variables){
+        ## funplot(dat_oobweights[[nameyind]], dat_oobweights[[object$yname]], 
+        ##         id = dat_oobweights[[attr(object$id, "nameid")]])
+        
+        for(v in names_variables){  ## blow up covariates by id so that data can be used with predict()
           if(!is.null(dim(dat_oobweights[[v]]))){
             dat_oobweights[[v]] <- dat_oobweights[[v]][dat_oobweights[[attr(object$id, "nameid")]], ]
           }else{
@@ -193,23 +197,35 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
       #                                                 predict(mod[g], newdata = dat_oobweights, toFDboost = FALSE), 
       #                                                 w = integration_weights_oob)} ) / sum(oobweights[object$id])
       
-      if(numInt == "equal"){ # oobweights for i=1, ..., N
-        oobwstand <- oobweights[object$id]*(1/sum(oobweights[object$id]))
-      }else{
-        # compute integration weights for standardizing risk 
-        oobwstand <- lengthTi1[object$id]*oobweights[object$id]*integration_weights*(1/sum(oobweights))
-      }
-      
       if(any(class(object) == "FDboostLong")){
+        
+        if(numInt == "equal"){ 
+          oobwstand <- dat_oobweights$integration_weights * (1/sum(dat_oobweights$integration_weights))
+        }else{
+          # compute integration weights for standardizing risk 
+          oobwstand <- dat_oobweights$lengthTi1[dat_oobweights[[attr(object$id, "nameid")]]] * 
+            dat_oobweights$integration_weights * (1/sum(dat_oobweights$integration_weights))
+        }
+        
         # compute risk with integration weights like in FDboost::validateFDboost
         risk <- sapply(grid, function(g){riskfct( response_oobweights, 
                                                   predict(mod[g], newdata = dat_oobweights, toFDboost = FALSE), 
-                                                  w = oobwstand[oobweights[object$id] != 0 ])})
+                                                  w = oobwstand )}) ## oobwstand[oobweights[object$id] != 0 ]
+        
       }else{
+        
+        if(numInt == "equal"){ # oobweights for i = 1, ..., N
+          oobwstand <- oobweights[object$id]*(1/sum(oobweights[object$id]))
+        }else{
+          # compute integration weights for standardizing risk 
+          oobwstand <- lengthTi1[object$id]*oobweights[object$id]*integration_weights*(1/sum(oobweights))
+        }
+        
         # compute risk with integration weights like in FDboost::validateFDboost
         risk <- sapply(grid, function(g){riskfct( response_oobweights, 
                                                   predict(mod[g], newdata = dat_oobweights, toFDboost = FALSE), 
                                                   w = oobwstand[oobweights != 0 ])})
+        
       }
 
       if(showProgress) cat(".")
