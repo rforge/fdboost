@@ -11,9 +11,10 @@
 
 \method{print}{validateFDboost}(x, ...)
 
-\method{plot}{validateFDboost}(x, riskopt = c("mean", "median"), which = 1,
-  modObject = NULL, predictNA = FALSE, names.arg = NULL, ask = TRUE,
-  ...)
+\method{plot}{validateFDboost}(x, riskopt = c("mean", "median"),
+  ylab = attr(x, "risk"), xlab = "Number of boosting iterations",
+  ylim = range(x$oobrisk), which = 1, modObject = NULL,
+  predictNA = FALSE, names.arg = NULL, ask = TRUE, ...)
 
 plotPredCoef(x, which = NULL, pers = TRUE, commonRange = TRUE,
   showNumbers = FALSE, showQuantiles = TRUE, ask = TRUE, terms = TRUE,
@@ -28,6 +29,12 @@ defaults to the mean, can be changed to the median.}
 \item{...}{additional arguments passed to callies.}
 
 \item{x}{an object of class\code{validateFDboost}.}
+
+\item{ylab}{label for y-axis}
+
+\item{xlab}{label for x-axis}
+
+\item{ylim}{values for limits of y-axis}
 
 \item{which}{In the case of \code{plotPredCoef} the subset of base-learners to take into account for plotting.
 In the case of \code{plot.validateFDboost} the diagnostic plots that are given
@@ -57,8 +64,6 @@ predicted values of the whole model can be compared to the predictions of the cr
 
 \item{probs}{vector of quantiles to be used in the plotting of 2-dimensional coefficients surfaces,
 defaults to \code{probs=c(0.25, 0.5, 0.75)}}
-
-\item{ylim}{values for limits of y-axis}
 }
 \description{
 Methods for objects that are fitted to determine the optimal mstop and the

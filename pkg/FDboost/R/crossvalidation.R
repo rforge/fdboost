@@ -1164,6 +1164,8 @@ print.validateFDboost <- function(x, ...){
 #' @param terms logical, defaults to \code{TRUE}; plot the added terms (default) or the coefficients?
 #' @param probs vector of quantiles to be used in the plotting of 2-dimensional coefficients surfaces,
 #' defaults to \code{probs=c(0.25, 0.5, 0.75)}
+#' @param ylab label for y-axis
+#' @param xlab label for x-axis
 #' @param ylim values for limits of y-axis
 #' @param ... additional arguments passed to callies.
 #' 
@@ -1180,9 +1182,11 @@ print.validateFDboost <- function(x, ...){
 #' 
 #' @export
 plot.validateFDboost <- function(x, riskopt=c("mean", "median"), 
-                                 which=1, 
-                                 modObject=NULL, predictNA=FALSE, 
-                                 names.arg=NULL, ask=TRUE, ...){
+                                 ylab = attr(x, "risk"), xlab = "Number of boosting iterations",
+                                 ylim = range(x$oobrisk), 
+                                 which = 1, 
+                                 modObject = NULL, predictNA = FALSE, 
+                                 names.arg = NULL, ask=TRUE, ...){
   
   # get the optimal mstop
   riskopt <- match.arg(riskopt)
@@ -1194,28 +1198,41 @@ plot.validateFDboost <- function(x, riskopt=c("mean", "median"),
   
   if(1 %in% which){
     # Plot the cross validated risk
-    ylim <- c(min(x$oobrisk), quantile(x$oobrisk, 0.97))
-    matplot(colnames(x$oobrisk), t(x$oobrisk), type="l", col="grey", lty=1,
-            ylim=ylim, xlab="Number of boosting iterations", ylab="Squared Error",
+    ##ylim <- c(min(x$oobrisk), quantile(x$oobrisk, 0.97))
+    ## ylim <- c(min(x$oobrisk), max(x$oobrisk))
+    matplot(colnames(x$oobrisk), t(x$oobrisk), type="l", col="lightgrey", lty=1,
+            ylim=ylim, 
+            xlab=xlab, ylab=ylab,
             main=attr(x$folds, "type"), 
             sub=attr(mopt, "risk"))
     
-    riskMean <- colMeans(x$oobrisk)
-    lines(colnames(x$oobrisk), riskMean, lty=1)
-    mOptMean <- x$grid[which.min(riskMean)]
-    lines(c(mOptMean, mOptMean), 
-          c(min(c(0, ylim[1] * ifelse(ylim[1] < 0, 2, 0.5))), 
-            riskMean[paste(mOptMean)]), lty = 1)
-    
-    riskMedian <- apply(x$oobrisk, 2, median) 
-    lines(colnames(x$oobrisk), riskMedian, lty=2)
-    mOptMedian <- x$grid[which.min(riskMedian)]
-    lines(c(mOptMedian, mOptMedian), 
-          c(min(c(0, ylim[1] * ifelse(ylim[1] < 0, 2, 0.5))), 
-            riskMedian[paste(mOptMedian)]), lty = 2)
-    
-    legend("topright", legend=paste(c(mOptMean, mOptMedian), c("(mean)","(median)")),
-           lty=c(1,2), col=c("black","black"))
+    if(riskopt == "mean"){
+      riskMean <- colMeans(x$oobrisk)
+      lines(colnames(x$oobrisk), riskMean, lty=1)
+      mOptMean <- x$grid[which.min(riskMean)]
+      lines(c(mOptMean, mOptMean), 
+            c(min(c(0, ylim[1] * ifelse(ylim[1] < 0, 2, 0.5))), 
+              riskMean[paste(mOptMean)]), lty = 2)
+      
+      #legend("topright", legend=paste(c(mOptMean, mOptMedian), c("(mean)","(median)")),
+      #       lty=c(1,2), col=c("black","black"))
+      
+      legend("topright", legend=paste(c(mOptMean)),
+             lty=c(2), col=c("black"))
+      
+    }
+
+    if(riskopt == "median"){
+      riskMedian <- apply(x$oobrisk, 2, median) 
+      lines(colnames(x$oobrisk), riskMedian, lty=1)
+      mOptMedian <- x$grid[which.min(riskMedian)]
+      lines(c(mOptMedian, mOptMedian), 
+            c(min(c(0, ylim[1] * ifelse(ylim[1] < 0, 2, 0.5))), 
+              riskMedian[paste(mOptMedian)]), lty = 2)
+      
+      legend("topright", legend=paste(c(mOptMedian)),
+             lty=c(2), col=c("black"))
+    }
     
     #mOptOverModels <- apply(x$oobrisk, 1, which.min)
     #abline(v=mOptOverModels, lty=3)
