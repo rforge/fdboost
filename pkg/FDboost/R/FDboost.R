@@ -455,6 +455,12 @@ FDboost <- function(formula,          ### response ~ xvars
     if(length(trmstrings) > 0){
       ## insert id at end of each base-learner
       trmstrings2 <- paste(substr(trmstrings, 1 , nchar(trmstrings)-1), ", index=", id[2],")", sep = "")
+      ## check if number of opening brackets is equal to number of closing brackets
+      equalBrackets <- sapply(1:length(trmstrings2), function(i)
+        {
+        sapply(regmatches(trmstrings2[i], gregexpr("\\(", trmstrings2[i])), length) ==
+          sapply(regmatches(trmstrings2[i], gregexpr("\\)", trmstrings2[i])), length)
+      })
       ## insert into the other base-learners of the tensor-product as well
       for(i in 1:length(trmstrings)){
         if(grepl( "%X", trmstrings2[i])){
@@ -475,9 +481,12 @@ FDboost <- function(formula,          ### response ~ xvars
         if( grepl("%A%", trmstrings[i]) ) trmstrings2[i] <- trmstrings[i]
         if( grepl("%A0%", trmstrings[i]) ) trmstrings2[i] <- trmstrings[i]
         if( grepl("%O%", trmstrings[i]) ) trmstrings2[i] <- trmstrings[i]
-        ##  do not add an index for base-learner that do not have brackets
-        if( ! grepl("\\(", trmstrings[i]) ) trmstrings2[i] <- trmstrings[i]
-        
+        # ##  do not add an index for base-learner that do not have brackets
+        # if( !grepl("\\(", trmstrings[i]) ){ 
+        #   trmstrings2[i] <- trmstrings[i]
+        #   trmWoBracket <- c(trmWoBracket, i)
+        # }
+        if( i %in% which(!equalBrackets) ) trmstrings2[i] <- trmstrings[i]
       }
       trmstrings <- trmstrings2
     } 
@@ -724,7 +733,12 @@ FDboost <- function(formula,          ### response ~ xvars
   }else{
     # expand the bl according to id
     if(grepl("ONEx", xfm[[1]])) xfm[[1]] <- paste(substr(xfm[[1]], 1 , nchar(xfm[[1]])-1), ", index=", nameid, ")", sep = "")
-    xfm <- paste(substr(xfm, 1 , nchar(xfm)-1), ")", sep = "") # , index=id is done in the beginning
+    # do not expand for terms without brackets, which is equal to having an unequal number of brackets
+    # in the generation part of trmstrings
+    xfmTemp <- paste(substr(xfm[which(equalBrackets) + grepl("ONEx", xfm[[1]])], 1 , 
+                        nchar(xfm[which(equalBrackets) + grepl("ONEx", xfm[[1]])])-1), ")", sep = "") # , index=id is done in the beginning
+    xfm[which(equalBrackets) + grepl("ONEx", xfm[[1]])] <- xfmTemp
+    rm(xfmTemp)
     tmp <- outer(xfm, tfm, function(x, y) paste(x, y, sep = "%X%"))
     ## <FIXME> use the following specification for irregular response -> adapt coef() and plot()-function 
     ## if(grepl("ONEx", tmp[[1]])) tmp[[1]] <- tfm ## smooth intercept is just time-formula
@@ -750,7 +764,7 @@ FDboost <- function(formula,          ### response ~ xvars
   if(length(where.c) > 0){
     tmp[where.c] <- outer(xfm[where.c], cfm, function(x, y) paste(x, y, sep = "%O%"))
   } 
-  
+
   ## for scalar response without FLAM-model do not use the Kronecker product
   if(scalarNoFLAM){
     tmp <- xfm
