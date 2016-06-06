@@ -1147,15 +1147,17 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
       resMat <- resMat[,-3]
       resMat[,2] <- c(factor(resMat[,2])) # get id variable with values 1, 2, 3, ...
       tempId <- (1:length(unique(resMat[,2])))[factor(resMat[,2])] # correct ordering 
-      newHatmats[[j]] <- I(hmatrix(time = resMat[,1], 
+      newHatmats[[j]] <- hmatrix(time = resMat[,1], 
                                  id = tempId, 
                                  x = attrTemp$x[unique(index), , drop=FALSE], 
                                  argvals = attrTemp$argvals, 
                                  timeLab = attrTemp$timeLab, 
                                  idLab = attrTemp$idLab, 
                                  xLab = attrTemp$xLab, 
-                                 argvalsLab = attrTemp$argvalsLab))
-      ## @David: use I(hmatrix) instead of hmatrix; is that ok with your methods?
+                                 argvalsLab = attrTemp$argvalsLab)
+      if( any(class(data[[nhm[j]]]) == "AsIs") ){
+        newHatmats[[j]] <- I(newHatmats[[j]])
+      }
     }
     names(newHatmats) <- nhm
     

@@ -268,7 +268,11 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
   
   ## if any errors occured remove results and issue a warning
   if (any(idx <- sapply(oobrisk, is.character))) {
-    if(sum(idx) == length(idx)) stop("All folds encountered an error.")
+    if(sum(idx) == length(idx)){
+      stop("All folds encountered an error.\n",
+           "Original error message(s):\n",
+           sapply(oobrisk[idx], function(x) x))
+    } 
     warning(sum(idx), " fold(s) encountered an error. ",
             "Results are based on ", ncol(folds) - sum(idx),
             " folds only.\n",
