@@ -471,6 +471,13 @@ FDboost <- function(formula,          ### response ~ xvars
         if( grepl("bhistx", trmstrings[i]) ) trmstrings2[i] <- trmstrings[i] 
         ##  do not add an index if an index is already part of the formula
         if( grepl("index[[:blank:]]*=", trmstrings[i]) ) trmstrings2[i] <- trmstrings[i]
+        ##  do not add an index if an index for %A%, %A0%, %O%
+        if( grepl("%A%", trmstrings[i]) ) trmstrings2[i] <- trmstrings[i]
+        if( grepl("%A0%", trmstrings[i]) ) trmstrings2[i] <- trmstrings[i]
+        if( grepl("%O%", trmstrings[i]) ) trmstrings2[i] <- trmstrings[i]
+        ##  do not add an index for base-learner that do not have brackets
+        if( ! grepl("\\(", trmstrings[i]) ) trmstrings2[i] <- trmstrings[i]
+        
       }
       trmstrings <- trmstrings2
     } 
