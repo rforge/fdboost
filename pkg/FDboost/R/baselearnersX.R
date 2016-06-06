@@ -448,6 +448,7 @@ X_histx <- function(mf, vary, args) {
 #' nygrid <- 35
 #' data1 <- pffrSim(scenario = c("int", "ff"), limits = function(s,t){ s <= t }, 
 #'                 n = n, nygrid = nygrid)
+#' data1$X1 <- scale(data1$X1, scale = FALSE) ## center functional covariate                  
 #' dataList <- as.list(data1)
 #' dataList$tvals <- attr(data1, "yindex")
 #'
@@ -476,6 +477,8 @@ X_histx <- function(mf, vary, args) {
 #'   cv <- cvrisk(mod, folds = cv(model.weights(mod), B = 5))
 #'   mstop(cv)
 #'   mod[mstop(cv)]
+#'   
+#'   appl1 <- applyFolds(mod, folds = cv(rep(1, length(unique(mod$id))), type = "bootstrap", B = 5))
 #'
 #'  # plot(mod)
 #' }

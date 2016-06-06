@@ -1147,15 +1147,15 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
       resMat <- resMat[,-3]
       resMat[,2] <- c(factor(resMat[,2])) # get id variable with values 1, 2, 3, ...
       tempId <- (1:length(unique(resMat[,2])))[factor(resMat[,2])] # correct ordering 
-      newHatmats[[j]] <- hmatrix(time = resMat[,1], 
+      newHatmats[[j]] <- I(hmatrix(time = resMat[,1], 
                                  id = tempId, 
                                  x = attrTemp$x[unique(index), , drop=FALSE], 
                                  argvals = attrTemp$argvals, 
                                  timeLab = attrTemp$timeLab, 
                                  idLab = attrTemp$idLab, 
                                  xLab = attrTemp$xLab, 
-                                 argvalsLab = attrTemp$argvalsLab)
-      
+                                 argvalsLab = attrTemp$argvalsLab))
+      ## @David: use I(hmatrix) instead of hmatrix; is that ok with your methods?
     }
     names(newHatmats) <- nhm
     
@@ -1176,25 +1176,35 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
     temp_long <- lapply(longvars, function(nameWithoutDim) data[[nameWithoutDim]][index_long])
     
     #### create new id variable 1, 2, 3, ... that can be used for FDboost()
-    if(is.null(idvars_new)){
-      temp_idvars <- data[[idvars[1]]][index_long] # compute new id-variable
-      
-      ## gives equal numbers to repetitions of the same observation
-      ## idvars_new <- c(factor(temp_idvars))
-      
-      ## @David: hack to change the id, what is about the id in hmatrix?
-      ## gives different numbers to repetitions of the same observation
-      my_index_long <- index_long 
-      my_temp_idvars <- temp_idvars
-      i <- 1
-      # add 0.1^1 to duplicates, 0.1^1 + 0.1^2 = 0.11 to triplicates, ...
-      while(any(duplicated(my_index_long))){ # loop until no more duplicates in the data  
-        my_temp_idvars[duplicated(my_index_long)] <- my_temp_idvars[duplicated(my_index_long)] + 0.1^i
-        my_index_long[duplicated(my_index_long)] <- my_index_long[duplicated(my_index_long)] + 0.1^i
-        i <- i + 1
-      }
-      idvars_new <- c(factor(my_temp_idvars))
-    } 
+    #### always generate idvars_new, even though it exists already because of a hmatrix object 
+    idvars_new_hmatrix <- NULL
+    if(!is.null(idvars_new)){
+      idvars_new_hmatrix <- idvars_new
+    }
+    
+    temp_idvars <- data[[idvars[1]]][index_long] # compute new id-variable
+    
+    ## gives equal numbers to repetitions of the same observation
+    ## idvars_new <- c(factor(temp_idvars))
+    
+    ## @David: hack to change the id, what is about the id in hmatrix?
+    ## gives different numbers to repetitions of the same observation
+    my_index_long <- index_long 
+    my_temp_idvars <- temp_idvars
+    i <- 1
+    # add 0.1^1 to duplicates, 0.1^1 + 0.1^2 = 0.11 to triplicates, ...
+    while(any(duplicated(my_index_long))){ # loop until no more duplicates in the data  
+      my_temp_idvars[duplicated(my_index_long)] <- my_temp_idvars[duplicated(my_index_long)] + 0.1^i
+      my_index_long[duplicated(my_index_long)] <- my_index_long[duplicated(my_index_long)] + 0.1^i
+      i <- i + 1
+    }
+    idvars_new <- c(factor(my_temp_idvars))
+    ## check wheterh id variable of hmatrix-object and id variable of long variables are equal
+    if(!is.null(idvars_new_hmatrix)){
+      if(!all(idvars_new == idvars_new_hmatrix)) 
+        warning("id variable generated for long variables and id variable of hmatrix-object do not match. ",
+                "Sort the long variables and the hmatrix-object by the time variable.")
+    }
   }
   
   ## compute idvars_new in hmatrix-part or in longvars part, but add to data here 
