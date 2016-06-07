@@ -1068,12 +1068,30 @@ reweightData <- function(data, argvals, vars, longvars = NULL,
   dimd <- lapply(data, dim)
   isVec <- sapply(dimd, is.null)
   
-  if(length(vars) == 1 & sum(whichHmat) == 1) 
+  if(length(vars) == 1 && sum(whichHmat) == 1) 
     n <- nrow(attr(data[[vars]],"x")) else{
       
-      n <- NROW(data[[vars[!whichHmat][1]]])
+      if(length(whichHmat) == 0){ 
+        
+        if(is.null(vars)){
+          
+          if(is.null(idvars)) stop("idvars must be given if vars is NULL.")
+          n <- n_variables <- length(unique(data[[idvars[1]]]))
+          
+        }else{
+          
+          n <- length(data[[vars[[1]]]])
+          n_variables <- sapply(data[vars], NROW)
+          
+        }
+        
+        }else{
       
-      n_variables <- sapply(data[vars][!whichHmat], function(x) NROW(x) )
+          n <- NROW(data[[vars[!whichHmat][1]]])
+          n_variables <- sapply(data[vars][!whichHmat], NROW)
+      
+      }
+      
       if(any(n_variables[1] != n_variables)) stop("variables imply different number of rows.")
       
     }
