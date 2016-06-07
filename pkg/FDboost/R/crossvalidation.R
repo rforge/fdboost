@@ -114,6 +114,7 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
     
     ## get data according to weights
     if(any(class(object) == "FDboostLong")){
+      if(identical(names_variables, character(0))) names_variables <- NULL
       dat_weights <- reweightData(data = dathelp, vars = names_variables, 
                                   longvars = c(object$yname, nameyind, "integration_weights"),  
                                   weights = weights, idvars = attr(object$id, "nameid"))
