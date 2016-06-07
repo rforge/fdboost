@@ -452,6 +452,7 @@ FDboost <- function(formula,          ### response ~ xvars
     stopifnot(class(id) == "formula")
     tf <- terms.formula(formula, specials = c("c"))
     trmstrings <- attr(tf, "term.labels")
+    equalBrackets <- NULL
     if(length(trmstrings) > 0){
       ## insert id at end of each base-learner
       trmstrings2 <- paste(substr(trmstrings, 1 , nchar(trmstrings)-1), ", index=", id[2],")", sep = "")
@@ -735,9 +736,14 @@ FDboost <- function(formula,          ### response ~ xvars
     if(grepl("ONEx", xfm[[1]])) xfm[[1]] <- paste(substr(xfm[[1]], 1 , nchar(xfm[[1]])-1), ", index=", nameid, ")", sep = "")
     # do not expand for terms without brackets, which is equal to having an unequal number of brackets
     # in the generation part of trmstrings
-    xfmTemp <- paste(substr(xfm[which(equalBrackets) + grepl("ONEx", xfm[[1]])], 1 , 
-                        nchar(xfm[which(equalBrackets) + grepl("ONEx", xfm[[1]])])-1), ")", sep = "") # , index=id is done in the beginning
-    xfm[which(equalBrackets) + grepl("ONEx", xfm[[1]])] <- xfmTemp
+    if(is.null(equalBrackets)){ # for intercept models y ~ 1
+      which_equalBrackets <- 0
+    } else{
+      which_equalBrackets <- which(equalBrackets)
+    }
+    xfmTemp <- paste(substr(xfm[which_equalBrackets + grepl("ONEx", xfm[[1]])], 1 , 
+                        nchar(xfm[which_equalBrackets + grepl("ONEx", xfm[[1]])])-1), ")", sep = "") # , index=id is done in the beginning
+    xfm[which_equalBrackets + grepl("ONEx", xfm[[1]])] <- xfmTemp
     rm(xfmTemp)
     tmp <- outer(xfm, tfm, function(x, y) paste(x, y, sep = "%X%"))
     ## <FIXME> use the following specification for irregular response -> adapt coef() and plot()-function 

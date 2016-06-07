@@ -984,8 +984,12 @@ validateFDboost <- function(object, response = NULL,
     timeHelp <- seq(min(modRisk[[1]]$mod$yind), max(modRisk[[1]]$mod$yind), l = 40)
     for(l in 1:length(modRisk[[1]]$mod$baselearner)){
       # estimate the coefficients for the model of the first fold
-      coefCV[[l]] <- coef(modRisk[[1]]$mod[optimalMstop], 
-                          which=l, n1 = 40, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]
+      my_coef <- coef(modRisk[[1]]$mod[optimalMstop], 
+           which=l, n1 = 40, n2 = 20, n3 = 15, n4 = 10)$smterms[[1]]
+      if(is.null(my_coef)){
+        my_coef <- list(0)
+      }
+      coefCV[[l]] <- my_coef
       #       if(l==1){
       #         coefCV[[l]]$offset <- matrix(ncol=40, nrow=length(modRisk))
       #         coefCV[[l]]$offset[1,] <- modRisk[[1]]$mod$predictOffset(time=timeHelp)

@@ -28,8 +28,8 @@ bfpc(x, s, index = NULL, df = 4, lambda = NULL, pve = 0.99,
 \item{x}{matrix of functional variable x(s). The functional covariate has to be
 supplied as n by <no. of evaluations> matrix, i.e. each row is one functional observation.}
 
-\item{s}{vector for the index of the functional variable x(s) giving
-measurement points.}
+\item{s}{vector for the index of the functional variable x(s) giving the
+measurement points of the functional covariate.}
 
 \item{index}{a vector of integers for expanding the signal variable in \code{x}
 For example, \code{bsignal(X, s, index = index)} is equal to \code{bsignal(X[index,], s)},
@@ -82,7 +82,7 @@ for linear functional effect using \code{bsignal} and
 based on Brockhaus et al. (2016) for historical effects using \code{bhist}}
 
 \item{time}{vector for the index of the functional response y(time)
-giving the measurement points.}
+giving the measurement points of the functional response.}
 
 \item{limits}{defaults to \code{"s<=t"} for an historical effect with s<=t;
 either one of \code{"s<t"} or \code{"s<=t"} for [l(t), u(t)] = [T1, t];
@@ -101,11 +101,11 @@ over the functional covariate \eqn{x(s)}}
 \item{inTime}{historical effect can be smooth, linear or constant in time,
 which is the index of the functional response y(time).}
 
-\item{pve}{proportion of variance explained: used to choose the number of principal components.}
+\item{pve}{proportion of variance explained: used to choose the number of functional principal components (FPCs).}
 
-\item{npc}{prespecified value for the number of principal components (if given, this overrides \code{pve}).}
+\item{npc}{prespecified value for the number of FPCs (if given, this overrides \code{pve}).}
 
-\item{npc.max}{maximal number K of FPCs to use, regardless of decomppars; defaults to 15.}
+\item{npc.max}{maximal number K of FPCs to use, regardless of \code{decomppars}; defaults to 15.}
 
 \item{getEigen}{save the eigenvalues and eigenvectors, defaults to \code{TRUE}.}
 }
@@ -153,18 +153,22 @@ the same domain \eqn{s,t \in [T1, T2]}.
 The functional variable must be observed on one common grid \code{s},
 see Brockhaus et al. (2016) for details on historical effects.
 
-\code{bfpc} is a base-learner for functional covariates based on
-functional principal component analysis (FPCA). The functional covariate
+\code{bfpc} is a base-learner for a linear effect of functional covariates based on
+functional principal component analysis (FPCA).
+For the funcitonal linear effect \eqn{\int x_i(s)\beta(s)ds} the functional covariate
+and the coefficient function are represented by a FPC basis.
+The functional covariate
 \eqn{x(s)} is decomposed into \eqn{x(s) \approx \sum_{k=1}^K \xi_{ik} \Phi_k(s)} using
-\code{\link[refund]{fpca.sc}} and represents \eqn{\beta(s)} in the function
+\code{\link[refund]{fpca.sc}} for the truncated Karhunen-Loeve decomposition.
+Then \eqn{\beta(s)} is represented in the function
 space spanned by \eqn{\Phi_k(s)}, see Scheipl et al. (2015) for details.
 The implementation is similar to \code{\link[refund]{ffpc}}.
 This is an experimental base-learner and not well tested yet.
 
 It is recommended to use centered functional covariates with
 \eqn{\sum_i x_i(s) = 0} for all \eqn{s} in \code{bsignal}-,
-\code{bhist}- and \code{bconcurrent}-terms
-so that the effects are centered per time-point of the response.
+\code{bhist}- and \code{bconcurrent}-terms.
+For centered covariates, the effects are centered per time-point of the response.
 If all effects are centered, the functional intercept
 can be interpreted as the global mean function.
 
