@@ -95,6 +95,7 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
   if(!any(class(object) == "FDboostLong")){
     dathelp[[object$yname]] <- matrix(object$response, ncol=object$ydim[2])
     dathelp$integration_weights <- matrix(integration_weights, ncol=object$ydim[2])
+    dathelp$object_id <- object$id
   }else{
     dathelp[[object$yname]] <- object$response
     dathelp$integration_weights <- integration_weights
@@ -108,19 +109,27 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
   names_variables <- names_variables[names_variables != "ONEtime"]
   if(!any(class(object) == "FDboostLong")) names_variables <- c(object$yname, "integration_weights", names_variables)
   
+  length_variables <- lapply(dathelp[names_variables], NROW)
+  names_variables_long <- names_variables[ length_variables == length(object$id) ]
+  nothmatrix <- ! sapply(dathelp[names_variables_long], function(x) any(class(x) == "hmatrix" ))
+  names_variables_long <- names_variables_long[ nothmatrix ]
+  if(identical(names_variables_long, character(0))) names_variables_long <- NULL
+  
+  names_variables <- names_variables[! names_variables %in% names_variables_long ]
+  if(identical(names_variables, character(0))) names_variables <- NULL
   
   ## fitfct <- object$update
   fitfct <- function(weights, oobweights){
     
     ## get data according to weights
     if(any(class(object) == "FDboostLong")){
-      if(identical(names_variables, character(0))) names_variables <- NULL
       dat_weights <- reweightData(data = dathelp, vars = names_variables, 
-                                  longvars = c(object$yname, nameyind, "integration_weights"),  
+                                  longvars = c(object$yname, nameyind, "integration_weights", names_variables_long),  
                                   weights = weights, idvars = attr(object$id, "nameid"))
     }else{
       dat_weights <- reweightData(data = dathelp, vars = names_variables, 
-                                  weights = weights)
+                                  longvars = names_variables_long, 
+                                  weights = weights, idvars = "object_id")
     }
 
     
@@ -167,7 +176,7 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
       if(any(class(object) == "FDboostLong")){
         dathelp$lengthTi1 <- c(lengthTi1)
         dat_oobweights <- reweightData(data = dathelp, vars = c(names_variables, "lengthTi1"),  
-                                       longvars = c(object$yname, nameyind, "integration_weights"),  
+                                       longvars = c(object$yname, nameyind, "integration_weights", names_variables_long),  
                                        weights = oobweights, idvars = attr(object$id, "nameid"))
         ## funplot(dat_oobweights[[nameyind]], dat_oobweights[[object$yname]], 
         ##         id = dat_oobweights[[attr(object$id, "nameid")]])
@@ -183,7 +192,8 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
         
       }else{
         dat_oobweights <- reweightData(data = dathelp, vars = names_variables, 
-                                       weights = oobweights)
+                                       longvars = names_variables_long,
+                                       weights = oobweights, idvars = "object_id")
       }
       
       response_oobweights <- c(dat_oobweights[[object$yname]])
@@ -198,6 +208,13 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
       #                                                 predict(mod[g], newdata = dat_oobweights, toFDboost = FALSE), 
       #                                                 w = integration_weights_oob)} ) / sum(oobweights[object$id])
       
+      
+      # Function to suppress the warning of extrapolation in bbs / bbsc 
+      h2 <- function(w){
+        if( any( grepl( "Linear extrapolation used.", w) ) ) 
+          invokeRestart( "muffleWarning" )  
+      }
+      
       if(any(class(object) == "FDboostLong")){
         
         if(numInt == "equal"){ 
@@ -210,7 +227,7 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
         
         # compute risk with integration weights like in FDboost::validateFDboost
         risk <- sapply(grid, function(g){riskfct( response_oobweights, 
-                                                  predict(mod[g], newdata = dat_oobweights, toFDboost = FALSE), 
+                                                  withCallingHandlers(predict(mod[g], newdata = dat_oobweights, toFDboost = FALSE), warning = h2), 
                                                   w = oobwstand )}) ## oobwstand[oobweights[object$id] != 0 ]
         
       }else{
@@ -224,7 +241,7 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
         
         # compute risk with integration weights like in FDboost::validateFDboost
         risk <- sapply(grid, function(g){riskfct( response_oobweights, 
-                                                  predict(mod[g], newdata = dat_oobweights, toFDboost = FALSE), 
+                                                  withCallingHandlers(predict(mod[g], newdata = dat_oobweights, toFDboost = FALSE), warning = h2), 
                                                   w = oobwstand[oobweights != 0 ])})
         
       }
@@ -637,8 +654,6 @@ validateFDboost <- function(object, response = NULL,
     }
     
     ########################################################################
-    #browser()
-    
     ### in this version the data are generated explicitely -> Z is computed differently 
     if(FALSE){
       
@@ -1039,7 +1054,6 @@ validateFDboost <- function(object, response = NULL,
     
     ### predictions of terms based on the coefficients for each model
     # only makes sense for type="curves" with leaving-out one curve per fold!!
-    #browser() 
     if(grepl("curves", type)){
       for(l in 1:(length(modRisk[[1]]$mod$baselearner)+1)){
         predCV[[l]] <- t(sapply(1:length(modRisk), function(g){
