@@ -1850,7 +1850,7 @@ X_bbsc <- function(mf, vary, args) {
                        boundary.knots = args$knots[[i]]$boundary.knots,
                        degree = args$degree, 
                        Ts_constraint = args$Ts_constraint,
-                       deriv = args$deriv, 
+                       deriv = args$deriv, extrapolation = args$prediction, 
                        fun = "bsplines")
     if (args$cyclic) {
       # X <- cbs(mf[[i]],
