@@ -446,23 +446,37 @@ FDboost <- function(formula,          ### response ~ xvars
   
   ### save formula of FDboost before it is changed
   formulaFDboost <- formula
+  
+  tf <- terms.formula(formula, specials = c("c"))
+  trmstrings <- attr(tf, "term.labels")
+  equalBrackets <- NULL
+  if(length(trmstrings) > 0){
+    ## insert id at end of each base-learner
+    trmstrings2 <- paste(substr(trmstrings, 1 , nchar(trmstrings)-1), ", index=", id[2],")", sep = "")
+    ## check if number of opening brackets is equal to number of closing brackets
+    equalBrackets <- sapply(1:length(trmstrings2), function(i)
+    {
+      sapply(regmatches(trmstrings2[i], gregexpr("\\(", trmstrings2[i])), length) ==
+        sapply(regmatches(trmstrings2[i], gregexpr("\\)", trmstrings2[i])), length)
+    })
+  }
 
   ## insert the id variable into the formula, to treat it like the other variables
   if(!is.null(id)){
     stopifnot(class(id) == "formula")
-    tf <- terms.formula(formula, specials = c("c"))
-    trmstrings <- attr(tf, "term.labels")
-    equalBrackets <- NULL
+    ##tf <- terms.formula(formula, specials = c("c"))
+    ##trmstrings <- attr(tf, "term.labels")
+    ##equalBrackets <- NULL
     if(length(trmstrings) > 0){
-      ## insert id at end of each base-learner
-      trmstrings2 <- paste(substr(trmstrings, 1 , nchar(trmstrings)-1), ", index=", id[2],")", sep = "")
-      ## check if number of opening brackets is equal to number of closing brackets
-      equalBrackets <- sapply(1:length(trmstrings2), function(i)
-        {
-        sapply(regmatches(trmstrings2[i], gregexpr("\\(", trmstrings2[i])), length) ==
-          sapply(regmatches(trmstrings2[i], gregexpr("\\)", trmstrings2[i])), length)
-      })
-      ## insert into the other base-learners of the tensor-product as well
+      #### insert index at end of each base-learner
+      ##trmstrings2 <- paste(substr(trmstrings, 1 , nchar(trmstrings)-1), ", index=", id[2],")", sep = "")
+      #### check if number of opening brackets is equal to number of closing brackets
+      ##equalBrackets <- sapply(1:length(trmstrings2), function(i)
+      ##  {
+      ##  sapply(regmatches(trmstrings2[i], gregexpr("\\(", trmstrings2[i])), length) ==
+      ##    sapply(regmatches(trmstrings2[i], gregexpr("\\)", trmstrings2[i])), length)
+      ##})
+      ## insert index into the other base-learners of the tensor-product as well
       for(i in 1:length(trmstrings)){
         if(grepl( "%X", trmstrings2[i])){
           temp <- unlist(strsplit(trmstrings2[i], "%X"))
@@ -592,8 +606,8 @@ FDboost <- function(formula,          ### response ~ xvars
         
   ### get covariates that are modeled constant over time
   # code of function pffr() of package refund
-  tf <- terms.formula(formula, specials = c("c"))
-  trmstrings <- attr(tf, "term.labels")
+  ##tf <- terms.formula(formula, specials = c("c"))
+  ##trmstrings <- attr(tf, "term.labels")
   terms <- sapply(trmstrings, function(trm) as.call(parse(text = trm))[[1]], simplify = FALSE) 
   #ugly, but getTerms(formula)[-1] does not work for terms like I(x1:x2) 
   frmlenv <- environment(formula)
@@ -653,35 +667,19 @@ FDboost <- function(formula,          ### response ~ xvars
   #   grep("bbsc", trmstrings) + grep("brandomc", trmstrings)
   
   
-  ### compose mboost formula
+  ##### compose mboost formula
 
   ## get formula over time
   tfm <- paste(deparse(timeformula), collapse = "")
   tfm <- strsplit(tfm, "~")[[1]]
   tfm <- strsplit(tfm[2], "\\+")[[1]]
   
+  ## get formula in covariates 
   cfm <- paste(deparse(formula), collapse = "") 
   cfm <- strsplit(cfm, "~")[[1]]
+  cfm0 <- cfm
   #xfm <- strsplit(cfm[2], "\\+")[[1]]
   xfm <- trmstrings
-  ### replace "1" with intercept base learner
-  if ( any( gsub(" ", "", strsplit(cfm[2], "\\+")[[1]]) ==  "1")){
-    ## if(length(time) == 1) warning("Smooth intercept may not be sensitive for scalar response.")
-    if( grepl("lambda", deparse(timeformula)) || 
-         ( grepl("bols", deparse(timeformula)) &  !grepl("df", deparse(timeformula))) ){
-      xfm <- c("bols(ONEx, intercept = FALSE, lambda = 0)", xfm)
-    } else{
-      xfm <- c("bols(ONEx, intercept = FALSE, df = 1)", xfm)
-    }
-    
-    ## for FLAM model with %O% use anisotropic Kronecker product for not penalizing in direction of ONEx
-    ## use %A0%, as smooth intercept has smooting parameter 0 in 1-direction 
-    if(is.null(id)){
-      xfm[[1]] <- paste(xfm[[1]], "%A0%", tfm)
-    }
-    
-    where.c <- where.c + 1
-  }
   
   ## check that the timevariable in timeformula and in the bhistx-base-learners have the same name
   if(any(grepl("bhistx", trmstrings))){
@@ -712,7 +710,7 @@ FDboost <- function(formula,          ### response ~ xvars
     }
   }
     
-  yfm <- strsplit(cfm[1], "\\+")[[1]]
+  yfm <- strsplit(cfm[1], "\\+")[[1]] ## name of response 
   
   ## set up formula for effects constant in time
   if(length(where.c) > 0){
@@ -732,8 +730,7 @@ FDboost <- function(formula,          ### response ~ xvars
   if(is.null(id)){
     tmp <- outer(xfm, tfm, function(x, y) paste(x, y, sep = "%O%"))
   }else{
-    # expand the bl according to id
-    if(grepl("ONEx", xfm[[1]])) xfm[[1]] <- paste(substr(xfm[[1]], 1 , nchar(xfm[[1]])-1), ", index=", nameid, ")", sep = "")
+    ## expand the bl according to id
     # do not expand for terms without brackets, which is equal to having an unequal number of brackets
     # in the generation part of trmstrings
     if(is.null(equalBrackets)){ # for intercept models y ~ 1
@@ -741,9 +738,9 @@ FDboost <- function(formula,          ### response ~ xvars
     } else{
       which_equalBrackets <- which(equalBrackets)
     }
-    xfmTemp <- paste(substr(xfm[which_equalBrackets + grepl("ONEx", xfm[[1]])], 1 , 
-                        nchar(xfm[which_equalBrackets + grepl("ONEx", xfm[[1]])])-1), ")", sep = "") # , index=id is done in the beginning
-    xfm[which_equalBrackets + grepl("ONEx", xfm[[1]])] <- xfmTemp
+    xfmTemp <- paste(substr(xfm[which_equalBrackets], 1 , 
+                        nchar(xfm[which_equalBrackets]) - 1 ), ")", sep = "") # , index=id is done in the beginning
+    xfm[which_equalBrackets] <- xfmTemp
     rm(xfmTemp)
     tmp <- outer(xfm, tfm, function(x, y) paste(x, y, sep = "%X%"))
     ## <FIXME> use the following specification for irregular response -> adapt coef() and plot()-function 
@@ -776,8 +773,76 @@ FDboost <- function(formula,          ### response ~ xvars
     tmp <- xfm
   } 
   
+
+  ####### find the number of df for each base-learner 
+  ## for a fair selection of bl the df must be equal in all bl
+  get_df <- function(bl){
+    split_bl <- unlist(strsplit(bl, split = "%.{1,3}%"))
+    all_df <- c()
+    for(i in 1:length(split_bl)){
+      parti <- parse(text = split_bl[i])[[1]] 
+      dfi <- as.call(parti)$df # df of part i in bl 
+      if(is.symbol(dfi)) dfi <- eval(dfi) 
+      lambdai <- as.call(parti)$lambda # if lambda is present, df is ignored 
+      if(is.null(lambdai)){
+        if(is.null(dfi)) dfi <- expand.call(definition = get(as.character(parti[[1]])), call = parti)$df
+        all_df[i] <- dfi 
+      }else{
+        all_df[i] <- NULL 
+      }
+    }
+    ret <- prod(all_df) # global df for bl is product of all df 
+    if( identical(ret, numeric(0)) ) ret <- NULL
+    return(ret)
+  }
   
-  ## put together the model formula 
+  #### get the specified df for each base-learner
+  ## <FIXME> does not take into account base-learners that do not have brackets
+  if(length(tmp) == 0){
+    bl_df <- NULL
+  }else{
+    bl_df <- vector("list", length(tmp))
+    bl_df[equalBrackets] <- lapply(tmp[equalBrackets], function(x) try(get_df(x)))
+    bl_df <- unlist(bl_df[equalBrackets & (!sapply(bl_df, class) %in% "try-error")])
+    
+    if( !is.null(bl_df) && any(abs(bl_df - bl_df[1]) > .Machine$double.eps * 10^10) ){
+      warning("The base-learners differ in the degrees of freedom.")
+    }
+    
+    if(!is.null(bl_df)){
+      df_timeformula <- get_df(tfm) 
+      df_effects <- min(bl_df)
+    }
+  }
+
+  ### replace "1" with intercept base learner
+  formula_intercept <- FALSE
+  if ( any( gsub(" ", "", strsplit(cfm0[2], "\\+")[[1]]) ==  "1")){
+    formula_intercept <- TRUE
+    ## use df or lambda as in timeformula 
+    if( grepl("lambda", deparse(timeformula)) || 
+        ( grepl("bols", deparse(timeformula)) &  !grepl("df", deparse(timeformula))) ){
+      tmp <- c("bols(ONEx, intercept = FALSE, lambda = 0)", tmp)
+    } else{
+      tmp <- c("bols(ONEx, intercept = FALSE, df = 1)", tmp)
+    }
+    
+    ## adjust the df in the timeformula
+    call_tfm <- as.call(parse(text = tfm)[[1]])
+    if(!is.null(bl_df)) call_tfm$df <- df_effects
+    ## <FIXME> is there are nicer way to get a string from the call 
+    tfm_df <- paste0(deparse(call_tfm), collapse = "")
+
+    ## for FLAM model with %O% use anisotropic Kronecker product for not penalizing in direction of ONEx
+    ## use %A0%, as smooth intercept has smooting parameter 0 in 1-direction 
+    if(is.null(id)){
+      if(!scalarNoFLAM) tmp[[1]] <- paste(tmp[[1]], "%A0%", tfm_df)
+    }else{ ## response in long format
+      tmp[[1]] <- tfm_df 
+    }
+  }
+
+  ####### put together the model formula 
   xpart <- paste(as.vector(tmp), collapse = " + ")
   fm <- as.formula(paste("dresponse ~ ", xpart))
   
