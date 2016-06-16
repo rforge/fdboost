@@ -118,6 +118,28 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
   names_variables <- names_variables[! names_variables %in% names_variables_long ]
   if(identical(names_variables, character(0))) names_variables <- NULL
   
+  ## check if data includes all variables
+  if(any(whMiss <- ! c(names_variables,
+             object$yname, 
+             nameyind, 
+             "integration_weights", 
+             names_variables_long) %in% names(dathelp))){
+    
+    # for each missing variable get the first baselearner, which contains the variable
+    blWithMissVars <- lapply(names_variables[whMiss], function(w) 
+      unlist(lapply(1:length(object$baselearner), function(i) if(
+        any( grepl(w, object$baselearner[[i]]$get_names() ) )) return(i))
+      )[1]
+      )
+
+    # add variable to dathelp
+    for(i in 1:length(names_variables[whMiss])){
+      dathelp[[names_variables[whMiss][i]]] <- 
+        object$baselearner[[blWithMissVars[[i]]]]$get_data()[[names_variables[whMiss][i]]]
+    }
+    
+  }
+  
   ## fitfct <- object$update
   fitfct <- function(weights, oobweights){
     
