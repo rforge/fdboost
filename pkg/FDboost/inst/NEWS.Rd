@@ -8,6 +8,11 @@
     \item add function applyFolds() to compute the optimal stopping iteration
     }
   }
+  \subsection{Bug-fixes}{
+    \itemize{
+    \item allow for extrapolation in predict() with bbsc()
+    }
+    }
 }
 
 \section{Changes in FDboost version 0.1-2 (2016-04-22)}{

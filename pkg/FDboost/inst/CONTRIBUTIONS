@@ -14,6 +14,6 @@ The package "FDboost" contains modified code from other R packages.
 		   %A%, %A0%, %Xc% (see R/constrainedX.R),
 		   stabsel (see R/stabsel.R)
 - gamboostLSS: FDboostLSS, FDboostLSS_fit, cvrisk.FDboostLSS (see R/FDboostLSS.R)
-- refund: check_ident, trace_lv, penalty_pss (see R/utilityFunctions.R)
+- refund: check_ident, trace_lv, penalty_pss, expand.call, safeDeparse (see R/utilityFunctions.R)
 
 
