@@ -1,14 +1,14 @@
 
 
 year <- 2016
-vers <- "0.1-2"
+vers <- "0.2-0"
 
 citHeader("To cite package 'FDboost' itself use:")
 
 citEntry(
  entry = "manual",
  title = "FDboost: Boosting Functional Regression Models",
- author = "Sarah Brockhaus",
+ author = "Sarah Brockhaus, David R\"ugamer",
  year = year,
  textVersion = paste("Brockhaus, S. ", "(", year, ")", "FDboost: Boosting Functional Regression Models",
                      "R package version", vers)

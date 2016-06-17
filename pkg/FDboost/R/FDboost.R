@@ -153,11 +153,13 @@
 #' allowing for model specifications with different effects in time-direction.  
 #' } 
 #'  
-#' In order to obtain a fair selection of base-learners, the same  degrees of freedom (df) 
-#' should be specified for all baselearners. It is recommended to use 
+#' In order to obtain a fair selection of base-learners, the same degrees of freedom (df) 
+#' should be specified for all baselearners. If the number of df differs among the base-learners, 
+#' the selection is biased towards more flexible base-learners with higher df as they are more 
+#' likely to yield larger improvements of the fit. It is recommended to use 
 #' a rather small number of df for all base-learners. 
 #' It is not possible to specify df larger than the rank of the design matrix.
-#' For base-learners with rank-deficient penalty it is not possible to specify df smaller than the 
+#' For base-learners with rank-deficient penalty, it is not possible to specify df smaller than the 
 #' rank of the null space of the penalty (e.g., in \code{bbs} unpenalized part of P-splines). 
 #' The df of the base-learners in an FDboost-object can be checked using \code{extract(object, "df")}, 
 #' see \code{\link[mboost]{extract}}.  
