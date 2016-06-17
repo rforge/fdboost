@@ -1867,8 +1867,30 @@ update.FDboost <- function(object, weights = NULL, oobweights = NULL, risk = NUL
     #    
     #     if(!is.null(object$id)) call$id <- ~id
     
+  }else{
+    
+    ### new data only possible if all base-learners have brackets and
+    ### no new formula was supplied
+    if(is.null(extras$formula)){
+      
+      ### check for brackets
+      singleBls <- gsub("\\s", "", unlist(lapply(strsplit(
+        strsplit(object$formulaFDboost, "~")[[1]][2], # split formula
+        "\\+")[[1]], # split additive terms
+        function(y) strsplit(y, split = "%.{1,3}%")) # split single baselearners
+      )) 
+      
+      singleBls <- singleBls[singleBls!="1"]
+      
+      if(any( !grepl("\\(",singleBls) )) 
+        stop(paste0("update can not deal with the following base-learner(s) without brackets: ", 
+                    paste(singleBls[!grepl("\\(",singleBls)], collapse=", "), ".\n",
+                    "Please build such base-learners within the FDboost call or ",  
+                    "update corresponding baselearner(s) manually and supply a new formula to the update function."))
+      
+    }
+    
   }
-  
   
   if (evaluate) eval(call, parent.frame()) else call
   

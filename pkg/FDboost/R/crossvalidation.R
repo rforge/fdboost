@@ -118,6 +118,19 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
   names_variables <- names_variables[! names_variables %in% names_variables_long ]
   if(identical(names_variables, character(0))) names_variables <- NULL
   
+  ## check if there is a baselearner without brackets
+  singleBls <- gsub("\\s", "", unlist(lapply(strsplit(
+    strsplit(object$formulaFDboost, "~")[[1]][2], # split formula
+                                      "\\+")[[1]], # split additive terms
+    function(y) strsplit(y, split = "%.{1,3}%")) # split single baselearners
+  )) 
+  
+  singleBls <- singleBls[singleBls!="1"]
+  
+  if(any( !grepl("\\(",singleBls) )) 
+    stop(paste0("applyFolds can not deal with the following base-learner(s) without brackets: ", 
+                paste(singleBls[!grepl("\\(",singleBls)], collapse=", ")))
+  
   ## check if data includes all variables
   if(any(whMiss <- ! c(names_variables,
              object$yname, 
@@ -132,11 +145,17 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
       )[1]
       )
 
-    # add variable to dathelp
-    for(i in 1:length(names_variables[whMiss])){
-      dathelp[[names_variables[whMiss][i]]] <- 
-        object$baselearner[[blWithMissVars[[i]]]]$get_data()[[names_variables[whMiss][i]]]
-    }
+    # # add variable to dathelp
+    # for(i in 1:length(names_variables[whMiss])){
+    #   thisVar <- names_variables[whMiss][i]
+    #   dathelp[[thisVar]] <- 
+    #     object$baselearner[[blWithMissVars[[i]]]]$get_data()[[thisVar]]
+    #   
+    #   }
+    
+    stop(paste0("base-learner(s) ", paste(unlist(list(1,2)),collapse=", "), 
+           " contain(s) variables, which are not part of the data object.")
+    )
     
   }
   
