@@ -3,7 +3,8 @@
 year <- 2016
 vers <- "0.2-0"
 
-citHeader("To cite package 'FDboost' itself use:")
+citHeader("To cite package 'FDboost' itself use the manual;  
+to cite functional linear array models use Brockhaus et al. (2015).")
 
 citEntry(
  entry = "manual",
@@ -14,7 +15,6 @@ citEntry(
                      "R package version", vers)
 )
 
-citHeader("To cite functional linear array models use:")
 
 citEntry(
  entry = "Article",
