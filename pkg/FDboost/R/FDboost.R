@@ -305,16 +305,15 @@
 #' mod2 <- FDboost(heatan ~ bsignal(UVVIS, uvvis.lambda, knots = 40, df = 4, check.ident = FALSE) 
 #'                + bsignal(NIR, nir.lambda, knots = 40, df = 4, check.ident = FALSE), 
 #'                timeformula = NULL, data = fuelSubset, control = boost_control(mstop = 200)) 
-#'     
-#' ## bootstrap to find optimal mstop takes some time
-#' ## set.seed(123)      
-#' ## folds2 <- cv(weights = model.weights(mod2), B = 10)     
-#' ## cvm2 <- cvrisk(mod2, folds = folds2, grid = 1:1000)
-#' ## mstop(cvm2)
-#' mod2[327]
-#'                
-#' summary(mod2) 
-#' ## plot(mod2)
+#' \dontrun{   
+#'   ## bootstrap to find optimal mstop takes some time
+#'   set.seed(123)      
+#'   folds2 <- cv(weights = model.weights(mod2), B = 10)     
+#'   cvm2 <- cvrisk(mod2, folds = folds2, grid = 1:1000)
+#'   mstop(cvm2) ## mod2[327]
+#'   summary(mod2) 
+#'   ## plot(mod2)
+#' }
 #' 
 #' ## Example for function-on-function-regression 
 #' if(require(fda)){
@@ -337,22 +336,23 @@
 #'                                   df = 3, boundary.knots = c(0.5, 12.5)), 
 #'                    offset = "scalar", offset_control = o_control(k_min = 5), 
 #'                   data = CanadianWeather) 
-#'                    
-#'  #### find the optimal mstop over 5-fold bootstrap 
-#'  ## using the function applyFolds 
-#'  set.seed(123)
-#'  folds3 <- cv(rep(1, length(unique(mod3$id))), B = 5)
-#'  appl3 <- applyFolds(mod3, folds = folds3)
 #'  
-#'  ## using the function cvrisk; be careful to do the resampling on the level of curves
-#'  ## set.seed(123)
-#'  ## folds3long <- cvLong(id = mod3$id, weights = model.weights(mod3), B = 5)
-#'  ## cvm3 <- cvrisk(mod3, folds = folds3long, grid = 1:500)
-#'  ## mstop(cvm3)
-#'  mod3[64]
+#'  \dontrun{                  
+#'    #### find the optimal mstop over 5-fold bootstrap 
+#'    ## using the function applyFolds 
+#'    set.seed(123)
+#'    folds3 <- cv(rep(1, length(unique(mod3$id))), B = 5)
+#'    appl3 <- applyFolds(mod3, folds = folds3)
+#'  
+#'    ## use function cvrisk; be careful to do the resampling on the level of curves
+#'    set.seed(123)
+#'    folds3long <- cvLong(id = mod3$id, weights = model.weights(mod3), B = 5)
+#'    cvm3 <- cvrisk(mod3, folds = folds3long, grid = 1:500)
+#'    mstop(cvm3) ## mod3[64]
 #'    
-#'  summary(mod3)
-#'  ## plot(mod3, pers = TRUE)
+#'    summary(mod3)
+#'    ## plot(mod3, pers = TRUE)
+#'  }
 #' }
 #' 
 #' ######## Example for functional response observed on irregular grid
@@ -390,16 +390,16 @@
 #' ## plotPredicted(mod4, lwdPred = 2)
 #' 
 #' \dontrun{
-#' ## Find optimal mstop, small grid/low B for a fast example
-#' set.seed(123)
-#' folds4 <- cv(rep(1, length(unique(mod4$id))), B = 3)
-#' appl4 <- applyFolds(mod4, folds = folds4, grid = 1:50)
-#' ## val4 <- validateFDboost(mod4, folds = folds4, grid = 1:50)
+#'   ## Find optimal mstop, small grid/low B for a fast example
+#'   set.seed(123)
+#'   folds4 <- cv(rep(1, length(unique(mod4$id))), B = 3)
+#'   appl4 <- applyFolds(mod4, folds = folds4, grid = 1:50)
+#'   ## val4 <- validateFDboost(mod4, folds = folds4, grid = 1:50)
 #' 
-#' set.seed(123)
-#' folds4long <- cvLong(id = mod4$id, weights = model.weights(mod4), B = 3)
-#' cvm4 <- cvrisk(mod4, folds = folds4long, grid = 1:50)
-#' mstop(cvm4)
+#'   set.seed(123)
+#'   folds4long <- cvLong(id = mod4$id, weights = model.weights(mod4), B = 3)
+#'   cvm4 <- cvrisk(mod4, folds = folds4long, grid = 1:50)
+#'   mstop(cvm4)
 #' }
 #' 
 #' ## Be careful if you want to predict newdata with irregular response,  

@@ -424,7 +424,6 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
 #' 
 #' @param ydim dimensions of response-matrix
 #' 
-#' 
 #' @details The number of boosting iterations is an important hyper-parameter of boosting  
 #' and can be chosen using the functions \code{applyFolds}, \code{cvrisk.FDboost} and 
 #' \code{validateFDboost} as they compute
@@ -541,21 +540,23 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
 #'                data = canada)
 #' mod <- mod[75]
 #' 
-#' #### create folds for 3-fold bootstrap: one weight for each curve
-#' set.seed(123)
-#' folds_bs <- cv(weights = rep(1, mod$ydim[1]), type = "bootstrap", B = 3)
+#' \dontrun{
+#'   #### create folds for 3-fold bootstrap: one weight for each curve
+#'   set.seed(123)
+#'   folds_bs <- cv(weights = rep(1, mod$ydim[1]), type = "bootstrap", B = 3)
 #' 
-#' ## compute out-of-bag risk on the 3 folds for 1 to 75 boosting iterations  
-#' cvr <- applyFolds(mod, folds = folds_bs, grid = 1:75)
+#'   ## compute out-of-bag risk on the 3 folds for 1 to 75 boosting iterations  
+#'   cvr <- applyFolds(mod, folds = folds_bs, grid = 1:75)
 #' 
-#' ## compute out-of-bag risk and coefficient estimates on folds  
-#' cvr2 <- validateFDboost(mod, folds = folds_bs, grid = 1:75)
+#'   ## compute out-of-bag risk and coefficient estimates on folds  
+#'   cvr2 <- validateFDboost(mod, folds = folds_bs, grid = 1:75)
 #' 
-#' ## weights per observation point  
-#' folds_bs_long <- folds_bs[rep(1:nrow(folds_bs), times = mod$ydim[2]), ]
-#' attr(folds_bs_long, "type") <- "3-fold bootstrap"
-#' ## compute out-of-bag risk on the 3 folds for 1 to 75 boosting iterations  
-#' cvr3 <- cvrisk(mod, folds = folds_bs_long, grid = 1:75)
+#'   ## weights per observation point  
+#'   folds_bs_long <- folds_bs[rep(1:nrow(folds_bs), times = mod$ydim[2]), ]
+#'   attr(folds_bs_long, "type") <- "3-fold bootstrap"
+#'   ## compute out-of-bag risk on the 3 folds for 1 to 75 boosting iterations  
+#'   cvr3 <- cvrisk(mod, folds = folds_bs_long, grid = 1:75)
+#' }
 #' 
 #' \dontrun{
 #'   ## plot the out-of-bag risk

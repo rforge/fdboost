@@ -37,21 +37,24 @@
 #' and can be chosen using the functions \code{cvrisk.FDboost} and \code{validateFDboost} as they compute
 #' honest, i.e. out-of-bag, estimates of the empirical risk for different numbers of boosting iterations. 
 #' The weights (zero weights correspond to test cases) are defined via the folds matrix, 
-#' see \code{\link[mboost]{cvrisk}} in package mboost.
+#' see \code{\link[mboost]{cvrisk}} in package mboost. 
+#' See Hofner et al. (2015) for the combination of stability selection and component-wise boosting. 
 #' 
 #' @seealso \code{\link[mboost]{stabsel}} to perform stability selection for a mboost-object.
 #' 
 #' @references 
-#' B. Hofner, L. Boccuto and M. Goeker (2014), Controlling false discoveries in 
-#' high-dimensional situations: Boosting with stability selection. Technical Report, arXiv:1411.1285.
+#' B. Hofner, L. Boccuto and M. Goeker (2015), Controlling false discoveries in 
+#' high-dimensional situations: boosting with stability selection. 
+#' BMC Bioinformatics, 16, 1-17.
 #'  
 #' N. Meinshausen and P. Buehlmann (2010), Stability selection. 
 #' Journal of the Royal Statistical Society, Series B, 72, 417-473.
+#' 
 #' R.D. Shah and R.J. Samworth (2013), Variable selection with error control: 
 #' another look at stability selection. Journal of the Royal Statistical Society, Series B, 75, 55-80. 
 #' 
 #' @return An object of class \code{stabsel} with a special print method. 
-#' For the elements of the object see \code{\link[mboost]{stabsel}}
+#' For the elements of the object, see \code{\link[mboost]{stabsel}}
 #' 
 #' @examples
 #' ######## Example for function-on-scalar-regression
@@ -90,13 +93,12 @@
 #' stabsel_parameters(q = 3, PFER = 1, p = 6, sampling.type = "SS")
 #' sel1 <- stabsel(modAll, q = 3, PFER = 1, folds = folds, grid = 1:200, sampling.type = "SS")
 #' sel1
-#' }
 #' 
 #' ## stability selection without refit of the smooth intercept 
 #' sel2 <- stabsel(modAll, refitSmoothOffset = FALSE, q = 3, PFER = 1, 
 #'                 folds = folds, grid = 1:200, sampling.type = "SS")
 #' sel2
-#' 
+#' }
 #' 
 #' @export
 ## code for stabsel.mboost taken from mboost 2.6-0
