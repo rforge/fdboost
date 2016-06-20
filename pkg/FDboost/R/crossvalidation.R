@@ -13,6 +13,10 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
   #  stop("applyFolds() not yet implemented for FDboostlong.")
   #}
   
+  if(any(class(object$response) == "factor")){
+    stop("applyFolds() for factor response not implemented yet.")
+  } 
+  
   if (is.null(folds)) {
     stop("Specify folds.")
   } 
@@ -238,6 +242,12 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
       }
       
       response_oobweights <- c(dat_oobweights[[object$yname]])
+      
+      ## <TODO> implement correct transformation for factor response, like in Binomial() 
+      if(any(class(response_oobweights) == "character")){
+        stop("applyFolds() for factor response not implemented yet.")
+        ## response_oobweights <- as.numeric(as.factor(response_oobweights))
+      }
       
       ### this is achieved by setting numInt = "equal" in applyFolds()
       #       # get the integration weights for the oob-predictions 
@@ -592,6 +602,10 @@ validateFDboost <- function(object, response = NULL,
   #     warning("is.null(folds), per default folds=cvMa(ydim=object$ydim, weights=model.weights(object), type=\"bootstrap\")")
   #     folds <- cvMa(ydim=object$ydim, weights=model.weights(object), type="bootstrap")
   #   }
+  
+  if(any(class(object$response) == "factor")){
+    stop("validateFDboost() for factor response not implemented yet.")
+  } 
   
   names_bl <- names(object$baselearner)
   if(any(grepl("brandomc", names_bl))) message("For brandomc, the transformation matrix Z is fixed over all folds.")
