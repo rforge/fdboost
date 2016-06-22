@@ -783,21 +783,33 @@ FDboost <- function(formula,          ### response ~ xvars
     all_df <- c()
     for(i in 1:length(split_bl)){
       parti <- parse(text = split_bl[i])[[1]] 
-      dfi <- as.call(parti)$df # df of part i in bl 
+      parti <- expand.call(definition = get(as.character(parti[[1]])), call = parti)
+      dfi <- parti$df # df of part i in bl 
       if(is.symbol(dfi)) dfi <- eval(dfi) 
-      lambdai <- as.call(parti)$lambda # if lambda is present, df is ignored 
-      if(is.null(lambdai)){
-        if(is.null(dfi)) dfi <- expand.call(definition = get(as.character(parti[[1]])), call = parti)$df
+      lambdai <- parti$lambda # if lambda is present, df is ignored 
+      if(is.symbol(lambdai)) lambdai <- eval(lambdai)
+      if(!is.null(dfi)){
         all_df[i] <- dfi 
-      }else{
-        all_df[i] <- NULL 
+      }else{ ## for df = NULL, the value of lambda is used 
+        if(lambdai == 0){
+          all_df[i] <-  NCOL(extract(with(data, eval(parti)), "design"))
+        }else{
+          all_df[i] <- "" ## dont know df 
+        }
+        if(grepl("%X.{1,3}%", bl)){ ## special behaviour of %X%
+          all_df[i] <- 1
+        } 
       }
     }
-    ret <- prod(all_df) # global df for bl is product of all df 
-    if( identical(ret, numeric(0)) ) ret <- NULL
+    if(any(all_df == "")){
+      ret <- NULL
+    }else{
+      ret <- prod(all_df) # global df for bl is product of all df 
+      if( identical(ret, numeric(0)) ) ret <- NULL
+    } 
     return(ret)
   }
-  
+
   #### get the specified df for each base-learner
   ## <FIXME> does not take into account base-learners that do not have brackets
   if(length(tmp) == 0){
@@ -806,6 +818,8 @@ FDboost <- function(formula,          ### response ~ xvars
     bl_df <- vector("list", length(tmp))
     bl_df[equalBrackets] <- lapply(tmp[equalBrackets], function(x) try(get_df(x)))
     bl_df <- unlist(bl_df[equalBrackets & (!sapply(bl_df, class) %in% "try-error")])
+    
+    print(bl_df)
     
     if( !is.null(bl_df) && any(abs(bl_df - bl_df[1]) > .Machine$double.eps * 10^10) ){
       warning("The base-learners differ in the degrees of freedom.")
@@ -822,8 +836,8 @@ FDboost <- function(formula,          ### response ~ xvars
   if ( any( gsub(" ", "", strsplit(cfm0[2], "\\+")[[1]]) ==  "1")){
     formula_intercept <- TRUE
     ## use df or lambda as in timeformula 
-    if( grepl("lambda", deparse(timeformula)) || 
-        ( grepl("bols", deparse(timeformula)) &  !grepl("df", deparse(timeformula))) ){
+    if( any(grepl("lambda", deparse(timeformula))) || 
+        any(( grepl("bols", deparse(timeformula)) &  !grepl("df", deparse(timeformula)))) ){
       tmp <- c("bols(ONEx, intercept = FALSE, lambda = 0)", tmp)
     } else{
       tmp <- c("bols(ONEx, intercept = FALSE, df = 1)", tmp)
