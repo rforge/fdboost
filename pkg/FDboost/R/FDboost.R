@@ -796,7 +796,7 @@ FDboost <- function(formula,          ### response ~ xvars
         }else{
           all_df[i] <- "" ## dont know df 
         }
-        if(grepl("%X.{1,3}%", bl)){ ## special behaviour of %X%
+        if(grepl("%X.{0,3}%", bl)){ ## special behaviour of %X%
           all_df[i] <- 1
         } 
       }
@@ -818,8 +818,7 @@ FDboost <- function(formula,          ### response ~ xvars
     bl_df <- vector("list", length(tmp))
     bl_df[equalBrackets] <- lapply(tmp[equalBrackets], function(x) try(get_df(x)))
     bl_df <- unlist(bl_df[equalBrackets & (!sapply(bl_df, class) %in% "try-error")])
-    
-    print(bl_df)
+    #print(bl_df)
     
     if( !is.null(bl_df) && any(abs(bl_df - bl_df[1]) > .Machine$double.eps * 10^10) ){
       warning("The base-learners differ in the degrees of freedom.")
