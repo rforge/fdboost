@@ -107,6 +107,15 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
   
   ## get the names of all variables x_i, i = 1, ... , N
   names_variables <- unlist(lapply(object$baselearner, function(x) x$get_names() ))
+  ## check for index
+  has_index <- sapply(object$baselearner, function(x) !is.null(x$get_index()))
+  if( any( has_index )){
+    index_names <- sapply(lapply(object$baselearner[has_index], function(x) x$get_call()), 
+                                 function(l) gsub("index[[:space:]*]=[[:space:]*]|\\,","",
+                                                  regmatches(l, regexpr('index[[:space:]*]=.*\\,', l)))
+    )
+  } else index_names <- NULL
+  
   names(names_variables) <- NULL
   names_variables <- names_variables[names_variables != nameyind]
   names_variables <- names_variables[names_variables != "ONEx"]
@@ -170,11 +179,11 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
     if(any(class(object) == "FDboostLong")){
       dat_weights <- reweightData(data = dathelp, vars = names_variables, 
                                   longvars = c(object$yname, nameyind, "integration_weights", names_variables_long),  
-                                  weights = weights, idvars = attr(object$id, "nameid"))
+                                  weights = weights, idvars = c(attr(object$id, "nameid"), index_names))
     }else{
       dat_weights <- reweightData(data = dathelp, vars = names_variables, 
                                   longvars = names_variables_long, 
-                                  weights = weights, idvars = "object_id")
+                                  weights = weights, idvars = c("object_id", index_names))
     }
 
     
@@ -222,7 +231,7 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
         dathelp$lengthTi1 <- c(lengthTi1)
         dat_oobweights <- reweightData(data = dathelp, vars = c(names_variables, "lengthTi1"),  
                                        longvars = c(object$yname, nameyind, "integration_weights", names_variables_long),  
-                                       weights = oobweights, idvars = attr(object$id, "nameid"))
+                                       weights = oobweights, idvars = c(attr(object$id, "nameid"), index_names))
         ## funplot(dat_oobweights[[nameyind]], dat_oobweights[[object$yname]], 
         ##         id = dat_oobweights[[attr(object$id, "nameid")]])
         
@@ -238,7 +247,7 @@ applyFolds <- function(object, folds = cv(rep(1, length(unique(object$id))), typ
       }else{
         dat_oobweights <- reweightData(data = dathelp, vars = names_variables, 
                                        longvars = names_variables_long,
-                                       weights = oobweights, idvars = "object_id")
+                                       weights = oobweights, idvars = c("object_id", index_names))
       }
       
       response_oobweights <- c(dat_oobweights[[object$yname]])
