@@ -1500,16 +1500,29 @@ plotPredCoef <- function(x, which=NULL, pers=TRUE,
     
     if(commonRange & is.null(ylim)){
       if(length(x$yind)>1){
-        ylim <- range(lapply(x$coefCV[which], function(x) x$value)) 
+        if(!any(sapply(lapply(x$coefCV[which], function(x) x$value), is.null))){
+          ylim <- range(lapply(x$coefCV[which], function(x) x$value)) 
+        }else{
+          ## in case of composed base-learners with %X% the ylim is determinded using the first value
+          ylim <- range(lapply(x$coefCV[which], function(x) x[[1]]$value)) 
+        }
       }else{
         ylim <- range(lapply(x$coefCV[which], function(x) x$value))
-      } 
+      }
+      if(any(is.infinite(ylim))) ylim <- NULL
     }
     
     for(l in which){ # loop over effects
       
       # coef() of a certain term
       temp <- x$coefCV[l][[1]]
+      
+      if(!is.null(temp$numberLevels)){
+        ## TODO: make plots for all levels of temp$numberLevels
+        ## temp$dim <- temp[[1]]$dim
+        temp <- temp[[1]]
+        warning("Of the composed base-learner ", l, " only the first effect is plotted.")
+      }
       
       # set the range for each effect individually
       if(FALSE) ylim <- range(temp$value)
