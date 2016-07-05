@@ -785,7 +785,7 @@ FDboost <- function(formula,          ### response ~ xvars
       parti <- parse(text = split_bl[i])[[1]] 
       parti <- expand.call(definition = get(as.character(parti[[1]])), call = parti)
       dfi <- parti$df # df of part i in bl 
-      if(is.symbol(dfi)) dfi <- eval(dfi) 
+      if(is.symbol(dfi) || (!is.numeric(dfi) && is.numeric(eval(dfi)))) dfi <- eval(dfi) 
       lambdai <- parti$lambda # if lambda is present, df is ignored 
       if(is.symbol(lambdai)) lambdai <- eval(lambdai)
       if(!is.null(dfi)){
