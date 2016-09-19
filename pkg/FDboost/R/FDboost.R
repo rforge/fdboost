@@ -969,8 +969,8 @@ FDboost <- function(formula,          ### response ~ xvars
         # only use responses with less than 90% missings for the calculation of the offset
         # only use response curves whose weights are not completely 0 (important for resampling methods)
         meanNA <- apply(response, 1, function(x) mean(is.na(x)))
-        responseInter <- t(apply(response[meanNA < 0.9 & rowSums(matrix(w, ncol = nc)) != 0 , ], 1, function(x) 
-          approx(time, x, rule = offset_control$rule, xout = time)$y))
+        responseInter <- t(apply(response[meanNA < 0.9 & rowSums(matrix(w, ncol = nc)) != 0 , , drop = FALSE], 1, 
+                                 function(x) approx(time, x, rule = offset_control$rule, xout = time)$y))
         # check whether first or last columns of the response contain solely NA
         # then use the values of the next column
         if(any(apply(responseInter, 2, function(x) all(is.na(x)) ) )){
